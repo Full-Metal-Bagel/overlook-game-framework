@@ -74,7 +74,7 @@ namespace RelEcs
                 _archetypes.GetEntityMeta(_identities[row]).Row = row;
             }
 
-            _identities[Count] = default;
+            _identities[Count] = Identity.None;
 
             foreach (var storage in _storages.Values)
             {
