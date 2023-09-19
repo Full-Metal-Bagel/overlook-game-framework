@@ -1,62 +1,34 @@
+<#@ template language="C#" #>
+<#@ output extension=".cs" #>
+<#@ import namespace="System.Linq" #>
+
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 namespace RelEcs
 {
-    public class Query
+<# GenerateQuery(10); #>
+
+}
+
+<#+
+    void GenerateQuery(int maxTypeCount)
     {
-        public readonly List<Table> Tables;
-
-        internal readonly Archetypes Archetypes;
-        internal readonly Mask Mask;
-
-        protected readonly Dictionary<int, Array[]> Storages = new();
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Query(Archetypes archetypes, Mask mask, List<Table> tables)
+        for (var count = 2; count < maxTypeCount; count++)
         {
-            Tables = tables;
-            Archetypes = archetypes;
-            Mask = mask;
+            var indices = Enumerable.Range(0, count);
+            var typeNames = indices.Select(i => $"C{i}");
+            var genericTypes = string.Join(", ", typeNames);
+            var classRestricts = string.Join(Environment.NewLine, typeNames.Select(type => $"        where {type} : class"));
+            var getStorageArrays = string.Join(Environment.NewLine, typeNames.Select(type => $"                table.GetStorage<{type}>(Identity.None),"));
+            var returnStorages = string.Join(", ", indices.Select(i => $"((C{i}[])storages[{i}])[meta.Row]"));
+            var returnEnumeratorCurrent = string.Join(", ", indices.Select(i => $"_data.Tables[_data.TableIndex].GetStorage<C{i}>(Identity.None)[_data.EntityIndex]"));
+            var buildHas = string.Join(".", typeNames.Select(type => $"Has<{type}>()"));
+#>
 
-            UpdateStorages();
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Has(Entity entity)
-        {
-            var meta = Archetypes.GetEntityMeta(entity.Identity);
-            return Storages.ContainsKey(meta.TableId);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void AddTable(Table table)
-        {
-            Tables.Add(table);
-            UpdateStorages();
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected virtual Array[] GetStorages(Table table)
-        {
-            throw new Exception("Invalid Enumerator");
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        void UpdateStorages()
-        {
-            Storages.Clear();
-
-            foreach (var table in Tables)
-            {
-                var storages = GetStorages(table);
-                Storages.Add(table.Id, storages);
-            }
-        }
-    }
-
-    public class Query<C0> : Query where C0 : class
+    public class Query<<#= genericTypes #>> : Query
+<#= classRestricts #>
     {
         public Query(Archetypes archetypes, Mask mask, List<Table> tables) : base(archetypes, mask, tables)
         {
@@ -67,16 +39,16 @@ namespace RelEcs
         {
             return new Array[]
             {
-                table.GetStorage<C0>(Identity.None),
+<#= getStorageArrays #>
             };
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public C0 Get(Entity entity)
+        public (<#= genericTypes #>) Get(Entity entity)
         {
             var meta = Archetypes.GetEntityMeta(entity.Identity);
             var storages = Storages[meta.TableId];
-            return ((C0[])storages[0])[meta.Row];
+            return (<#= returnStorages #>);
         }
 
         public Enumerator GetEnumerator()
@@ -89,21 +61,17 @@ namespace RelEcs
             private QueryEnumerator _data;
             public Enumerator(IReadOnlyList<Table> tables) => _data = new QueryEnumerator(tables);
             public bool MoveNext() => _data.MoveNext();
-            public C0 Current
-            {
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                get => _data.Tables[_data.TableIndex].GetStorage<C0>(Identity.None)[_data.EntityIndex];
-            }
+            public (<#= genericTypes #>) Current => (<#= returnEnumeratorCurrent #>);
         }
 
         public sealed class Builder : QueryBuilder
         {
             static readonly Func<Archetypes, Mask, List<Table>, Query> CreateQuery =
-                (archetypes, mask, matchingTables) => new Query<C0>(archetypes, mask, matchingTables);
+                (archetypes, mask, matchingTables) => new Query<<#= genericTypes #>>(archetypes, mask, matchingTables);
 
             public Builder(Archetypes archetypes) : base(archetypes)
             {
-                Has<C0>();
+                <#= buildHas #>;
             }
 
             public new Builder Has<T>(Entity? target = default)
@@ -136,10 +104,22 @@ namespace RelEcs
                 return (Builder)base.Any<T>(type);
             }
 
-            public Query<C0> Build()
+            public Query<<#= genericTypes #>> Build()
             {
-                return (Query<C0>)Archetypes.GetQuery(Mask, CreateQuery);
+                return (Query<<#= genericTypes #>>)Archetypes.GetQuery(Mask, CreateQuery);
             }
         }
     }
-}
+
+    public static partial class WorldQueryExtension
+    {
+        public static Query<<#= genericTypes #>>.Builder Query<<#= genericTypes #>>(this World world)
+<#= classRestricts #>
+        {
+            return new Query<<#= genericTypes #>>.Builder(world._archetypes);
+        }
+    }
+<#+
+        }
+    }
+#>
