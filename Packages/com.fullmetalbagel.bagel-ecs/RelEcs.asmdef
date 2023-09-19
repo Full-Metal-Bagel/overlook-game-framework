@@ -1,3 +1,16 @@
 {
-	"name": "RelEcs"
+    "name": "RelEcs",
+    "rootNamespace": "",
+    "references": [
+        "GUID:64b2c2c6713d0eb4da059cc0c4b68035"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }
