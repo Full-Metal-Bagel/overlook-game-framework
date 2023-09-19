@@ -26,9 +26,11 @@ namespace RelEcs
         int _lockCount;
         bool _isLocked;
 
+        private static readonly StorageType s_entityType = StorageType.Create<Entity>(Identity.None);
+
         public Archetypes()
         {
-            AddTable(new SortedSet<StorageType> { StorageType.Create<Entity>(Identity.None) });
+            AddTable(new SortedSet<StorageType> { s_entityType });
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -46,7 +48,7 @@ namespace RelEcs
 
             var entity = new Entity(identity);
 
-            table.Storages[0].SetValue(entity, row);
+            table.GetStorage(s_entityType).SetValue(entity, row);
 
             return entity;
         }

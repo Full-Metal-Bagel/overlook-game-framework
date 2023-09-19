@@ -5,33 +5,37 @@ namespace RelEcs.Tests
 {
     public static class Extensions
     {
-        public static int Count(this IEnumerator enumerator)
+        public static int Count<C0>(this Query<C0> query) where C0 : class
         {
             int count = 0;
-            while (enumerator.MoveNext())
-            {
-                count++;
-            }
+            foreach (var _ in query) count++;
             return count;
         }
 
-        public static IEnumerable<C1> AsEnumerable<C1>(this Enumerator<C1> enumerator)
+        public static int Count<C0, C1>(this Query<C0, C1> query)
+            where C0 : class
             where C1 : class
         {
-            while (enumerator.MoveNext())
-            {
-                yield return enumerator.Current;
-            }
+            int count = 0;
+            foreach (var _ in query) count++;
+            return count;
         }
 
-        public static IEnumerable<(C1, C2)> AsEnumerable<C1, C2>(this Enumerator<C1, C2> enumerator)
+        public static IEnumerable<C0> AsEnumerable<C0>(this Query<C0> query)
+            where C0 : class
+        {
+            var result = new List<C0>();
+            foreach (var entity in query) result.Add(entity);
+            return result;
+        }
+
+        public static IEnumerable<(C1, C2)> AsEnumerable<C1, C2>(this Query<C1, C2> query)
             where C1 : class
             where C2 : class
         {
-            while (enumerator.MoveNext())
-            {
-                yield return enumerator.Current;
-            }
+            var result = new List<(C1, C2)>();
+            foreach (var entity in query) result.Add(entity);
+            return result;
         }
     }
 }
