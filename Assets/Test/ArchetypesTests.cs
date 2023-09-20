@@ -96,7 +96,7 @@ namespace RelEcs.Tests
             // Arrange
             var entity = _archetypes.Spawn();
             var relatedEntity = _archetypes.Spawn();
-            var relationType = StorageType.Create(typeof(object), relatedEntity.Identity); // Assuming Relation is a type representing relations
+            var relationType = StorageType.Create(typeof(Entity), relatedEntity.Identity); // Assuming Relation is a type representing relations
             _archetypes.AddComponent(relationType, entity.Identity, relatedEntity);
 
             // Act
@@ -157,8 +157,8 @@ namespace RelEcs.Tests
         public void AddComponent_AddsComponentToEntity()
         {
             var entity = _archetypes.Spawn();
-            var type = StorageType.Create<object>(); // Assuming a valid StorageType instance
-            _archetypes.AddComponent(type, entity.Identity, new object());
+            var type = StorageType.Create<string>(); // Assuming a valid StorageType instance
+            _archetypes.AddComponent(type, entity.Identity, "");
             Assert.That(_archetypes.HasComponent(type, entity.Identity), Is.True);
         }
 
@@ -166,8 +166,8 @@ namespace RelEcs.Tests
         public void GetComponent_ReturnsValidComponent()
         {
             var entity = _archetypes.Spawn();
-            var type = StorageType.Create<object>(); // Assuming a valid StorageType instance
-            var data = new object();
+            var type = StorageType.Create<string>(); // Assuming a valid StorageType instance
+            var data = "123";
             _archetypes.AddComponent(type, entity.Identity, data);
             var component = _archetypes.GetComponent(type, entity.Identity);
             Assert.That(component, Is.EqualTo(data));
@@ -177,9 +177,9 @@ namespace RelEcs.Tests
         public void Lock_LocksArchetypes()
         {
             _archetypes.Lock();
-            var type = StorageType.Create<object>();
+            var type = StorageType.Create<string>();
             var identify = _archetypes.Spawn().Identity;
-            _archetypes.AddComponent(type, identify, new object());
+            _archetypes.AddComponent(type, identify, "");
             Assert.That(_archetypes.HasComponent(type, identify), Is.False);
             _archetypes.Unlock();
             Assert.That(_archetypes.HasComponent(type, identify), Is.True);
@@ -192,8 +192,7 @@ namespace RelEcs.Tests
             _archetypes.Lock();
             _archetypes.Unlock();
             Assert.DoesNotThrow(() =>
-                _archetypes.AddComponent(StorageType.Create<object>(), entity.Identity,
-                    new object())); // Assuming operations don't throw when unlocked
+                _archetypes.AddComponent(StorageType.Create<string>(), entity.Identity, "")); // Assuming operations don't throw when unlocked
         }
 
         // ... Add more tests for edge cases, different scenarios, and possible exceptions ...
@@ -201,18 +200,18 @@ namespace RelEcs.Tests
         public void AddComponent_ThrowsWhenComponentAlreadyExists()
         {
             var entity = _archetypes.Spawn();
-            var type = StorageType.Create<object>(); // Assuming a valid StorageType instance
-            _archetypes.AddComponent(type, entity.Identity, new object());
+            var type = StorageType.Create<string>(); // Assuming a valid StorageType instance
+            _archetypes.AddComponent(type, entity.Identity, "");
             Assert.Throws<Exception>(() =>
                 _archetypes.AddComponent(type, entity.Identity,
-                    new object())); // Assuming it throws an exception when trying to add an existing component
+                    "")); // Assuming it throws an exception when trying to add an existing component
         }
 
         [Test]
         public void RemoveComponent_ThrowsWhenComponentDoesNotExist()
         {
             var entity = _archetypes.Spawn();
-            var type = StorageType.Create<object>(); // Assuming a valid StorageType instance
+            var type = StorageType.Create<string>(); // Assuming a valid StorageType instance
             Assert.Throws<Exception>(() =>
                 _archetypes.RemoveComponent(type,
                     entity.Identity)); // Assuming it throws an exception when trying to remove a non-existent component
@@ -222,7 +221,7 @@ namespace RelEcs.Tests
         public void GetComponent_ThrowsWhenComponentDoesNotExist()
         {
             var entity = _archetypes.Spawn();
-            var type = StorageType.Create<object>(); // Assuming a valid StorageType instance
+            var type = StorageType.Create<string>(); // Assuming a valid StorageType instance
             Assert.Catch<Exception>(() =>
                 _archetypes.GetComponent(type,
                     entity.Identity)); // Assuming it throws an exception when trying to get a non-existent component
@@ -232,9 +231,9 @@ namespace RelEcs.Tests
         public void AddComponent_WhenLocked_QueuesOperation()
         {
             var entity = _archetypes.Spawn();
-            var type = StorageType.Create<object>(); // Assuming a valid StorageType instance
+            var type = StorageType.Create<string>(); // Assuming a valid StorageType instance
             _archetypes.Lock();
-            _archetypes.AddComponent(type, entity.Identity, new object());
+            _archetypes.AddComponent(type, entity.Identity, "123");
             _archetypes.Unlock();
             Assert.That(_archetypes.HasComponent(type,
                 entity.Identity), Is.True); // Assuming the component is added after unlocking
@@ -244,8 +243,8 @@ namespace RelEcs.Tests
         public void RemoveComponent_WhenLocked_QueuesOperation()
         {
             var entity = _archetypes.Spawn();
-            var type = StorageType.Create<object>(); // Assuming a valid StorageType instance
-            _archetypes.AddComponent(type, entity.Identity, new object());
+            var type = StorageType.Create<string>(); // Assuming a valid StorageType instance
+            _archetypes.AddComponent(type, entity.Identity, "123");
             _archetypes.Lock();
             _archetypes.RemoveComponent(type, entity.Identity);
             _archetypes.Unlock();
@@ -270,8 +269,8 @@ namespace RelEcs.Tests
         public void GetComponent_ReturnsCorrectComponent()
         {
             var entity = _archetypes.Spawn();
-            var type = StorageType.Create<object>(); // Assuming a valid StorageType instance
-            var data = new object();
+            var type = StorageType.Create<string>(); // Assuming a valid StorageType instance
+            var data = "123";
             _archetypes.AddComponent(type, entity.Identity, data);
             var component = _archetypes.GetComponent(type, entity.Identity);
             Assert.That(component, Is.EqualTo(data));
@@ -281,7 +280,7 @@ namespace RelEcs.Tests
         public void GetComponent_ThrowsWhenEntityDoesNotExist()
         {
             var nonExistentIdentity = new Identity(); // Assuming a valid Identity instance not linked to any entity
-            var type = StorageType.Create<object>(); // Assuming a valid StorageType instance
+            var type = StorageType.Create<string>(); // Assuming a valid StorageType instance
             Assert.Catch<Exception>(() => _archetypes.GetComponent(type, nonExistentIdentity));
         }
 
@@ -289,7 +288,7 @@ namespace RelEcs.Tests
         public void GetQuery_ReturnsValidQuery()
         {
             var mask = new Mask(); // Assuming a valid Mask instance
-            mask.Has(StorageType.Create<object>());
+            mask.Has(StorageType.Create<string>());
             var query = _archetypes.GetQuery(mask,
                 (archetypes, mask, tables) => new Query(archetypes, mask, tables)); // Assuming a valid delegate
             Assert.That(query, Is.Not.Null);
@@ -310,8 +309,8 @@ namespace RelEcs.Tests
         public void GetTarget_ReturnsValidEntity()
         {
             var entity = _archetypes.Spawn();
-            var type = StorageType.Create<object>(entity.Identity); // Assuming a valid StorageType instance
-            _archetypes.AddComponent(type, entity.Identity, new object());
+            var type = StorageType.Create<string>(entity.Identity); // Assuming a valid StorageType instance
+            _archetypes.AddComponent(type, entity.Identity, "");
             var targetEntity = _archetypes.GetTarget(type, entity.Identity);
             Assert.That(targetEntity, Is.EqualTo(entity));
         }
@@ -320,8 +319,8 @@ namespace RelEcs.Tests
         public void GetTargets_ReturnsValidEntities()
         {
             var entity = _archetypes.Spawn();
-            var type = StorageType.Create<object>(entity.Identity); // Assuming a valid StorageType instance
-            _archetypes.AddComponent(type, entity.Identity, new object());
+            var type = StorageType.Create<string>(entity.Identity); // Assuming a valid StorageType instance
+            _archetypes.AddComponent(type, entity.Identity, "");
             var targetEntities = _archetypes.GetTargets(type, entity.Identity);
             Assert.That(targetEntities, Is.EquivalentTo(new[] { entity }));
         }
@@ -331,7 +330,7 @@ namespace RelEcs.Tests
         public void GetTargets_ReturnsEmptyArray_WhenNoRelationsExist()
         {
             var entity = _archetypes.Spawn();
-            var type = StorageType.Create<object>(entity
+            var type = StorageType.Create<string>(entity
                 .Identity); // Assuming a valid StorageType instance representing a relation
             var targets = _archetypes.GetTargets(type, entity.Identity);
             Assert.That(targets, Is.Empty);
@@ -343,12 +342,10 @@ namespace RelEcs.Tests
             var entity = _archetypes.Spawn();
             var relatedEntity1 = _archetypes.Spawn();
             var relatedEntity2 = _archetypes.Spawn();
-            var type = StorageType.Create<object>(); // Assuming a valid StorageType instance representing a relation
+            var type = StorageType.Create<string>(); // Assuming a valid StorageType instance representing a relation
 
-            _archetypes.AddComponent(StorageType.Create<object>(relatedEntity1.Identity), entity.Identity,
-                new object());
-            _archetypes.AddComponent(StorageType.Create<object>(relatedEntity2.Identity), entity.Identity,
-                new object());
+            _archetypes.AddComponent(StorageType.Create<string>(relatedEntity1.Identity), entity.Identity, "");
+            _archetypes.AddComponent(StorageType.Create<string>(relatedEntity2.Identity), entity.Identity, "");
 
             var targets = _archetypes.GetTargets(type, entity.Identity);
             Assert.That(targets, Is.EquivalentTo(new[] { relatedEntity1, relatedEntity2 }));
@@ -360,9 +357,9 @@ namespace RelEcs.Tests
             var entity = _archetypes.Spawn();
             var relatedEntity = _archetypes.Spawn();
             var unrelatedEntity = _archetypes.Spawn();
-            var type = StorageType.Create<object>();
+            var type = StorageType.Create<string>();
 
-            _archetypes.AddComponent(StorageType.Create<object>(relatedEntity.Identity), entity.Identity, new object());
+            _archetypes.AddComponent(StorageType.Create<string>(relatedEntity.Identity), entity.Identity, "");
 
             var targets = _archetypes.GetTargets(type, entity.Identity);
             Assert.That(targets, Is.EquivalentTo(new[] { relatedEntity }));

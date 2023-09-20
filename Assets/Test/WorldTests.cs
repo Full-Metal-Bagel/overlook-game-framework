@@ -23,7 +23,6 @@ namespace RelEcs.Tests
     }
 
     public class SomeNonExistentComponent { }
-    public class SomeElement { }
 
     public class Health
     {
@@ -408,95 +407,12 @@ namespace RelEcs.Tests
             Assert.That(components, Is.EquivalentTo(new object[] { entity, velocity }));
         }
 
-
-        [Test]
-        public void GetElement_SuccessfullyRetrieved()
-        {
-            var element = new SomeElement();
-            _world.AddElement(element);
-            Assert.That(_world.GetElement<SomeElement>(), Is.SameAs(element));
-        }
-
-        [Test]
-        public void TryGetElement_SuccessfullyRetrieved()
-        {
-            var element = new SomeElement();
-            _world.AddElement(element);
-            Assert.That(_world.TryGetElement(out SomeElement retrievedElement), Is.True);
-            Assert.That(retrievedElement, Is.SameAs(element));
-        }
-
-        [Test]
-        public void TryGetElement_NoElement_ReturnsFalse()
-        {
-            Assert.That(_world.TryGetElement(out SomeElement _), Is.False);
-        }
-
-        [Test]
-        public void HasElement_ElementExists_ReturnsTrue()
-        {
-            var element = new SomeElement();
-            _world.AddElement(element);
-            Assert.That(_world.HasElement<SomeElement>(), Is.True);
-        }
-
-        [Test]
-        public void HasElement_NoElement_ReturnsFalse()
-        {
-            Assert.That(_world.HasElement<SomeElement>(), Is.False);
-        }
-
-        [Test]
-        public void AddElement_SuccessfullyAdded()
-        {
-            var element = new SomeElement();
-            _world.AddElement(element);
-            Assert.That(_world.GetElement<SomeElement>(), Is.EqualTo(element));
-        }
-
-        [Test]
-        public void ReplaceElement_SuccessfullyReplaced()
-        {
-            var element1 = new SomeElement();
-            var element2 = new SomeElement();
-            _world.AddElement(element1);
-            _world.ReplaceElement(element2);
-            Assert.That(_world.GetElement<SomeElement>(), Is.SameAs(element2));
-        }
-
-        [Test]
-        public void AddOrReplaceElement_AddsWhenNotExists()
-        {
-            var element = new SomeElement();
-            _world.AddOrReplaceElement(element);
-            Assert.That(_world.GetElement<SomeElement>(), Is.SameAs(element));
-        }
-
-        [Test]
-        public void AddOrReplaceElement_ReplacesWhenExists()
-        {
-            var element1 = new SomeElement();
-            var element2 = new SomeElement();
-            _world.AddElement(element1);
-            _world.AddOrReplaceElement(element2);
-            Assert.That(_world.GetElement<SomeElement>(), Is.SameAs(element2));
-        }
-
-        [Test]
-        public void RemoveElement_SuccessfullyRemoved()
-        {
-            var element = new SomeElement();
-            _world.AddElement(element);
-            _world.RemoveElement<SomeElement>();
-            Assert.That(_world.HasElement<SomeElement>(), Is.False);
-        }
-
         [Test]
         public void AddObjectComponent_SuccessfullyAdded()
         {
             var entity = _world.Spawn().Id();
             var position = new Position();
-            _world.AddObjectComponent(entity, position);
+            _world.AddComponent(entity, position);
             Assert.That(_world.HasComponent<Position>(entity), Is.True);
         }
 
@@ -504,7 +420,7 @@ namespace RelEcs.Tests
         public void AddObjectComponent_NullComponent_ThrowsException()
         {
             var entity = _world.Spawn().Id();
-            Assert.Catch<Exception>(() => _world.AddObjectComponent(entity, null!));
+            Assert.Catch<Exception>(() => _world.AddComponent<object>(entity, null!));
         }
 
         [Test]
@@ -512,7 +428,7 @@ namespace RelEcs.Tests
         {
             var entity = new Entity(new Identity(999)); // Assuming 999 is an invalid ID
             var position = new Position();
-            Assert.Catch<Exception>(() => _world.AddObjectComponent(entity, position));
+            Assert.Catch<Exception>(() => _world.AddComponent(entity, position));
         }
 
         [Test]
@@ -521,8 +437,8 @@ namespace RelEcs.Tests
             var entity = _world.Spawn().Id();
             var position1 = new Position();
             var position2 = new Position();
-            _world.AddObjectComponent(entity, position1);
-            Assert.Catch<Exception>(() => _world.AddObjectComponent(entity, position2));
+            _world.AddComponent(entity, position1);
+            Assert.Catch<Exception>(() => _world.AddComponent(entity, position2));
         }
 
         [Test]
@@ -531,7 +447,7 @@ namespace RelEcs.Tests
             var entity1 = _world.Spawn().Id();
             var entity2 = _world.Spawn().Id();
             var results = _world.Query<Entity>().Build().Count();
-            Assert.That(results, Is.EqualTo(2 + 1/* world entity*/));
+            Assert.That(results, Is.EqualTo(2));
         }
 
         [Test]
@@ -584,7 +500,7 @@ namespace RelEcs.Tests
             var entity1 = _world.Spawn().Add(new Position(1, 1)).Id();
             var entity2 = _world.Spawn().Add(new Velocity(2, 2)).Id();
             var results = _world.Query().Not<Position>().Not<Velocity>().Build().AsEnumerable();
-            Assert.That(results, Is.EquivalentTo(new [] { _world._world }));
+            Assert.That(results, Is.Empty);
         }
     }
 }

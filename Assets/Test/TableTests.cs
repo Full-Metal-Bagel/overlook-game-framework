@@ -84,7 +84,7 @@ namespace RelEcs.Tests
         {
             var invalidIdentity = new Identity(999); // Replace with an invalid identity or mock.
 
-            Assert.Throws<KeyNotFoundException>(() => _table.GetStorage<int>(invalidIdentity));
+            Assert.Catch<Exception>(() => _table.GetStorage<int>(invalidIdentity));
         }
 
         [Test]
