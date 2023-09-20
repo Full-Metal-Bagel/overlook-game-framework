@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
+using System.Linq;
 
 namespace RelEcs
 {
@@ -16,7 +16,8 @@ namespace RelEcs
 
         public readonly int Id;
 
-        public readonly SortedSet<StorageType> Types;
+        public SortedSet<StorageType> Types { get; }
+        public SortedSet<StorageType> TypesInHierarchy { get; } = new();
 
         public Identity[] Identities => _identities;
 
@@ -30,7 +31,8 @@ namespace RelEcs
         readonly Dictionary<StorageType, TableEdge> _edges = new();
         readonly Dictionary<StorageType, Array> _storages = new();
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public IReadOnlyDictionary<StorageType, Array> Storages => _storages;
+
         public Table(int id, Archetypes archetypes, SortedSet<StorageType> types)
         {
             _archetypes = archetypes;
@@ -42,11 +44,30 @@ namespace RelEcs
 
             foreach (var type in types)
             {
+                FillAllTypes(type, TypesInHierarchy);
                 _storages[type] = Array.CreateInstance(type.Type, StartCapacity);
+            }
+
+            // TODO: cache
+            static void FillAllTypes(StorageType storageType, SortedSet<StorageType> set)
+            {
+                var type = storageType.Type;
+                var target = storageType.Identity;
+                foreach (var interfaceType in type.GetInterfaces())
+                {
+                    // HACK: skip system interfaces
+                    if (!interfaceType.Namespace!.StartsWith("System.", StringComparison.InvariantCultureIgnoreCase))
+                        set.Add(StorageType.Create(interfaceType, target));
+                }
+
+                while (type != null)
+                {
+                    set.Add(StorageType.Create(type, target));
+                    type = type.BaseType;
+                }
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int Add(Identity identity)
         {
             EnsureCapacity(Count + 1);
@@ -54,7 +75,6 @@ namespace RelEcs
             return Count++;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Remove(int row)
         {
             if (row >= Count)
@@ -82,7 +102,6 @@ namespace RelEcs
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public TableEdge GetTableEdge(StorageType type)
         {
             if (_edges.TryGetValue(type, out var edge)) return edge;
@@ -93,20 +112,24 @@ namespace RelEcs
             return edge;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public T[] GetStorage<T>(Identity target)
         {
             var type = StorageType.Create<T>(target);
             return (T[])GetStorage(type);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Array GetStorage(StorageType type)
         {
-            return _storages[type];
+            if (_storages.TryGetValue(type, out var array)) return array;
+            // TODO: optimize by building map of base/interface -> actualType during creation
+            foreach (var (storageType, storage) in Storages)
+            {
+                if (type.Type.IsAssignableFrom(storageType.Type) && type.Identity == storageType.Identity)
+                    return storage;
+            }
+            throw new ArgumentException($"invalid StorageType: {type}");
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void EnsureCapacity(int capacity)
         {
             if (capacity <= 0) throw new ArgumentOutOfRangeException(nameof(capacity), "minCapacity must be positive");
@@ -115,7 +138,6 @@ namespace RelEcs
             Resize(Math.Max(capacity, StartCapacity) << 1);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         void Resize(int length)
         {
             if (length < 0) throw new ArgumentOutOfRangeException(nameof(length), "length cannot be negative");
@@ -133,7 +155,6 @@ namespace RelEcs
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int MoveEntry(Identity identity, int oldRow, Table oldTable, Table newTable)
         {
             var newRow = newTable.Add(identity);

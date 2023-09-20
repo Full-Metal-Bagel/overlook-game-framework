@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 
 namespace RelEcs
 {
-    public class Entity
+    public sealed class Entity
     {
         public static readonly Entity None = new(Identity.None);
         public static readonly Entity Any = new(Identity.Any);

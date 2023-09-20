@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -45,7 +44,7 @@ namespace RelEcs
 
         public static StorageType Create(Type type, Identity relationTarget)
         {
-            return new StorageType(relationTarget, TypeIdAssigner.GetOrCreate(type).Id, type);
+            return new StorageType(relationTarget, TypeIdAssigner.GetOrCreate(type), type);
         }
 
         public static StorageType Create<T>(Identity relationTarget)
@@ -58,7 +57,7 @@ namespace RelEcs
             return Value.CompareTo(other.Value);
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return (obj is StorageType other) && Value == other.Value;
         }
@@ -85,23 +84,18 @@ namespace RelEcs
     internal static class TypeIdAssigner
     {
         private static int s_counter;
-        private static readonly Dictionary<Type, (int Id, bool IsTag)> s_typeIdMap = new();
+        private static readonly Dictionary<Type, ushort> s_typeIdMap = new();
 
-        public static (ushort Id, bool IsTag) GetOrCreate(Type type)
+        public static ushort GetOrCreate(Type type)
         {
-            if (!s_typeIdMap.TryGetValue(type, out var t))
+            if (!s_typeIdMap.TryGetValue(type, out var typeId))
             {
                 var id = Interlocked.Increment(ref s_counter);
                 if (id > ushort.MaxValue) throw new IndexOutOfRangeException();
-                t = (id, IsTagType(type));
-                s_typeIdMap.Add(type, t);
+                typeId = (ushort)id;
+                s_typeIdMap.Add(type, typeId);
             }
-            return ((ushort)t.Id, t.IsTag);
-        }
-
-        private static bool IsTagType(Type type)
-        {
-            return type.GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).Length == 0;
+            return typeId;
         }
     }
 
@@ -110,13 +104,10 @@ namespace RelEcs
         // ReSharper disable once StaticMemberInGenericType
         public static readonly ushort Id;
 
-        // ReSharper disable once StaticMemberInGenericType
-        public static readonly bool IsTag;
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static TypeIdAssigner()
         {
-            (Id, IsTag) = TypeIdAssigner.GetOrCreate(typeof(T));
+            Id = TypeIdAssigner.GetOrCreate(typeof(T));
         }
     }
 }

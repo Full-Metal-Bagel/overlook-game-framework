@@ -117,9 +117,9 @@ namespace RelEcs
 
             if (newTable == null)
             {
-                var newTypes = oldTable.Types.ToList();
+                var newTypes = new SortedSet<StorageType>(oldTable.Types);
                 newTypes.Add(type);
-                newTable = AddTable(new SortedSet<StorageType>(newTypes));
+                newTable = AddTable(newTypes);
                 oldEdge.Add = newTable;
 
                 var newEdge = newTable.GetTableEdge(type);
@@ -148,7 +148,7 @@ namespace RelEcs
         public bool HasComponent(StorageType type, Identity identity)
         {
             var meta = Meta[identity.Id];
-            return meta.Identity != Identity.None && Tables[meta.TableId].Types.Contains(type);
+            return meta.Identity != Identity.None && Tables[meta.TableId].TypesInHierarchy.Contains(type);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -174,9 +174,9 @@ namespace RelEcs
 
             if (newTable == null)
             {
-                var newTypes = oldTable.Types.ToList();
+                var newTypes = new SortedSet<StorageType>(oldTable.Types);
                 newTypes.Remove(type);
-                newTable = AddTable(new SortedSet<StorageType>(newTypes));
+                newTable = AddTable(newTypes);
                 oldEdge.Remove = newTable;
 
                 var newEdge = newTable.GetTableEdge(type);
@@ -194,6 +194,7 @@ namespace RelEcs
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Query GetQuery(Mask mask, Func<Archetypes, Mask, List<Table>, Query> createQuery)
         {
+            // TODO: replace hash by something more safer? Set? BitArray?
             var hash = mask.GetHashCode();
 
             if (Queries.TryGetValue(hash, out var query))
@@ -253,9 +254,10 @@ namespace RelEcs
                 else any.Add(type);
             }
 
-            var matchesComponents = table.Types.IsSupersetOf(has);
-            matchesComponents &= !table.Types.Overlaps(not);
-            matchesComponents &= mask.AnyTypes.Count == 0 || table.Types.Overlaps(any);
+            // TODO: optimize by early return
+            var matchesComponents = table.TypesInHierarchy.IsSupersetOf(has);
+            matchesComponents &= !table.TypesInHierarchy.Overlaps(not);
+            matchesComponents &= mask.AnyTypes.Count == 0 || table.TypesInHierarchy.Overlaps(any);
 
             var matchesRelation = true;
 
@@ -267,7 +269,7 @@ namespace RelEcs
                     continue;
                 }
 
-                matchesRelation &= table.Types.Overlaps(list);
+                matchesRelation &= table.TypesInHierarchy.Overlaps(list);
             }
 
             ListPool<StorageType>.Add(has);
@@ -304,7 +306,7 @@ namespace RelEcs
             var meta = Meta[identity.Id];
             var table = Tables[meta.TableId];
 
-            foreach (var storageType in table.Types)
+            foreach (var storageType in table.TypesInHierarchy)
             {
                 if (!storageType.IsRelation || storageType.TypeId != type.TypeId) continue;
                 return new Entity(storageType.Identity);
@@ -321,7 +323,7 @@ namespace RelEcs
 
             var list = ListPool<Entity>.Get();
 
-            foreach (var storageType in table.Types)
+            foreach (var storageType in table.TypesInHierarchy)
             {
                 if (!storageType.IsRelation || storageType.TypeId != type.TypeId) continue;
                 list.Add(new Entity(storageType.Identity));
@@ -331,6 +333,29 @@ namespace RelEcs
             ListPool<Entity>.Add(list);
 
             return targetEntities;
+        }
+
+        internal void GetComponents<T>(Identity identity, ICollection<T> components)
+        {
+            var meta = Meta[identity.Id];
+            var table = Tables[meta.TableId];
+
+            foreach (var (type, storage) in table.Storages)
+            {
+                if (typeof(T).IsAssignableFrom(type.Type))
+                    components.Add((T)storage.GetValue(meta.Row));
+            }
+        }
+
+        internal void GetComponents(Identity identity, ICollection<object> components)
+        {
+            var meta = Meta[identity.Id];
+            var table = Tables[meta.TableId];
+
+            foreach (var storage in table.Storages.Values)
+            {
+                components.Add(storage.GetValue(meta.Row));
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -358,7 +383,7 @@ namespace RelEcs
             var table = new Table(Tables.Count, this, types);
             Tables.Add(table);
 
-            foreach (var type in types)
+            foreach (var type in table.TypesInHierarchy)
             {
                 if (!TablesByType.TryGetValue(type, out var tableList))
                 {

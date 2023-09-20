@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using NUnit.Framework;
 
 namespace RelEcs.Tests
@@ -57,9 +56,9 @@ namespace RelEcs.Tests
         [Test]
         public void Remove_Component_RemovesComponentFromEntity()
         {
-            _builder.Add<object>();
-            _builder.Remove<object>();
-            Assert.That(_world.HasComponent<object>(_entity), Is.False);
+            _builder.Add<Position>();
+            _builder.Remove<Position>();
+            Assert.That(_world.HasComponent<Position>(_entity), Is.False);
         }
 
         [Test]

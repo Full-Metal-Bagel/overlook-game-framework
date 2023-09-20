@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
@@ -9,20 +10,13 @@ namespace RelEcs
     {
         static int worldCount;
 
-        internal readonly Entity _world;
-        internal readonly WorldInfo _worldInfo;
-
         internal readonly Archetypes _archetypes = new();
-
-        public WorldInfo Info => _worldInfo;
+        private int Id { get; }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public World()
         {
-            _world = _archetypes.Spawn();
-            _worldInfo = new WorldInfo(worldCount);
-            Interlocked.Increment(ref worldCount);
-            _archetypes.AddComponent(StorageType.Create<WorldInfo>(Identity.None), _world.Identity, _worldInfo);
+            Id = Interlocked.Increment(ref worldCount);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -91,16 +85,7 @@ namespace RelEcs
             return AddComponent(entity, component);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public T AddComponent<T>(Entity entity, T component) where T : class
-        {
-            var type = StorageType.Create<T>(Identity.None);
-            _archetypes.AddComponent(type, entity.Identity, component);
-            return component;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public object AddObjectComponent(Entity entity, object component)
+        public T AddComponent<T>(Entity entity, [DisallowNull] T component)
         {
             var type = StorageType.Create(component.GetType(), Identity.None);
             _archetypes.AddComponent(type, entity.Identity, component);
@@ -108,7 +93,7 @@ namespace RelEcs
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void RemoveComponent<T>(Entity entity) where T : class
+        public void RemoveComponent<T>(Entity entity)
         {
             var type = StorageType.Create<T>(Identity.None);
             _archetypes.RemoveComponent(type, entity.Identity);
@@ -118,6 +103,16 @@ namespace RelEcs
         public IEnumerable<(StorageType, object?)> GetComponents(Entity entity)
         {
             return _archetypes.GetComponents(entity.Identity);
+        }
+
+        public void GetComponents<T>(Entity entity, ICollection<T> components)
+        {
+            _archetypes.GetComponents(entity.Identity, components);
+        }
+
+        public void GetComponents(Entity entity, ICollection<object> components)
+        {
+            _archetypes.GetComponents(entity.Identity, components);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -184,103 +179,9 @@ namespace RelEcs
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public T GetElement<T>() where T : class
-        {
-            var type = StorageType.Create<T>(Identity.None);
-            return (T)_archetypes.GetComponent(type, _world.Identity);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryGetElement<T>(out T? element) where T : class
-        {
-            var type = StorageType.Create<T>(Identity.None);
-            if (!HasElement<T>())
-            {
-                element = null;
-                return false;
-            }
-
-            element = (T)_archetypes.GetComponent(type, _world.Identity);
-            return true;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool HasElement<T>() where T : class
-        {
-            var type = StorageType.Create<T>(Identity.None);
-            return _archetypes.HasComponent(type, _world.Identity);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void AddElement<T>(T element) where T : class
-        {
-            var type = StorageType.Create<T>(Identity.None);
-            _archetypes.AddComponent(type, _world.Identity, element);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ReplaceElement<T>(T element) where T : class
-        {
-            var type = StorageType.Create<T>(Identity.None);
-            _archetypes.RemoveComponent(type, _world.Identity);
-            _archetypes.AddComponent(type, _world.Identity, element);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void AddOrReplaceElement<T>(T element) where T : class
-        {
-            var type = StorageType.Create<T>(Identity.None);
-
-            if (_archetypes.HasComponent(type, _world.Identity))
-            {
-                _archetypes.RemoveComponent(type, _world.Identity);
-            }
-
-            _archetypes.AddComponent(type, _world.Identity, element);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void RemoveElement<T>() where T : class
-        {
-            var type = StorageType.Create<T>(Identity.None);
-            _archetypes.RemoveComponent(type, _world.Identity);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Tick()
-        {
-            _worldInfo.EntityCount = _archetypes.EntityCount;
-            _worldInfo.UnusedEntityCount = _archetypes.UnusedIds.Count;
-            _worldInfo.AllocatedEntityCount = _archetypes.Meta.Length;
-            _worldInfo.ArchetypeCount = _archetypes.Tables.Count;
-            // info.RelationCount = relationCount;
-            _worldInfo.ElementCount = _archetypes.Tables[_archetypes.Meta[_world.Identity.Id].TableId].Types.Count;
-            _worldInfo.CachedQueryCount = _archetypes.Queries.Count;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal Entity GetTypeEntity(Type type)
         {
             return _archetypes.GetTypeEntity(type);
-        }
-    }
-
-    public sealed class WorldInfo
-    {
-        public readonly int WorldId;
-        public int EntityCount;
-        public int UnusedEntityCount;
-        public int AllocatedEntityCount;
-
-        public int ArchetypeCount;
-
-        // public int RelationCount;
-        public int ElementCount;
-        public int CachedQueryCount;
-
-        public WorldInfo(int id)
-        {
-            WorldId = id;
         }
     }
 }
