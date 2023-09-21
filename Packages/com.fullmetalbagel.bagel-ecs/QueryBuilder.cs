@@ -1,4 +1,3 @@
-using System;
 using System.Runtime.CompilerServices;
 
 namespace RelEcs
@@ -16,52 +15,25 @@ namespace RelEcs
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public QueryBuilder Has<T>(Entity? target = default)
+        public QueryBuilder Has<T>()
         {
-            var typeIndex = StorageType.Create<T>(target?.Identity ?? Identity.None);
+            var typeIndex = StorageType.Create<T>();
             Mask.Has(typeIndex);
             return this;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public QueryBuilder Has<T>(Type type)
+        public QueryBuilder Not<T>()
         {
-            var entity = Archetypes.GetTypeEntity(type);
-            var typeIndex = StorageType.Create<T>(entity.Identity);
-            Mask.Has(typeIndex);
-            return this;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public QueryBuilder Not<T>(Entity? target = default)
-        {
-            var typeIndex = StorageType.Create<T>(target?.Identity ?? Identity.None);
+            var typeIndex = StorageType.Create<T>();
             Mask.Not(typeIndex);
             return this;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public QueryBuilder Not<T>(Type type)
+        public QueryBuilder Any<T>()
         {
-            var entity = Archetypes.GetTypeEntity(type);
-            var typeIndex = StorageType.Create<T>(entity.Identity);
-            Mask.Not(typeIndex);
-            return this;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public QueryBuilder Any<T>(Entity? target = default)
-        {
-            var typeIndex = StorageType.Create<T>(target?.Identity ?? Identity.None);
-            Mask.Any(typeIndex);
-            return this;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public QueryBuilder Any<T>(Type type)
-        {
-            var entity = Archetypes.GetTypeEntity(type);
-            var typeIndex = StorageType.Create<T>(entity.Identity);
+            var typeIndex = StorageType.Create<T>();
             Mask.Any(typeIndex);
             return this;
         }

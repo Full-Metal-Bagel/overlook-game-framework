@@ -21,9 +21,9 @@ namespace RelEcs
             var typeNames = indices.Select(i => $"C{i}");
             var genericTypes = string.Join(", ", typeNames);
             var classRestricts = string.Join(Environment.NewLine, typeNames.Select(type => $"        where {type} : class"));
-            var getStorageArrays = string.Join(Environment.NewLine, typeNames.Select(type => $"                table.GetStorage<{type}>(Identity.None),"));
+            var getStorageArrays = string.Join(Environment.NewLine, typeNames.Select(type => $"                table.GetStorage<{type}>(),"));
             var returnStorages = string.Join(", ", indices.Select(i => $"((C{i}[])storages[{i}])[meta.Row]"));
-            var returnEnumeratorCurrent = string.Join(", ", indices.Select(i => $"_data.Tables[_data.TableIndex].GetStorage<C{i}>(Identity.None)[_data.EntityIndex]"));
+            var returnEnumeratorCurrent = string.Join(", ", indices.Select(i => $"_data.Tables[_data.TableIndex].GetStorage<C{i}>()[_data.EntityIndex]"));
             var buildHas = string.Join(".", typeNames.Select(type => $"Has<{type}>()"));
 #>
 
@@ -74,34 +74,19 @@ namespace RelEcs
                 <#= buildHas #>;
             }
 
-            public new Builder Has<T>(Entity? target = default)
+            public new Builder Has<T>()
             {
-                return (Builder)base.Has<T>(target);
+                return (Builder)base.Has<T>();
             }
 
-            public new Builder Has<T>(Type type)
+            public new Builder Not<T>()
             {
-                return (Builder)base.Has<T>(type);
+                return (Builder)base.Not<T>();
             }
 
-            public new Builder Not<T>(Entity? target = default)
+            public new Builder Any<T>()
             {
-                return (Builder)base.Not<T>(target);
-            }
-
-            public new Builder Not<T>(Type type)
-            {
-                return (Builder)base.Not<T>(type);
-            }
-
-            public new Builder Any<T>(Entity? target = default)
-            {
-                return (Builder)base.Any<T>(target);
-            }
-
-            public new Builder Any<T>(Type type)
-            {
-                return (Builder)base.Any<T>(type);
+                return (Builder)base.Any<T>();
             }
 
             public Query<<#= genericTypes #>> Build()

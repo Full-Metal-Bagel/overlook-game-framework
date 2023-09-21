@@ -91,24 +91,6 @@ namespace RelEcs.Tests
         }
 
         [Test]
-        public void Despawn_RemovesEntityRelations_WhenEntityHasRelations()
-        {
-            // Arrange
-            var entity = _archetypes.Spawn();
-            var relatedEntity = _archetypes.Spawn();
-            var relationType = StorageType.Create(typeof(Entity), relatedEntity.Identity); // Assuming Relation is a type representing relations
-            _archetypes.AddComponent(relationType, entity.Identity, relatedEntity);
-
-            // Act
-            _archetypes.Despawn(entity.Identity);
-
-            // Assert
-            Assert.That(_archetypes.HasComponent(relationType, entity.Identity), Is.False);
-            // Assuming there's a way to check if the relation still exists, for example:
-            Assert.That(_archetypes.GetTarget(relationType, relatedEntity.Identity), Is.EqualTo(Entity.None));
-        }
-
-        [Test]
         public void Despawn_DoesNotRemoveOtherEntities_WhenMultipleEntitiesExist()
         {
             // Arrange
@@ -306,74 +288,6 @@ namespace RelEcs.Tests
         }
 
         [Test]
-        public void GetTarget_ReturnsValidEntity()
-        {
-            var entity = _archetypes.Spawn();
-            var type = StorageType.Create<string>(entity.Identity); // Assuming a valid StorageType instance
-            _archetypes.AddComponent(type, entity.Identity, "");
-            var targetEntity = _archetypes.GetTarget(type, entity.Identity);
-            Assert.That(targetEntity, Is.EqualTo(entity));
-        }
-
-        [Test]
-        public void GetTargets_ReturnsValidEntities()
-        {
-            var entity = _archetypes.Spawn();
-            var type = StorageType.Create<string>(entity.Identity); // Assuming a valid StorageType instance
-            _archetypes.AddComponent(type, entity.Identity, "");
-            var targetEntities = _archetypes.GetTargets(type, entity.Identity);
-            Assert.That(targetEntities, Is.EquivalentTo(new[] { entity }));
-        }
-
-
-        [Test]
-        public void GetTargets_ReturnsEmptyArray_WhenNoRelationsExist()
-        {
-            var entity = _archetypes.Spawn();
-            var type = StorageType.Create<string>(entity
-                .Identity); // Assuming a valid StorageType instance representing a relation
-            var targets = _archetypes.GetTargets(type, entity.Identity);
-            Assert.That(targets, Is.Empty);
-        }
-
-        [Test]
-        public void GetTargets_ReturnsCorrectTargets_WhenRelationsExist()
-        {
-            var entity = _archetypes.Spawn();
-            var relatedEntity1 = _archetypes.Spawn();
-            var relatedEntity2 = _archetypes.Spawn();
-            var type = StorageType.Create<string>(); // Assuming a valid StorageType instance representing a relation
-
-            _archetypes.AddComponent(StorageType.Create<string>(relatedEntity1.Identity), entity.Identity, "");
-            _archetypes.AddComponent(StorageType.Create<string>(relatedEntity2.Identity), entity.Identity, "");
-
-            var targets = _archetypes.GetTargets(type, entity.Identity);
-            Assert.That(targets, Is.EquivalentTo(new[] { relatedEntity1, relatedEntity2 }));
-        }
-
-        [Test]
-        public void GetTargets_DoesNotReturnUnrelatedEntities()
-        {
-            var entity = _archetypes.Spawn();
-            var relatedEntity = _archetypes.Spawn();
-            var unrelatedEntity = _archetypes.Spawn();
-            var type = StorageType.Create<string>();
-
-            _archetypes.AddComponent(StorageType.Create<string>(relatedEntity.Identity), entity.Identity, "");
-
-            var targets = _archetypes.GetTargets(type, entity.Identity);
-            Assert.That(targets, Is.EquivalentTo(new[] { relatedEntity }));
-        }
-        //
-        // [Test]
-        // public void GetTargets_ThrowsException_WhenEntityDoesNotExist()
-        // {
-        //     var nonExistentIdentity = new Identity(); // Assuming a valid Identity instance not linked to any entity
-        //     var type = StorageType.Create(); // Assuming a valid StorageType instance representing a relation
-        //     Assert.Throws<Exception>(() => _archetypes.GetTargets(type, nonExistentIdentity));
-        // }
-
-        [Test]
         public void GetComponents_ReturnsAllComponentsOfEntity()
         {
             var entity = _archetypes.Spawn();
@@ -387,70 +301,6 @@ namespace RelEcs.Tests
             Assert.That(components.Any(c => c.Item1 == type2), Is.True);
         }
 
-
-        [Test]
-        public void GetTypeEntity_ReturnsExistingEntity_WhenTypeAlreadyAssociated()
-        {
-            var type = typeof(int); // Example type
-            var firstEntity = _archetypes.GetTypeEntity(type);
-            var secondEntity = _archetypes.GetTypeEntity(type);
-            Assert.That(secondEntity, Is.EqualTo(firstEntity));
-        }
-
-        [Test]
-        public void GetTypeEntity_ReturnsNewEntity_WhenTypeNotPreviouslyAssociated()
-        {
-            var type = typeof(string); // Example type
-            var entity = _archetypes.GetTypeEntity(type);
-            Assert.IsNotNull(entity);
-        }
-
-        [Test]
-        public void GetTypeEntity_AssociatesDifferentEntities_ForDifferentTypes()
-        {
-            var type1 = typeof(int); // Example type
-            var type2 = typeof(double); // Another example type
-            var entity1 = _archetypes.GetTypeEntity(type1);
-            var entity2 = _archetypes.GetTypeEntity(type2);
-            Assert.That(entity2, Is.Not.EqualTo(entity1));
-        }
-
-        [Test]
-        public void GetTypeEntity_ReturnsDistinctEntities_ForDistinctTypes()
-        {
-            var type1 = typeof(float); // Example type
-            var type2 = typeof(char); // Another example type
-            var entity1 = _archetypes.GetTypeEntity(type1);
-            var entity2 = _archetypes.GetTypeEntity(type2);
-            Assert.That(entity2, Is.Not.EqualTo(entity1));
-        }
-
-        [Test]
-        public void GetTypeEntity_ThrowsException_WhenProvidedNullType()
-        {
-            Assert.Throws<ArgumentNullException>(() => _archetypes.GetTypeEntity(null!));
-        }
-
-        [Test]
-        public void GetTypeEntity_AssociatesEntity_OnlyOnce_WhenCalledMultipleTimes()
-        {
-            var type = typeof(decimal); // Example type
-            var entity1 = _archetypes.GetTypeEntity(type);
-            var entity2 = _archetypes.GetTypeEntity(type);
-            var entity3 = _archetypes.GetTypeEntity(type);
-            Assert.That(entity2, Is.EqualTo(entity1));
-            Assert.That(entity3, Is.EqualTo(entity2));
-        }
-
-        [Test]
-        public void GetTypeEntity_DoesNotAffect_OtherEntitiesOrComponents()
-        {
-            var type = typeof(byte); // Example type
-            var initialEntityCount = _archetypes.EntityCount; // Assuming a way to get the current entity count
-            var entity = _archetypes.GetTypeEntity(type);
-            var newEntityCount = _archetypes.EntityCount;
-            Assert.That(newEntityCount, Is.EqualTo(initialEntityCount + 1));
-        }
 
         [Test]
         public void IsMaskCompatibleWith_ReturnsTrue_WhenTableMatchesMaskRequirements()

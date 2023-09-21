@@ -67,7 +67,7 @@ namespace RelEcs
         {
             return new Array[]
             {
-                table.GetStorage<C0>(Identity.None),
+                table.GetStorage<C0>(),
             };
         }
 
@@ -92,7 +92,7 @@ namespace RelEcs
             public C0 Current
             {
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                get => _data.Tables[_data.TableIndex].GetStorage<C0>(Identity.None)[_data.EntityIndex];
+                get => _data.Tables[_data.TableIndex].GetStorage<C0>()[_data.EntityIndex];
             }
         }
 
@@ -106,34 +106,19 @@ namespace RelEcs
                 Has<C0>();
             }
 
-            public new Builder Has<T>(Entity? target = default)
+            public new Builder Has<T>()
             {
-                return (Builder)base.Has<T>(target);
+                return (Builder)base.Has<T>();
             }
 
-            public new Builder Has<T>(Type type)
+            public new Builder Not<T>()
             {
-                return (Builder)base.Has<T>(type);
+                return (Builder)base.Not<T>();
             }
 
-            public new Builder Not<T>(Entity? target = default)
+            public new Builder Any<T>()
             {
-                return (Builder)base.Not<T>(target);
-            }
-
-            public new Builder Not<T>(Type type)
-            {
-                return (Builder)base.Not<T>(type);
-            }
-
-            public new Builder Any<T>(Entity? target = default)
-            {
-                return (Builder)base.Any<T>(target);
-            }
-
-            public new Builder Any<T>(Type type)
-            {
-                return (Builder)base.Any<T>(type);
+                return (Builder)base.Any<T>();
             }
 
             public Query<C0> Build()

@@ -19,8 +19,8 @@ namespace RelEcs
         {
             return new Array[]
             {
-                table.GetStorage<C0>(Identity.None),
-                table.GetStorage<C1>(Identity.None),
+                table.GetStorage<C0>(),
+                table.GetStorage<C1>(),
             };
         }
 
@@ -42,7 +42,7 @@ namespace RelEcs
             private QueryEnumerator _data;
             public Enumerator(IReadOnlyList<Table> tables) => _data = new QueryEnumerator(tables);
             public bool MoveNext() => _data.MoveNext();
-            public (C0, C1) Current => (_data.Tables[_data.TableIndex].GetStorage<C0>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C1>(Identity.None)[_data.EntityIndex]);
+            public (C0, C1) Current => (_data.Tables[_data.TableIndex].GetStorage<C0>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C1>()[_data.EntityIndex]);
         }
 
         public sealed class Builder : QueryBuilder
@@ -55,34 +55,19 @@ namespace RelEcs
                 Has<C0>().Has<C1>();
             }
 
-            public new Builder Has<T>(Entity? target = default)
+            public new Builder Has<T>()
             {
-                return (Builder)base.Has<T>(target);
+                return (Builder)base.Has<T>();
             }
 
-            public new Builder Has<T>(Type type)
+            public new Builder Not<T>()
             {
-                return (Builder)base.Has<T>(type);
+                return (Builder)base.Not<T>();
             }
 
-            public new Builder Not<T>(Entity? target = default)
+            public new Builder Any<T>()
             {
-                return (Builder)base.Not<T>(target);
-            }
-
-            public new Builder Not<T>(Type type)
-            {
-                return (Builder)base.Not<T>(type);
-            }
-
-            public new Builder Any<T>(Entity? target = default)
-            {
-                return (Builder)base.Any<T>(target);
-            }
-
-            public new Builder Any<T>(Type type)
-            {
-                return (Builder)base.Any<T>(type);
+                return (Builder)base.Any<T>();
             }
 
             public Query<C0, C1> Build()
@@ -116,9 +101,9 @@ namespace RelEcs
         {
             return new Array[]
             {
-                table.GetStorage<C0>(Identity.None),
-                table.GetStorage<C1>(Identity.None),
-                table.GetStorage<C2>(Identity.None),
+                table.GetStorage<C0>(),
+                table.GetStorage<C1>(),
+                table.GetStorage<C2>(),
             };
         }
 
@@ -140,7 +125,7 @@ namespace RelEcs
             private QueryEnumerator _data;
             public Enumerator(IReadOnlyList<Table> tables) => _data = new QueryEnumerator(tables);
             public bool MoveNext() => _data.MoveNext();
-            public (C0, C1, C2) Current => (_data.Tables[_data.TableIndex].GetStorage<C0>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C1>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C2>(Identity.None)[_data.EntityIndex]);
+            public (C0, C1, C2) Current => (_data.Tables[_data.TableIndex].GetStorage<C0>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C1>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C2>()[_data.EntityIndex]);
         }
 
         public sealed class Builder : QueryBuilder
@@ -153,34 +138,19 @@ namespace RelEcs
                 Has<C0>().Has<C1>().Has<C2>();
             }
 
-            public new Builder Has<T>(Entity? target = default)
+            public new Builder Has<T>()
             {
-                return (Builder)base.Has<T>(target);
+                return (Builder)base.Has<T>();
             }
 
-            public new Builder Has<T>(Type type)
+            public new Builder Not<T>()
             {
-                return (Builder)base.Has<T>(type);
+                return (Builder)base.Not<T>();
             }
 
-            public new Builder Not<T>(Entity? target = default)
+            public new Builder Any<T>()
             {
-                return (Builder)base.Not<T>(target);
-            }
-
-            public new Builder Not<T>(Type type)
-            {
-                return (Builder)base.Not<T>(type);
-            }
-
-            public new Builder Any<T>(Entity? target = default)
-            {
-                return (Builder)base.Any<T>(target);
-            }
-
-            public new Builder Any<T>(Type type)
-            {
-                return (Builder)base.Any<T>(type);
+                return (Builder)base.Any<T>();
             }
 
             public Query<C0, C1, C2> Build()
@@ -216,10 +186,10 @@ namespace RelEcs
         {
             return new Array[]
             {
-                table.GetStorage<C0>(Identity.None),
-                table.GetStorage<C1>(Identity.None),
-                table.GetStorage<C2>(Identity.None),
-                table.GetStorage<C3>(Identity.None),
+                table.GetStorage<C0>(),
+                table.GetStorage<C1>(),
+                table.GetStorage<C2>(),
+                table.GetStorage<C3>(),
             };
         }
 
@@ -241,7 +211,7 @@ namespace RelEcs
             private QueryEnumerator _data;
             public Enumerator(IReadOnlyList<Table> tables) => _data = new QueryEnumerator(tables);
             public bool MoveNext() => _data.MoveNext();
-            public (C0, C1, C2, C3) Current => (_data.Tables[_data.TableIndex].GetStorage<C0>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C1>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C2>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C3>(Identity.None)[_data.EntityIndex]);
+            public (C0, C1, C2, C3) Current => (_data.Tables[_data.TableIndex].GetStorage<C0>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C1>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C2>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C3>()[_data.EntityIndex]);
         }
 
         public sealed class Builder : QueryBuilder
@@ -254,34 +224,19 @@ namespace RelEcs
                 Has<C0>().Has<C1>().Has<C2>().Has<C3>();
             }
 
-            public new Builder Has<T>(Entity? target = default)
+            public new Builder Has<T>()
             {
-                return (Builder)base.Has<T>(target);
+                return (Builder)base.Has<T>();
             }
 
-            public new Builder Has<T>(Type type)
+            public new Builder Not<T>()
             {
-                return (Builder)base.Has<T>(type);
+                return (Builder)base.Not<T>();
             }
 
-            public new Builder Not<T>(Entity? target = default)
+            public new Builder Any<T>()
             {
-                return (Builder)base.Not<T>(target);
-            }
-
-            public new Builder Not<T>(Type type)
-            {
-                return (Builder)base.Not<T>(type);
-            }
-
-            public new Builder Any<T>(Entity? target = default)
-            {
-                return (Builder)base.Any<T>(target);
-            }
-
-            public new Builder Any<T>(Type type)
-            {
-                return (Builder)base.Any<T>(type);
+                return (Builder)base.Any<T>();
             }
 
             public Query<C0, C1, C2, C3> Build()
@@ -319,11 +274,11 @@ namespace RelEcs
         {
             return new Array[]
             {
-                table.GetStorage<C0>(Identity.None),
-                table.GetStorage<C1>(Identity.None),
-                table.GetStorage<C2>(Identity.None),
-                table.GetStorage<C3>(Identity.None),
-                table.GetStorage<C4>(Identity.None),
+                table.GetStorage<C0>(),
+                table.GetStorage<C1>(),
+                table.GetStorage<C2>(),
+                table.GetStorage<C3>(),
+                table.GetStorage<C4>(),
             };
         }
 
@@ -345,7 +300,7 @@ namespace RelEcs
             private QueryEnumerator _data;
             public Enumerator(IReadOnlyList<Table> tables) => _data = new QueryEnumerator(tables);
             public bool MoveNext() => _data.MoveNext();
-            public (C0, C1, C2, C3, C4) Current => (_data.Tables[_data.TableIndex].GetStorage<C0>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C1>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C2>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C3>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C4>(Identity.None)[_data.EntityIndex]);
+            public (C0, C1, C2, C3, C4) Current => (_data.Tables[_data.TableIndex].GetStorage<C0>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C1>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C2>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C3>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C4>()[_data.EntityIndex]);
         }
 
         public sealed class Builder : QueryBuilder
@@ -358,34 +313,19 @@ namespace RelEcs
                 Has<C0>().Has<C1>().Has<C2>().Has<C3>().Has<C4>();
             }
 
-            public new Builder Has<T>(Entity? target = default)
+            public new Builder Has<T>()
             {
-                return (Builder)base.Has<T>(target);
+                return (Builder)base.Has<T>();
             }
 
-            public new Builder Has<T>(Type type)
+            public new Builder Not<T>()
             {
-                return (Builder)base.Has<T>(type);
+                return (Builder)base.Not<T>();
             }
 
-            public new Builder Not<T>(Entity? target = default)
+            public new Builder Any<T>()
             {
-                return (Builder)base.Not<T>(target);
-            }
-
-            public new Builder Not<T>(Type type)
-            {
-                return (Builder)base.Not<T>(type);
-            }
-
-            public new Builder Any<T>(Entity? target = default)
-            {
-                return (Builder)base.Any<T>(target);
-            }
-
-            public new Builder Any<T>(Type type)
-            {
-                return (Builder)base.Any<T>(type);
+                return (Builder)base.Any<T>();
             }
 
             public Query<C0, C1, C2, C3, C4> Build()
@@ -425,12 +365,12 @@ namespace RelEcs
         {
             return new Array[]
             {
-                table.GetStorage<C0>(Identity.None),
-                table.GetStorage<C1>(Identity.None),
-                table.GetStorage<C2>(Identity.None),
-                table.GetStorage<C3>(Identity.None),
-                table.GetStorage<C4>(Identity.None),
-                table.GetStorage<C5>(Identity.None),
+                table.GetStorage<C0>(),
+                table.GetStorage<C1>(),
+                table.GetStorage<C2>(),
+                table.GetStorage<C3>(),
+                table.GetStorage<C4>(),
+                table.GetStorage<C5>(),
             };
         }
 
@@ -452,7 +392,7 @@ namespace RelEcs
             private QueryEnumerator _data;
             public Enumerator(IReadOnlyList<Table> tables) => _data = new QueryEnumerator(tables);
             public bool MoveNext() => _data.MoveNext();
-            public (C0, C1, C2, C3, C4, C5) Current => (_data.Tables[_data.TableIndex].GetStorage<C0>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C1>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C2>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C3>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C4>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C5>(Identity.None)[_data.EntityIndex]);
+            public (C0, C1, C2, C3, C4, C5) Current => (_data.Tables[_data.TableIndex].GetStorage<C0>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C1>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C2>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C3>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C4>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C5>()[_data.EntityIndex]);
         }
 
         public sealed class Builder : QueryBuilder
@@ -465,34 +405,19 @@ namespace RelEcs
                 Has<C0>().Has<C1>().Has<C2>().Has<C3>().Has<C4>().Has<C5>();
             }
 
-            public new Builder Has<T>(Entity? target = default)
+            public new Builder Has<T>()
             {
-                return (Builder)base.Has<T>(target);
+                return (Builder)base.Has<T>();
             }
 
-            public new Builder Has<T>(Type type)
+            public new Builder Not<T>()
             {
-                return (Builder)base.Has<T>(type);
+                return (Builder)base.Not<T>();
             }
 
-            public new Builder Not<T>(Entity? target = default)
+            public new Builder Any<T>()
             {
-                return (Builder)base.Not<T>(target);
-            }
-
-            public new Builder Not<T>(Type type)
-            {
-                return (Builder)base.Not<T>(type);
-            }
-
-            public new Builder Any<T>(Entity? target = default)
-            {
-                return (Builder)base.Any<T>(target);
-            }
-
-            public new Builder Any<T>(Type type)
-            {
-                return (Builder)base.Any<T>(type);
+                return (Builder)base.Any<T>();
             }
 
             public Query<C0, C1, C2, C3, C4, C5> Build()
@@ -534,13 +459,13 @@ namespace RelEcs
         {
             return new Array[]
             {
-                table.GetStorage<C0>(Identity.None),
-                table.GetStorage<C1>(Identity.None),
-                table.GetStorage<C2>(Identity.None),
-                table.GetStorage<C3>(Identity.None),
-                table.GetStorage<C4>(Identity.None),
-                table.GetStorage<C5>(Identity.None),
-                table.GetStorage<C6>(Identity.None),
+                table.GetStorage<C0>(),
+                table.GetStorage<C1>(),
+                table.GetStorage<C2>(),
+                table.GetStorage<C3>(),
+                table.GetStorage<C4>(),
+                table.GetStorage<C5>(),
+                table.GetStorage<C6>(),
             };
         }
 
@@ -562,7 +487,7 @@ namespace RelEcs
             private QueryEnumerator _data;
             public Enumerator(IReadOnlyList<Table> tables) => _data = new QueryEnumerator(tables);
             public bool MoveNext() => _data.MoveNext();
-            public (C0, C1, C2, C3, C4, C5, C6) Current => (_data.Tables[_data.TableIndex].GetStorage<C0>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C1>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C2>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C3>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C4>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C5>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C6>(Identity.None)[_data.EntityIndex]);
+            public (C0, C1, C2, C3, C4, C5, C6) Current => (_data.Tables[_data.TableIndex].GetStorage<C0>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C1>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C2>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C3>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C4>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C5>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C6>()[_data.EntityIndex]);
         }
 
         public sealed class Builder : QueryBuilder
@@ -575,34 +500,19 @@ namespace RelEcs
                 Has<C0>().Has<C1>().Has<C2>().Has<C3>().Has<C4>().Has<C5>().Has<C6>();
             }
 
-            public new Builder Has<T>(Entity? target = default)
+            public new Builder Has<T>()
             {
-                return (Builder)base.Has<T>(target);
+                return (Builder)base.Has<T>();
             }
 
-            public new Builder Has<T>(Type type)
+            public new Builder Not<T>()
             {
-                return (Builder)base.Has<T>(type);
+                return (Builder)base.Not<T>();
             }
 
-            public new Builder Not<T>(Entity? target = default)
+            public new Builder Any<T>()
             {
-                return (Builder)base.Not<T>(target);
-            }
-
-            public new Builder Not<T>(Type type)
-            {
-                return (Builder)base.Not<T>(type);
-            }
-
-            public new Builder Any<T>(Entity? target = default)
-            {
-                return (Builder)base.Any<T>(target);
-            }
-
-            public new Builder Any<T>(Type type)
-            {
-                return (Builder)base.Any<T>(type);
+                return (Builder)base.Any<T>();
             }
 
             public Query<C0, C1, C2, C3, C4, C5, C6> Build()
@@ -646,14 +556,14 @@ namespace RelEcs
         {
             return new Array[]
             {
-                table.GetStorage<C0>(Identity.None),
-                table.GetStorage<C1>(Identity.None),
-                table.GetStorage<C2>(Identity.None),
-                table.GetStorage<C3>(Identity.None),
-                table.GetStorage<C4>(Identity.None),
-                table.GetStorage<C5>(Identity.None),
-                table.GetStorage<C6>(Identity.None),
-                table.GetStorage<C7>(Identity.None),
+                table.GetStorage<C0>(),
+                table.GetStorage<C1>(),
+                table.GetStorage<C2>(),
+                table.GetStorage<C3>(),
+                table.GetStorage<C4>(),
+                table.GetStorage<C5>(),
+                table.GetStorage<C6>(),
+                table.GetStorage<C7>(),
             };
         }
 
@@ -675,7 +585,7 @@ namespace RelEcs
             private QueryEnumerator _data;
             public Enumerator(IReadOnlyList<Table> tables) => _data = new QueryEnumerator(tables);
             public bool MoveNext() => _data.MoveNext();
-            public (C0, C1, C2, C3, C4, C5, C6, C7) Current => (_data.Tables[_data.TableIndex].GetStorage<C0>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C1>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C2>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C3>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C4>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C5>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C6>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C7>(Identity.None)[_data.EntityIndex]);
+            public (C0, C1, C2, C3, C4, C5, C6, C7) Current => (_data.Tables[_data.TableIndex].GetStorage<C0>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C1>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C2>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C3>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C4>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C5>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C6>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C7>()[_data.EntityIndex]);
         }
 
         public sealed class Builder : QueryBuilder
@@ -688,34 +598,19 @@ namespace RelEcs
                 Has<C0>().Has<C1>().Has<C2>().Has<C3>().Has<C4>().Has<C5>().Has<C6>().Has<C7>();
             }
 
-            public new Builder Has<T>(Entity? target = default)
+            public new Builder Has<T>()
             {
-                return (Builder)base.Has<T>(target);
+                return (Builder)base.Has<T>();
             }
 
-            public new Builder Has<T>(Type type)
+            public new Builder Not<T>()
             {
-                return (Builder)base.Has<T>(type);
+                return (Builder)base.Not<T>();
             }
 
-            public new Builder Not<T>(Entity? target = default)
+            public new Builder Any<T>()
             {
-                return (Builder)base.Not<T>(target);
-            }
-
-            public new Builder Not<T>(Type type)
-            {
-                return (Builder)base.Not<T>(type);
-            }
-
-            public new Builder Any<T>(Entity? target = default)
-            {
-                return (Builder)base.Any<T>(target);
-            }
-
-            public new Builder Any<T>(Type type)
-            {
-                return (Builder)base.Any<T>(type);
+                return (Builder)base.Any<T>();
             }
 
             public Query<C0, C1, C2, C3, C4, C5, C6, C7> Build()
@@ -761,15 +656,15 @@ namespace RelEcs
         {
             return new Array[]
             {
-                table.GetStorage<C0>(Identity.None),
-                table.GetStorage<C1>(Identity.None),
-                table.GetStorage<C2>(Identity.None),
-                table.GetStorage<C3>(Identity.None),
-                table.GetStorage<C4>(Identity.None),
-                table.GetStorage<C5>(Identity.None),
-                table.GetStorage<C6>(Identity.None),
-                table.GetStorage<C7>(Identity.None),
-                table.GetStorage<C8>(Identity.None),
+                table.GetStorage<C0>(),
+                table.GetStorage<C1>(),
+                table.GetStorage<C2>(),
+                table.GetStorage<C3>(),
+                table.GetStorage<C4>(),
+                table.GetStorage<C5>(),
+                table.GetStorage<C6>(),
+                table.GetStorage<C7>(),
+                table.GetStorage<C8>(),
             };
         }
 
@@ -791,7 +686,7 @@ namespace RelEcs
             private QueryEnumerator _data;
             public Enumerator(IReadOnlyList<Table> tables) => _data = new QueryEnumerator(tables);
             public bool MoveNext() => _data.MoveNext();
-            public (C0, C1, C2, C3, C4, C5, C6, C7, C8) Current => (_data.Tables[_data.TableIndex].GetStorage<C0>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C1>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C2>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C3>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C4>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C5>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C6>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C7>(Identity.None)[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C8>(Identity.None)[_data.EntityIndex]);
+            public (C0, C1, C2, C3, C4, C5, C6, C7, C8) Current => (_data.Tables[_data.TableIndex].GetStorage<C0>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C1>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C2>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C3>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C4>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C5>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C6>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C7>()[_data.EntityIndex], _data.Tables[_data.TableIndex].GetStorage<C8>()[_data.EntityIndex]);
         }
 
         public sealed class Builder : QueryBuilder
@@ -804,34 +699,19 @@ namespace RelEcs
                 Has<C0>().Has<C1>().Has<C2>().Has<C3>().Has<C4>().Has<C5>().Has<C6>().Has<C7>().Has<C8>();
             }
 
-            public new Builder Has<T>(Entity? target = default)
+            public new Builder Has<T>()
             {
-                return (Builder)base.Has<T>(target);
+                return (Builder)base.Has<T>();
             }
 
-            public new Builder Has<T>(Type type)
+            public new Builder Not<T>()
             {
-                return (Builder)base.Has<T>(type);
+                return (Builder)base.Not<T>();
             }
 
-            public new Builder Not<T>(Entity? target = default)
+            public new Builder Any<T>()
             {
-                return (Builder)base.Not<T>(target);
-            }
-
-            public new Builder Not<T>(Type type)
-            {
-                return (Builder)base.Not<T>(type);
-            }
-
-            public new Builder Any<T>(Entity? target = default)
-            {
-                return (Builder)base.Any<T>(target);
-            }
-
-            public new Builder Any<T>(Type type)
-            {
-                return (Builder)base.Any<T>(type);
+                return (Builder)base.Any<T>();
             }
 
             public Query<C0, C1, C2, C3, C4, C5, C6, C7, C8> Build()

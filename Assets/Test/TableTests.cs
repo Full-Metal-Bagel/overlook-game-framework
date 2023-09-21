@@ -64,28 +64,6 @@ namespace RelEcs.Tests
             Assert.That(result, Is.InstanceOf<TableEdge>());
         }
 
-        // Continue with other tests...
-        // ... [previous code]
-
-        [Test]
-        public void GetStorage_WithValidIdentityAndType_ReturnsArray()
-        {
-            var identity = new Identity(1); // Replace with actual identity or mock.
-            var storageType = StorageType.Create<int>(identity); // Replace with actual StorageType or mock.
-            _mockTypes.Add(storageType); // Assuming SortedSet supports Add method.
-            var result = _table.GetStorage<int>(identity);
-
-            Assert.That(result, Is.Not.Null);
-            Assert.That(result, Is.InstanceOf<int[]>());
-        }
-
-        [Test]
-        public void GetStorage_WithInvalidIdentity_ThrowsKeyNotFoundException()
-        {
-            var invalidIdentity = new Identity(999); // Replace with an invalid identity or mock.
-
-            Assert.Catch<Exception>(() => _table.GetStorage<int>(invalidIdentity));
-        }
 
         [Test]
         public void EnsureCapacity_WithValidCapacity_ResizesTable()
