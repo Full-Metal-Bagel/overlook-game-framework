@@ -18,15 +18,12 @@ namespace RelEcs
         internal int EntityCount;
 
         readonly List<TableOperation> _tableOperations = new();
-        readonly Dictionary<Type, Entity> _typeEntities = new();
         internal readonly Dictionary<StorageType, List<Table>> TablesByType = new();
-        readonly Dictionary<Identity, HashSet<StorageType>> _typesByRelationTarget = new();
-        readonly Dictionary<int, HashSet<StorageType>> _relationsByTypes = new();
 
         int _lockCount;
         bool _isLocked;
 
-        private static readonly StorageType s_entityType = StorageType.Create<Entity>(Identity.None);
+        private static readonly StorageType s_entityType = StorageType.Create<Entity>();
 
         public Archetypes()
         {
@@ -74,24 +71,6 @@ namespace RelEcs
             meta.Identity = Identity.None;
 
             UnusedIds.Enqueue(identity);
-
-            if (!_typesByRelationTarget.TryGetValue(identity, out var list))
-            {
-                return;
-            }
-
-            foreach (var type in list)
-            {
-                var tablesWithType = TablesByType[type];
-
-                foreach (var tableWithType in tablesWithType)
-                {
-                    for (var i = 0; i < tableWithType.Count; i++)
-                    {
-                        RemoveComponent(type, tableWithType.Identities[i]);
-                    }
-                }
-            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -228,58 +207,10 @@ namespace RelEcs
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool IsMaskCompatibleWith(Mask mask, Table table)
         {
-            var has = ListPool<StorageType>.Get();
-            var not = ListPool<StorageType>.Get();
-            var any = ListPool<StorageType>.Get();
-
-            var hasAnyTarget = ListPool<StorageType>.Get();
-            var notAnyTarget = ListPool<StorageType>.Get();
-            var anyAnyTarget = ListPool<StorageType>.Get();
-
-            foreach (var type in mask.HasTypes)
-            {
-                if (type.Identity == Identity.Any) hasAnyTarget.Add(type);
-                else has.Add(type);
-            }
-
-            foreach (var type in mask.NotTypes)
-            {
-                if (type.Identity == Identity.Any) notAnyTarget.Add(type);
-                else not.Add(type);
-            }
-
-            foreach (var type in mask.AnyTypes)
-            {
-                if (type.Identity == Identity.Any) anyAnyTarget.Add(type);
-                else any.Add(type);
-            }
-
-            // TODO: optimize by early return
-            var matchesComponents = table.TypesInHierarchy.IsSupersetOf(has);
-            matchesComponents &= !table.TypesInHierarchy.Overlaps(not);
-            matchesComponents &= mask.AnyTypes.Count == 0 || table.TypesInHierarchy.Overlaps(any);
-
-            var matchesRelation = true;
-
-            foreach (var type in hasAnyTarget)
-            {
-                if (!_relationsByTypes.TryGetValue(type.TypeId, out var list))
-                {
-                    matchesRelation = false;
-                    continue;
-                }
-
-                matchesRelation &= table.TypesInHierarchy.Overlaps(list);
-            }
-
-            ListPool<StorageType>.Add(has);
-            ListPool<StorageType>.Add(not);
-            ListPool<StorageType>.Add(any);
-            ListPool<StorageType>.Add(hasAnyTarget);
-            ListPool<StorageType>.Add(notAnyTarget);
-            ListPool<StorageType>.Add(anyAnyTarget);
-
-            return matchesComponents && matchesRelation;
+            var matchesComponents = table.TypesInHierarchy.IsSupersetOf(mask.HasTypes);
+            matchesComponents = matchesComponents && !table.TypesInHierarchy.Overlaps(mask.NotTypes);
+            matchesComponents = matchesComponents && (mask.AnyTypes.Count == 0 || table.TypesInHierarchy.Overlaps(mask.AnyTypes));
+            return matchesComponents;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -298,41 +229,6 @@ namespace RelEcs
         internal Table GetTable(int tableId)
         {
             return Tables[tableId];
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Entity GetTarget(StorageType type, Identity identity)
-        {
-            var meta = Meta[identity.Id];
-            var table = Tables[meta.TableId];
-
-            foreach (var storageType in table.TypesInHierarchy)
-            {
-                if (!storageType.IsRelation || storageType.TypeId != type.TypeId) continue;
-                return new Entity(storageType.Identity);
-            }
-
-            return Entity.None;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Entity[] GetTargets(StorageType type, Identity identity)
-        {
-            var meta = Meta[identity.Id];
-            var table = Tables[meta.TableId];
-
-            var list = ListPool<Entity>.Get();
-
-            foreach (var storageType in table.TypesInHierarchy)
-            {
-                if (!storageType.IsRelation || storageType.TypeId != type.TypeId) continue;
-                list.Add(new Entity(storageType.Identity));
-            }
-
-            var targetEntities = list.ToArray();
-            ListPool<Entity>.Add(list);
-
-            return targetEntities;
         }
 
         internal void GetComponents<T>(Identity identity, ICollection<T> components)
@@ -392,24 +288,6 @@ namespace RelEcs
                 }
 
                 tableList.Add(table);
-
-                if (!type.IsRelation) continue;
-
-                if (!_typesByRelationTarget.TryGetValue(type.Identity, out var typeList))
-                {
-                    typeList = new HashSet<StorageType>();
-                    _typesByRelationTarget[type.Identity] = typeList;
-                }
-
-                typeList.Add(type);
-
-                if (!_relationsByTypes.TryGetValue(type.TypeId, out var relationTypeSet))
-                {
-                    relationTypeSet = new HashSet<StorageType>();
-                    _relationsByTypes[type.TypeId] = relationTypeSet;
-                }
-
-                relationTypeSet.Add(type);
             }
 
             foreach (var query in Queries.Values.Where(query => IsMaskCompatibleWith(query.Mask, table)))
@@ -418,17 +296,6 @@ namespace RelEcs
             }
 
             return table;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Entity GetTypeEntity(Type type)
-        {
-            if (!_typeEntities.TryGetValue(type, out var entity))
-            {
-                entity = Spawn();
-                _typeEntities.Add(type, entity);
-            }
-            return entity;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

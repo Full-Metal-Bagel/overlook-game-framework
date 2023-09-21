@@ -176,52 +176,6 @@ namespace RelEcs.Tests
 
 
         [Test]
-        public void GetComponent_WithTarget_SuccessfullyRetrieved()
-        {
-            var entity = _world.Spawn().Id();
-            var targetEntity = _world.Spawn().Id();
-            var position = new Position();
-            _world.AddComponent(entity, position, targetEntity);
-            var retrievedPosition = _world.GetComponent<Position>(entity, targetEntity);
-            Assert.That(retrievedPosition, Is.SameAs(position));
-        }
-
-        [Test]
-        public void GetComponent_NonExistentEntityWithTarget_Thrown()
-        {
-            var entity = new Entity(new Identity(999)); // Assuming 999 is an invalid ID
-            var targetEntity = _world.Spawn().Id();
-            Assert.Catch<Exception>(() => _world.GetComponent<Position>(entity, targetEntity));
-        }
-
-        [Test]
-        public void GetComponent_EntityWithoutComponentWithTarget_Thrown()
-        {
-            var entity = _world.Spawn().Id();
-            var targetEntity = _world.Spawn().Id();
-            Assert.Catch<Exception>(() => _world.GetComponent<Position>(entity, targetEntity));
-        }
-
-        [Test]
-        public void GetComponent_WithInvalidTarget_ReturnsNull()
-        {
-            var entity = _world.Spawn().Id();
-            var invalidTarget = new Entity(new Identity(888)); // Assuming 888 is an invalid ID
-            Assert.Catch<Exception>(() => _world.GetComponent<Position>(entity, invalidTarget));
-        }
-
-        [Test]
-        public void GetComponent_AfterRemovingComponentWithTarget_Thrown()
-        {
-            var entity = _world.Spawn().Id();
-            var targetEntity = _world.Spawn().Id();
-            var position = new Position();
-            _world.AddComponent(entity, position, targetEntity);
-            _world.RemoveComponent<Position>(entity, targetEntity);
-            Assert.Catch<Exception>(() => _world.GetComponent<Position>(entity, targetEntity));
-        }
-
-        [Test]
         public void TryGetComponent_SuccessfullyRetrieved()
         {
             var entity = _world.Spawn().Id();
@@ -244,34 +198,6 @@ namespace RelEcs.Tests
             var entity = _world.Spawn().Id();
             Assert.That(_world.TryGetComponent(entity, out Position _), Is.False);
         }
-
-        [Test]
-        public void TryGetComponent_WithTarget_SuccessfullyRetrieved()
-        {
-            var entity = _world.Spawn().Id();
-            var targetEntity = _world.Spawn().Id();
-            var position = new Position();
-            _world.AddComponent(entity, position, targetEntity);
-            Assert.That(_world.TryGetComponent(entity, out Position retrievedPosition, targetEntity), Is.True);
-            Assert.That(retrievedPosition, Is.SameAs(position));
-        }
-
-        [Test]
-        public void TryGetComponent_NonExistentEntityWithTarget_ReturnsFalse()
-        {
-            var entity = new Entity(new Identity(999)); // Assuming 999 is an invalid ID
-            var targetEntity = _world.Spawn().Id();
-            Assert.Catch<Exception>(() => _world.TryGetComponent(entity, out Position _, targetEntity));
-        }
-
-        [Test]
-        public void TryGetComponent_WithInvalidTarget_ReturnsFalse()
-        {
-            var entity = _world.Spawn().Id();
-            var invalidTarget = new Entity(new Identity(888)); // Assuming 888 is an invalid ID
-            Assert.That(_world.TryGetComponent(entity, out Position _, invalidTarget), Is.False);
-        }
-
 
         [Test]
         public void AddComponent_SuccessfullyAdded()
@@ -312,59 +238,6 @@ namespace RelEcs.Tests
             var entity = new Entity(new Identity(999)); // Assuming 999 is an invalid ID
             var position = new Position();
             Assert.Catch<Exception>(() => _world.AddComponent(entity, position));
-        }
-
-
-        [Test]
-        public void GetTarget_SuccessfullyRetrieved()
-        {
-            var entity = _world.Spawn().Id();
-            var targetEntity = _world.Spawn().Id();
-            _world.AddComponent<Position>(entity, targetEntity);
-            var retrievedTarget = _world.GetTarget<Position>(entity);
-            Assert.That(retrievedTarget, Is.EqualTo(targetEntity));
-        }
-
-        [Test]
-        public void GetTarget_NonExistentEntity_ReturnsNull()
-        {
-            var entity = new Entity(new Identity(999)); // Assuming 999 is an invalid ID
-            Assert.Catch<Exception>(() => _world.GetTarget<Position>(entity));
-        }
-
-        [Test]
-        public void GetTarget_EntityWithoutComponent_ReturnsNull()
-        {
-            var entity = _world.Spawn().Id();
-            var target = _world.GetTarget<Position>(entity);
-            Assert.That(target.IsNone, Is.True);
-        }
-
-        [Test]
-        public void GetTargets_SuccessfullyRetrieved()
-        {
-            var entity = _world.Spawn().Id();
-            var targetEntity1 = _world.Spawn().Id();
-            var targetEntity2 = _world.Spawn().Id();
-            _world.AddComponent<Position>(entity, targetEntity1);
-            _world.AddComponent<Position>(entity, targetEntity2);
-            var retrievedTargets = _world.GetTargets<Position>(entity);
-            Assert.That(retrievedTargets, Is.EquivalentTo(new[] { targetEntity1, targetEntity2 }));
-        }
-
-        [Test]
-        public void GetTargets_NonExistentEntity_ReturnsEmptyList()
-        {
-            var entity = new Entity(new Identity(999)); // Assuming 999 is an invalid ID
-            Assert.Catch<Exception>(() => _world.GetTargets<Position>(entity));
-        }
-
-        [Test]
-        public void GetTargets_EntityWithoutComponent_ReturnsEmptyList()
-        {
-            var entity = _world.Spawn().Id();
-            var targets = _world.GetTargets<Position>(entity);
-            Assert.That(targets, Is.Empty);
         }
 
         [Test]

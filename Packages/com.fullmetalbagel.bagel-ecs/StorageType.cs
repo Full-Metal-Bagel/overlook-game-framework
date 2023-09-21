@@ -1,90 +1,50 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Threading;
 
 namespace RelEcs
 {
-    public readonly struct StorageType : IComparable<StorageType>
+    public readonly struct StorageType : IComparable<StorageType>, IEquatable<StorageType>
     {
-        [StructLayout(LayoutKind.Explicit)]
-        private readonly struct Data
-        {
-            [field: FieldOffset(0)] public ulong Value { get; init; }
-            [field: FieldOffset(0)] public int Id { get; init; }
-            [field: FieldOffset(4)] public ushort Generation { get; init; }
-            [field: FieldOffset(6)] public ushort TypeId { get; init; }
-        }
-
-        private readonly Data _data;
-
-        public ulong Value => _data.Value;
-        public Type Type { get; }
-        public bool IsRelation => _data.Id > 0;
-
-        public ushort TypeId => _data.TypeId;
-        public Identity Identity => new(id: _data.Id, generation: _data.Generation);
-
-        private StorageType(Identity identity, ushort typeId, Type type)
-        {
-            _data = new Data { Id = identity.Id, Generation = identity.Generation, TypeId = typeId };
-            Type = type;
-        }
+        public ushort Value { get; init; }
+        public ushort TypeId => Value;
+        public Type Type => TypeIdAssigner.GetType(Value);
 
         public static StorageType Create(Type type)
         {
-            return Create(type, Identity.None);
+            return new StorageType { Value = TypeIdAssigner.GetOrCreate(type) };
         }
 
         public static StorageType Create<T>()
         {
-            return Create<T>(Identity.None);
+            return new StorageType { Value = TypeIdAssigner<T>.Id };
         }
 
-        public static StorageType Create(Type type, Identity relationTarget)
+        public bool Equals(StorageType other) => Value == other.Value;
+        public override bool Equals(object? obj) => throw new NotSupportedException();
+        public override int GetHashCode() => Value.GetHashCode();
+
+        public static bool operator ==(StorageType lhs, StorageType rhs)
         {
-            return new StorageType(relationTarget, TypeIdAssigner.GetOrCreate(type), type);
+            return lhs.Value == rhs.Value;
         }
 
-        public static StorageType Create<T>(Identity relationTarget)
+        public static bool operator !=(StorageType lhs, StorageType rhs)
         {
-            return new StorageType(relationTarget, TypeIdAssigner<T>.Id, typeof(T));
+            return !(lhs == rhs);
         }
 
-        public int CompareTo(StorageType other)
-        {
-            return Value.CompareTo(other.Value);
-        }
-
-        public override bool Equals(object? obj)
-        {
-            return (obj is StorageType other) && Value == other.Value;
-        }
-
-        public bool Equals(StorageType other)
-        {
-            return Value == other.Value;
-        }
-
-        public override int GetHashCode()
-        {
-            return Value.GetHashCode();
-        }
-
-        public override string ToString()
-        {
-            return IsRelation ? $"{GetHashCode()} {Type.Name}::{Identity}" : $"{GetHashCode()} {Type.Name}";
-        }
-
-        public static bool operator ==(StorageType left, StorageType right) => left.Equals(right);
-        public static bool operator !=(StorageType left, StorageType right) => !left.Equals(right);
+        public int CompareTo(StorageType other) => Value.CompareTo(other.Value);
     }
 
     internal static class TypeIdAssigner
     {
         private static int s_counter;
         private static readonly Dictionary<Type, ushort> s_typeIdMap = new();
+        private static readonly List<Type> s_types = new(64);
+
+        public static Type GetType(int typeId) => s_types[typeId - 1];
 
         public static ushort GetOrCreate(Type type)
         {
@@ -94,6 +54,7 @@ namespace RelEcs
                 if (id > ushort.MaxValue) throw new IndexOutOfRangeException();
                 typeId = (ushort)id;
                 s_typeIdMap.Add(type, typeId);
+                s_types.Add(type);
             }
             return typeId;
         }

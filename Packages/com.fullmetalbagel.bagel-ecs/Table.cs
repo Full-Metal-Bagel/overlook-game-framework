@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace RelEcs
 {
@@ -52,17 +51,16 @@ namespace RelEcs
             static void FillAllTypes(StorageType storageType, SortedSet<StorageType> set)
             {
                 var type = storageType.Type;
-                var target = storageType.Identity;
                 foreach (var interfaceType in type.GetInterfaces())
                 {
                     // HACK: skip system interfaces
                     if (!interfaceType.Namespace!.StartsWith("System.", StringComparison.InvariantCultureIgnoreCase))
-                        set.Add(StorageType.Create(interfaceType, target));
+                        set.Add(StorageType.Create(interfaceType));
                 }
 
                 while (type != null)
                 {
-                    set.Add(StorageType.Create(type, target));
+                    set.Add(StorageType.Create(type));
                     type = type.BaseType;
                 }
             }
@@ -112,9 +110,9 @@ namespace RelEcs
             return edge;
         }
 
-        public T[] GetStorage<T>(Identity target)
+        public T[] GetStorage<T>()
         {
-            var type = StorageType.Create<T>(target);
+            var type = StorageType.Create<T>();
             return (T[])GetStorage(type);
         }
 
@@ -124,7 +122,7 @@ namespace RelEcs
             // TODO: optimize by building map of base/interface -> actualType during creation
             foreach (var (storageType, storage) in Storages)
             {
-                if (type.Type.IsAssignableFrom(storageType.Type) && type.Identity == storageType.Identity)
+                if (type.Type.IsAssignableFrom(storageType.Type))
                     return storage;
             }
             throw new ArgumentException($"invalid StorageType: {type}");
