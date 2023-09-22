@@ -21,6 +21,12 @@ namespace RelEcs
             return new StorageType { Value = TypeIdAssigner<T>.Id };
         }
 
+        public void Deconstruct(out Type type, out ushort typeId)
+        {
+            type = Type;
+            typeId = TypeId;
+        }
+
         public bool Equals(StorageType other) => Value == other.Value;
         public override bool Equals(object? obj) => throw new NotSupportedException();
         public override int GetHashCode() => Value.GetHashCode();
