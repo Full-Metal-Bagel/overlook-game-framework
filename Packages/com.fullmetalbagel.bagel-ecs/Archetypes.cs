@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace RelEcs
@@ -204,6 +205,7 @@ namespace RelEcs
             return query;
         }
 
+        [SuppressMessage("Performance", "CA1822:Mark members as static")]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool IsMaskCompatibleWith(Mask mask, Table table)
         {

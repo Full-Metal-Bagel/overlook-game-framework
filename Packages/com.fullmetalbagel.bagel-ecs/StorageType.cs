@@ -69,12 +69,6 @@ namespace RelEcs
     internal static class TypeIdAssigner<T>
     {
         // ReSharper disable once StaticMemberInGenericType
-        public static readonly ushort Id;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static TypeIdAssigner()
-        {
-            Id = TypeIdAssigner.GetOrCreate(typeof(T));
-        }
+        public static readonly ushort Id = TypeIdAssigner.GetOrCreate(typeof(T));
     }
 }
