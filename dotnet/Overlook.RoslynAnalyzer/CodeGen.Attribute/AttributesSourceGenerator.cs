@@ -23,6 +23,7 @@ public class AttributesSourceGenerator : ISourceGenerator
                                        namespace Game
                                        {
                                        """);
+
         // TODO: verify node
         var validNodes = new List<StructDeclarationSyntax>();
         foreach (var node in nodes)
@@ -47,6 +48,7 @@ public class AttributesSourceGenerator : ISourceGenerator
             else if (fieldCount == 1) GenerateSingleFieldAttribute(node);
             else GenerateMultipleFieldAttribute(node);
         }
+
         source.AppendLine("}");
         context.AddSource("Attributes.g.cs", SourceText.From(source.ToString(), Encoding.UTF8));
         return;
@@ -57,9 +59,17 @@ public class AttributesSourceGenerator : ISourceGenerator
             source.AppendLine($$"""
                               public partial struct {{structName}}
                               {
-                                  public static {{idType}} Id => {{attributeId++}};
+                              {{AttributeBasic(structName)}}
                               }
                               """);
+        }
+
+        string AttributeBasic(string structName)
+        {
+            return $$"""
+                         public static {{idType}} Id => {{attributeId++}};
+                         public static ushort TypeId { get; } = RelEcs.StorageType.Create<{{structName}}>();
+                     """;
         }
 
         void GenerateSingleFieldAttribute(StructDeclarationSyntax node)
@@ -71,7 +81,7 @@ public class AttributesSourceGenerator : ISourceGenerator
             source.AppendLine($$"""
                               public partial struct {{structName}}
                               {
-                                  public static {{idType}} Id => {{attributeId++}};
+                              {{AttributeBasic(structName)}}
                                   public static implicit operator {{fieldType}}({{structName}} data) => data.{{fieldName}};
                                   public static explicit operator {{structName}}({{fieldType}} value) => new() { {{fieldName}} = value };
                               }
@@ -92,7 +102,7 @@ public class AttributesSourceGenerator : ISourceGenerator
             source.AppendLine($$"""
                                 public partial struct {{structName}}
                                 {
-                                    public static {{idType}} Id => {{attributeId++}};
+                                {{AttributeBasic(structName)}}
                                     public static implicit operator ({{fieldsTuple}})({{structName}} data) => ({{string.Join(", ", fieldsName.Select(f => $"data.{f}"))}});
                                     public static explicit operator {{structName}}(({{fieldsTuple}}) value) => new() { {{fieldsAssignment}} };
                                     public void Deconstruct({{deconstructParameters}})
@@ -116,7 +126,8 @@ public class AttributesSourceGenerator : ISourceGenerator
         {
             if (node is not StructDeclarationSyntax structNode) return;
             if (structNode.BaseList == null) return;
-            if (structNode.BaseList.Types.All(type => type.ToString() != "IAttribute")) return;
+            // TODO: restrict to `Game.IAttribute`
+            if (structNode.BaseList.Types.All(type => !type.ToString().EndsWith("IAttribute"))) return;
             Nodes.Add(structNode);
         }
     }
