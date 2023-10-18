@@ -95,7 +95,6 @@ namespace RelEcs
 
         public T AddObjectComponent<T>(Entity entity, [DisallowNull] T component) where T : class
         {
-            Debug.Assert(component.GetType().BaseType != typeof(ValueType));
             Archetypes.AddObjectComponent(entity.Identity, component);
             return component;
         }
