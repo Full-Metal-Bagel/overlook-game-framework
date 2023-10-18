@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using Game;
 
 namespace RelEcs
 {
@@ -146,8 +148,20 @@ namespace RelEcs
 
             Array.Resize(ref _identities, length);
 
-            foreach (var (type, storage) in _storages)
+            // NOTE: 512 just a random-picked-reasonable-enough number
+            Span<StorageType> keys = _storages.Count <= 512 ?
+                stackalloc StorageType[_storages.Count] :
+                new StorageType[_storages.Count]
+            ;
+            int i = 0;
+            foreach (var key in _storages.Keys)
             {
+                keys[i] = key;
+                i++;
+            }
+            foreach (var type in keys)
+            {
+                var storage = _storages[type];
                 var elementType = storage.GetType().GetElementType()!;
                 var newStorage = Array.CreateInstance(elementType, length);
                 Array.Copy(storage, newStorage, Math.Min(storage.Length, length));

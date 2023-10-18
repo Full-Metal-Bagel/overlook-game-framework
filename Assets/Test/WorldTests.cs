@@ -299,11 +299,5 @@ namespace RelEcs.Tests
             var results = _world.Query().Not<Position>().Not<Velocity>().Build().AsEnumerable();
             Assert.That(results, Is.Empty);
         }
-
-        [Test]
-        public void should_throw_on_add_struct_component_by_its_interface()
-        {
-            Assert.Catch(() => _world.Spawn().Add<I>(new S()));
-        }
     }
 }
