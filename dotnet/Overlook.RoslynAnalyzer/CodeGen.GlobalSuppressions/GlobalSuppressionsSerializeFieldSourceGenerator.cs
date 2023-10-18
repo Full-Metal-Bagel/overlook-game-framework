@@ -25,7 +25,7 @@ public class GlobalSuppressionsSerializeFieldSourceGenerator : IIncrementalGener
     private static IEnumerable<FieldDeclarationSyntax> GetFieldDeclarationForSourceGen(GeneratorSyntaxContext context)
     {
         var fieldDeclarationSyntax = (FieldDeclarationSyntax)context.Node;
-        if (HasAttributeOf(fieldDeclarationSyntax, "SerializeField"))
+        if (HasAttributeOf(fieldDeclarationSyntax, "SerializeField") || HasAttributeOf(fieldDeclarationSyntax, "SerializeReference"))
             yield return fieldDeclarationSyntax;
         yield break;
 
