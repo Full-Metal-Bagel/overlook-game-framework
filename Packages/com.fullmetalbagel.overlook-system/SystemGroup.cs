@@ -18,7 +18,8 @@ namespace Game
         public IEnumerable<Guid> SystemsGuid => _systems.Select(system => system.Guid);
         public IEnumerable<Type> SystemsType => _systems.Select(system => system.Type);
         public int Count => _systems.Length;
-        [SerializeField] private GuidTypeReference<IGameSystem>[] _systems = default!;
+        [SerializeField, TypeConstraint(BaseType = typeof(IGameSystem))]
+        private GuidTypeReference[] _systems = default!;
     }
 
     public static class SystemGroupExtension
