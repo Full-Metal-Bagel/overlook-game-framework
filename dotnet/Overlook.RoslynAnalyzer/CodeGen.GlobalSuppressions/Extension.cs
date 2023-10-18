@@ -5,7 +5,7 @@ namespace CodeGen.GlobalSuppressions;
 
 internal static class Extension
 {
-    public static string GetFullName(this ClassDeclarationSyntax node)
+    public static string GetFullName(this TypeDeclarationSyntax node)
     {
         var namespaceName = GetNamespaceName(node);
         var className = node.Identifier.Text;
@@ -14,17 +14,17 @@ internal static class Extension
 
     public static string GetFullName(this FieldDeclarationSyntax node)
     {
-        var className = GetFullName((ClassDeclarationSyntax)node.Parent!);
+        var className = GetFullName((TypeDeclarationSyntax)node.Parent!);
         return $"{className}.{node.Declaration.Variables.First().Identifier.Text}";
     }
 
     public static string GetFullName(this MethodDeclarationSyntax node)
     {
-        var className = GetFullName((ClassDeclarationSyntax)node.Parent!);
+        var className = GetFullName((TypeDeclarationSyntax)node.Parent!);
         return $"{className}.{node.Identifier.Text}";
     }
 
-    public static string GetNamespaceName(ClassDeclarationSyntax node)
+    public static string GetNamespaceName(TypeDeclarationSyntax node)
     {
         var namespaceNode = node.Ancestors()
             .OfType<NamespaceDeclarationSyntax>()
