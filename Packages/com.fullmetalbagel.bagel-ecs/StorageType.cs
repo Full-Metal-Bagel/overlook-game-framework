@@ -1,6 +1,6 @@
 using System;
+using System.Diagnostics;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace RelEcs
@@ -54,7 +54,9 @@ namespace RelEcs
 
         public static ushort GetOrCreate(Type type)
         {
-            if (!s_typeIdMap.TryGetValue(type, out var typeId))
+            Debug.Assert(!type.IsGenericTypeDefinition);
+            Debug.Assert(!type.IsGenericType || type.GetGenericTypeDefinition() != typeof(Nullable<>));
+            if (!s_typeIdMap.TryGetValue(type, out ushort typeId))
             {
                 var id = Interlocked.Increment(ref s_counter);
                 if (id > ushort.MaxValue) throw new IndexOutOfRangeException();
@@ -68,7 +70,6 @@ namespace RelEcs
 
     internal static class TypeIdAssigner<T>
     {
-        // ReSharper disable once StaticMemberInGenericType
         public static readonly ushort Id = TypeIdAssigner.GetOrCreate(typeof(T));
     }
 }

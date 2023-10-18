@@ -1,9 +1,6 @@
-using System;
-using System.Runtime.CompilerServices;
-
 namespace RelEcs
 {
-    public sealed class Entity
+    public readonly struct Entity : System.IEquatable<Entity>
     {
         public static readonly Entity None = new(Identity.None);
         public static readonly Entity Any = new(Identity.Any);
@@ -18,77 +15,77 @@ namespace RelEcs
             Identity = identity;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
-            return obj is Entity entity && Identity.Equals(entity.Identity);
+            return obj is Entity entity && entity.Equals(this);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Equals(Entity entity)
+        {
+            return Identity.Equals(entity.Identity);
+        }
+
         public override int GetHashCode()
         {
             return Identity.GetHashCode();
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override string ToString()
         {
             return Identity.ToString();
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator ==(Entity? left, Entity? right)
+        public static bool operator ==(in Entity left, in Entity right)
         {
-            if (left is null && right is null) return true;
-            if (left != null && right != null) return left.Equals(right);
-            return false;
+            return left.Equals(right);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator !=(Entity? left, Entity? right)
+        public static bool operator !=(in Entity left, in Entity right)
         {
-            if (left is null && right is null) return false;
-            if (left != null && right != null) return !left.Equals(right);
-            return true;
+            return !left.Equals(right);
         }
     }
 
-    public readonly struct EntityBuilder
+    public readonly ref struct EntityBuilder
     {
-        internal readonly World World;
-        readonly Entity _entity;
+        internal World World { get; }
+        internal Entity Entity { get; }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public EntityBuilder(World world, Entity entity)
         {
             World = world;
-            _entity = entity;
+            Entity = entity;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public EntityBuilder Add<T>() where T : class, new()
+        public EntityBuilder Add<T>(T data = default) where T : struct
         {
-            World.AddComponent<T>(_entity);
+            World.AddComponent(Entity, data);
             return this;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public EntityBuilder Add<T>(T data) where T : class
+        public EntityBuilder Remove<T>()
         {
-            World.AddComponent(_entity, data);
-            return this;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public EntityBuilder Remove<T>() where T : class
-        {
-            World.RemoveComponent<T>(_entity);
+            World.RemoveComponent<T>(Entity);
             return this;
         }
 
         public Entity Id()
         {
-            return _entity;
+            return Entity;
+        }
+    }
+
+    public static partial class ObjectComponentExtension
+    {
+        public static EntityBuilder Add<T>(this in EntityBuilder builder) where T : class, new()
+        {
+            return Add(builder, new T());
+        }
+
+        public static EntityBuilder Add<T>(this in EntityBuilder builder, T component) where T : class
+        {
+            builder.World.AddComponent(builder.Entity, component);
+            return builder;
         }
     }
 }

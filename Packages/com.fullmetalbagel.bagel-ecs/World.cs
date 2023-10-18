@@ -1,118 +1,137 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using System.Threading;
+using Game;
 
 namespace RelEcs
 {
     public sealed class World
     {
-        static int worldCount;
+        private static int s_worldCount;
 
-        internal readonly Archetypes _archetypes = new();
+        internal Archetypes Archetypes { get; } = new();
         private int Id { get; }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public World()
         {
-            Id = Interlocked.Increment(ref worldCount);
+            Id = Interlocked.Increment(ref s_worldCount);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public EntityBuilder Spawn()
         {
-            return new EntityBuilder(this, _archetypes.Spawn());
+            return new EntityBuilder(this, Archetypes.Spawn());
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public EntityBuilder On(Entity entity)
         {
             return new EntityBuilder(this, entity);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Despawn(Entity entity)
         {
-            _archetypes.Despawn(entity.Identity);
+            Archetypes.Despawn(entity.Identity);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void DespawnAllWith<T>() where T : class
+        public void DespawnAllWith<T>()
         {
-            var query = this.Query<Entity>().Has<T>().Build();
+            var query = this.Query().Has<T>().Build();
             foreach (var entity in query) Despawn(entity);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool IsAlive(Entity? entity)
+        public bool IsAlive(Entity entity)
         {
-            return entity is not null && _archetypes.IsAlive(entity.Identity);
+            return Archetypes.IsAlive(entity.Identity);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public T GetComponent<T>(Entity entity) where T : class
+        public ref T GetComponent<T>(Entity entity) where T : struct
         {
-            var type = StorageType.Create<T>();
-            return (T)_archetypes.GetComponent(type, entity.Identity);
+            return ref Archetypes.GetComponent<T>(entity.Identity);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryGetComponent<T>(Entity entity, out T? component) where T : class
+        public T GetObjectComponent<T>(Entity entity) where T : class
         {
-            var type = StorageType.Create<T>();
+            return Archetypes.GetObjectComponent<T>(entity.Identity);
+        }
+
+        public bool TryGetObjectComponent<T>(Entity entity, out T? component) where T : class
+        {
             if (!HasComponent<T>(entity))
             {
                 component = null;
                 return false;
             }
 
-            component = (T)_archetypes.GetComponent(type, entity.Identity);
+            component = Archetypes.GetObjectComponent<T>(entity.Identity);
             return true;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool HasComponent<T>(Entity entity) where T : class
+        public bool TryGetComponent<T>(Entity entity, out T? component) where T : struct
+        {
+            if (!HasComponent<T>(entity))
+            {
+                component = null;
+                return false;
+            }
+
+            component = Archetypes.GetComponent<T>(entity.Identity);
+            return true;
+        }
+
+        public bool HasComponent<T>(Entity entity)
         {
             var type = StorageType.Create<T>();
-            return _archetypes.HasComponent(type, entity.Identity);
+            return Archetypes.HasComponent(type, entity.Identity);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public T AddComponent<T>(Entity entity) where T : class, new()
+        public ref T AddComponent<T>(Entity entity, T component = default) where T : struct
         {
-            var component = new T();
-            return AddComponent(entity, component);
+            return ref Archetypes.AddComponent(entity.Identity, component);
         }
 
-        public T AddComponent<T>(Entity entity, [DisallowNull] T component)
+        public T AddObjectComponent<T>(Entity entity) where T : class, new()
         {
-            var type = StorageType.Create(component.GetType());
-            _archetypes.AddComponent(type, entity.Identity, component);
+            return AddObjectComponent(entity, new T());
+        }
+
+        public T AddObjectComponent<T>(Entity entity, [DisallowNull] T component) where T : class
+        {
+            Debug.Assert(component.GetType().BaseType != typeof(ValueType));
+            Archetypes.AddObjectComponent(entity.Identity, component);
             return component;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void RemoveComponent<T>(Entity entity)
         {
             var type = StorageType.Create<T>();
-            _archetypes.RemoveComponent(type, entity.Identity);
+            Archetypes.RemoveComponent(type, entity.Identity);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public IEnumerable<(StorageType, object?)> GetComponents(Entity entity)
+        public Query.Builder Query()
         {
-            return _archetypes.GetComponents(entity.Identity);
+            return new Query.Builder(Archetypes);
+        }
+    }
+
+    public static partial class ObjectComponentExtension
+    {
+        public static T AddComponent<T>(this World world, Entity entity) where T : class, new()
+        {
+            return world.AddObjectComponent(entity, new T());
         }
 
-        public void GetComponents<T>(Entity entity, ICollection<T> components)
+        public static T AddComponent<T>(this World world, Entity entity, [DisallowNull] T component) where T : class
         {
-            _archetypes.GetComponents(entity.Identity, components);
+            return world.AddObjectComponent(entity, component);
         }
 
-        public void GetComponents(Entity entity, ICollection<object> components)
+        public static T GetComponent<T>(this World world, Entity entity) where T : class
         {
-            _archetypes.GetComponents(entity.Identity, components);
+            return world.GetObjectComponent<T>(entity);
+        }
+
+        public static bool TryGetComponent<T>(this World world, Entity entity, out T? component) where T : class
+        {
+            return world.TryGetObjectComponent(entity, out component);
         }
     }
 }

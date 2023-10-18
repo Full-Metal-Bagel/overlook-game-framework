@@ -1,130 +1,175 @@
 using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
+using System.Linq;
+using Game;
 
 namespace RelEcs
 {
-    public class Query
+    public readonly struct Query
     {
-        public readonly List<Table> Tables;
+        internal List<Table> Tables { get; init; }
+        internal Archetypes Archetypes { get; init; }
+        internal Mask Mask { get; init; }
 
-        internal readonly Archetypes Archetypes;
-        internal readonly Mask Mask;
+        internal static readonly Func<Archetypes, Mask, List<Table>, Query> s_createQuery =
+            (archetypes, mask, matchingTables) => new Query { Archetypes = archetypes, Mask = mask, Tables = matchingTables };
 
-        protected readonly Dictionary<int, Array[]> Storages = new();
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Query(Archetypes archetypes, Mask mask, List<Table> tables)
-        {
-            Tables = tables;
-            Archetypes = archetypes;
-            Mask = mask;
-
-            UpdateStorages();
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Has(Entity entity)
-        {
-            var meta = Archetypes.GetEntityMeta(entity.Identity);
-            return Storages.ContainsKey(meta.TableId);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void AddTable(Table table)
         {
             Tables.Add(table);
-            UpdateStorages();
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected virtual Array[] GetStorages(Table table)
-        {
-            throw new Exception("Invalid Enumerator");
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        void UpdateStorages()
-        {
-            Storages.Clear();
-
-            foreach (var table in Tables)
-            {
-                var storages = GetStorages(table);
-                Storages.Add(table.Id, storages);
-            }
-        }
-    }
-
-    public class Query<C0> : Query where C0 : class
-    {
-        public Query(Archetypes archetypes, Mask mask, List<Table> tables) : base(archetypes, mask, tables)
-        {
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected override Array[] GetStorages(Table table)
-        {
-            return new Array[]
-            {
-                table.GetStorage<C0>(),
-            };
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public C0 Get(Entity entity)
+        public bool Has(Entity entity)
         {
             var meta = Archetypes.GetEntityMeta(entity.Identity);
-            var storages = Storages[meta.TableId];
-            return ((C0[])storages[0])[meta.Row];
+            var table = Archetypes.GetTable(meta.TableId);
+            return Tables.Contains(table);
+        }
+
+        public ref T Get<T>(Entity entity) where T : struct
+        {
+            Debug.Assert(Mask._hasTypes.Contains(StorageType.Create<T>()));
+            var (meta, table) = Get(entity);
+            return ref table.GetStorage<T>()[meta.Row];
+        }
+
+        public T GetObject<T>(Entity entity) where T : class
+        {
+            Debug.Assert(Mask._hasTypes.Contains(StorageType.Create<T>()) || Mask._hasTypes.Any(type => typeof(T).IsAssignableFrom(type.Type)));
+            var (meta, table) = Get(entity);
+            return (T)table.GetStorage(StorageType.Create<T>()).GetValue(meta.Row);
+        }
+
+        private (EntityMeta meta, Table table) Get(Entity entity)
+        {
+            var meta = Archetypes.GetEntityMeta(entity.Identity);
+            var table = Archetypes.GetTable(meta.TableId);
+            return (meta, table);
+        }
+
+        public void ForEach(Action<Entity> action)
+        {
+            foreach (var entity in this) action(entity);
         }
 
         public Enumerator GetEnumerator()
         {
-            return new Enumerator(Tables);
+            return new Enumerator(this);
         }
 
         public ref struct Enumerator
         {
-            private QueryEnumerator _data;
-            public Enumerator(IReadOnlyList<Table> tables) => _data = new QueryEnumerator(tables);
-            public bool MoveNext() => _data.MoveNext();
-            public C0 Current
+            private readonly Query _query;
+            private int _tableIndex;
+            private int _entityIndex;
+
+            public Enumerator(in Query query)
             {
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                get => _data.Tables[_data.TableIndex].GetStorage<C0>()[_data.EntityIndex];
+                _query = query;
+                _tableIndex = 0;
+                _entityIndex = -1;
+            }
+
+            public bool MoveNext()
+            {
+                var tables = _query.Tables;
+                if (_tableIndex == tables.Count) return false;
+
+                if (++_entityIndex < tables[_tableIndex].Count) return true;
+
+                _entityIndex = 0;
+                _tableIndex++;
+
+                while (_tableIndex < tables.Count && tables[_tableIndex].IsEmpty)
+                {
+                    _tableIndex++;
+                }
+
+                return _tableIndex < tables.Count && _entityIndex < tables[_tableIndex].Count;
+            }
+
+            public QueryEntity Current
+            {
+                get
+                {
+                    var entity = _query.Tables[_tableIndex].GetStorage<Entity>()[_entityIndex];
+                    return new QueryEntity { Entity = entity, Query = _query };
+                }
             }
         }
 
-        public sealed class Builder : QueryBuilder
+        public readonly ref struct QueryEntity
         {
-            static readonly Func<Archetypes, Mask, List<Table>, Query> CreateQuery =
-                (archetypes, mask, matchingTables) => new Query<C0>(archetypes, mask, matchingTables);
+            public Entity Entity { get; init; }
+            public Query Query { get; init; }
 
-            public Builder(Archetypes archetypes) : base(archetypes)
+            public bool Has()
             {
-                Has<C0>();
+                return Query.Has(Entity);
             }
 
-            public new Builder Has<T>()
+            public ref T Get<T>() where T : struct
             {
-                return (Builder)base.Has<T>();
+                return ref Query.Get<T>(Entity);
             }
 
-            public new Builder Not<T>()
+            public T GetObject<T>() where T : class
             {
-                return (Builder)base.Not<T>();
+                return Query.GetObject<T>(Entity);
             }
 
-            public new Builder Any<T>()
+            public static implicit operator Entity(QueryEntity self) => self.Entity;
+        }
+
+        public readonly ref struct Builder
+        {
+            internal Archetypes Archetypes { get; }
+            internal Mask Mask { get; }
+
+            public Builder(Archetypes archetypes)
             {
-                return (Builder)base.Any<T>();
+                Archetypes = archetypes;
+                Mask = MaskPool.Get();
             }
 
-            public Query<C0> Build()
+            public Builder Has<T>()
             {
-                return (Query<C0>)Archetypes.GetQuery(Mask, CreateQuery);
+                var typeIndex = StorageType.Create<T>();
+                Mask.Has(typeIndex);
+                return this;
             }
+
+            public Builder Not<T>()
+            {
+                var typeIndex = StorageType.Create<T>();
+                Mask.Not(typeIndex);
+                return this;
+            }
+
+            public Builder Any<T>()
+            {
+                var typeIndex = StorageType.Create<T>();
+                Mask.Any(typeIndex);
+                return this;
+            }
+
+            public Query Build()
+            {
+                return Archetypes.GetQuery(Mask, Query.s_createQuery);
+            }
+        }
+    }
+
+    public static partial class ObjectComponentExtension
+    {
+        public static T Get<T>(this in Query query, Entity entity) where T : class
+        {
+            return query.GetObject<T>(entity);
+        }
+
+        public static T Get<T>(this in Query.QueryEntity queryEntity) where T : class
+        {
+            return queryEntity.GetObject<T>();
         }
     }
 }

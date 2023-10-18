@@ -1,29 +1,26 @@
 using System;
 using System.Linq;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
+using System.Diagnostics;
+using System.Reflection;
 
 namespace RelEcs
 {
+    public readonly struct UntypedComponent
+    {
+        public Array Storage { get; init; }
+        public int Row { get; init; }
+        public StorageType Type { get; init; }
+    }
+
     public sealed class Archetypes
     {
-        internal EntityMeta[] Meta = new EntityMeta[512];
-
-        internal readonly Queue<Identity> UnusedIds = new();
-
-        internal readonly List<Table> Tables = new();
-
-        internal readonly Dictionary<int, Query> Queries = new();
-
-        internal int EntityCount;
-
-        readonly List<TableOperation> _tableOperations = new();
-        internal readonly Dictionary<StorageType, List<Table>> TablesByType = new();
-
-        int _lockCount;
-        bool _isLocked;
-
+        internal EntityMeta[] _meta = new EntityMeta[512];
+        internal readonly Queue<Identity> _unusedIds = new();
+        internal readonly List<Table> _tables = new();
+        internal readonly Dictionary<int, Query> _queries = new();
+        internal int _entityCount;
+        internal readonly Dictionary<StorageType, List<Table>> _tablesByType = new();
         private static readonly StorageType s_entityType = StorageType.Create<Entity>();
 
         public Archetypes()
@@ -31,70 +28,59 @@ namespace RelEcs
             AddTable(new SortedSet<StorageType> { s_entityType });
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Entity Spawn()
         {
-            var identity = UnusedIds.Count > 0 ? UnusedIds.Dequeue() : new Identity(++EntityCount);
-
-            var table = Tables[0];
-
+            var identity = _unusedIds.Count > 0 ? _unusedIds.Dequeue() : new Identity(++_entityCount);
+            var table = _tables[0];
             var row = table.Add(identity);
-
-            if (Meta.Length == EntityCount) Array.Resize(ref Meta, EntityCount << 1);
-
-            Meta[identity.Id] = new EntityMeta(identity, table.Id, row);
-
+            if (_meta.Length == _entityCount) Array.Resize(ref _meta, _entityCount << 1);
+            _meta[identity.Id] = new EntityMeta(identity, table.Id, row);
             var entity = new Entity(identity);
-
-            table.GetStorage(s_entityType).SetValue(entity, row);
-
+            table.GetStorage<Entity>()[row] = entity;
             return entity;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Despawn(Identity identity)
         {
             if (!IsAlive(identity)) return;
 
-            if (_isLocked)
-            {
-                _tableOperations.Add(new TableOperation { Despawn = true, Identity = identity });
-                return;
-            }
-
-            ref var meta = ref Meta[identity.Id];
-
-            var table = Tables[meta.TableId];
-
+            var meta = _meta[identity.Id];
+            var table = _tables[meta.TableId];
             table.Remove(meta.Row);
-
-            meta.Row = 0;
-            meta.Identity = Identity.None;
-
-            UnusedIds.Enqueue(identity);
+            _meta[identity.Id] = new EntityMeta(Identity.None, row: 0, tableId: 0);
+            _unusedIds.Enqueue(identity);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void AddComponent(StorageType type, Identity identity, object data)
+        public ref T AddComponent<T>(Identity identity, T data) where T : struct
         {
-            ref var meta = ref Meta[identity.Id];
-            var oldTable = Tables[meta.TableId];
+            var type = StorageType.Create<T>();
+            var (table, row) = AddComponent(identity, type);
+            var storage = table.GetStorage<T>();
+            storage[row] = data;
+            return ref storage[row];
+        }
+
+        public void AddObjectComponent<T>(Identity identity, T data) where T : class
+        {
+            var type = StorageType.Create(data.GetType());
+            var (table, row) = AddComponent(identity, type);
+            table.GetStorage(type).SetValue(data, row);
+        }
+
+        private (Table table, int row) AddComponent(Identity identity, StorageType type)
+        {
+            WarningIfCanBeUnmanaged(type.Type);
+
+            var meta = _meta[identity.Id];
+            var oldTable = _tables[meta.TableId];
 
             if (oldTable.Types.Contains(type))
             {
                 throw new Exception($"Entity {identity} already has component of type {type}");
             }
 
-            if (_isLocked)
-            {
-                _tableOperations.Add(new TableOperation { Add = true, Identity = identity, Type = type, Data = data });
-                return;
-            }
-
             var oldEdge = oldTable.GetTableEdge(type);
-
             var newTable = oldEdge.Add;
-
             if (newTable == null)
             {
                 var newTypes = new SortedSet<StorageType>(oldTable.Types);
@@ -107,45 +93,38 @@ namespace RelEcs
             }
 
             var newRow = Table.MoveEntry(identity, meta.Row, oldTable, newTable);
-
-            meta.Row = newRow;
-            meta.TableId = newTable.Id;
-
-            var storage = newTable.GetStorage(type);
-            storage.SetValue(data, newRow);
+            _meta[identity.Id] = new EntityMeta(identity, tableId: newTable.Id, row: newRow);
+            return (newTable, newRow);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public object GetComponent(StorageType type, Identity identity)
+        public ref T GetComponent<T>(Identity identity) where T : struct
         {
-            var meta = Meta[identity.Id];
-            var table = Tables[meta.TableId];
-            var storage = table.GetStorage(type);
-            return storage.GetValue(meta.Row);
+            var meta = _meta[identity.Id];
+            var table = _tables[meta.TableId];
+            return ref table.GetStorage<T>()[meta.Row];
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public T GetObjectComponent<T>(Identity identity) where T : class
+        {
+            var meta = _meta[identity.Id];
+            var table = _tables[meta.TableId];
+            return (T)table.GetStorage(StorageType.Create<T>()).GetValue(meta.Row);
+        }
+
         public bool HasComponent(StorageType type, Identity identity)
         {
-            var meta = Meta[identity.Id];
-            return meta.Identity != Identity.None && Tables[meta.TableId].TypesInHierarchy.Contains(type);
+            var meta = _meta[identity.Id];
+            return meta.Identity != Identity.None && _tables[meta.TableId].TypesInHierarchy.Contains(type);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void RemoveComponent(StorageType type, Identity identity)
         {
-            ref var meta = ref Meta[identity.Id];
-            var oldTable = Tables[meta.TableId];
+            var meta = _meta[identity.Id];
+            var oldTable = _tables[meta.TableId];
 
             if (!oldTable.Types.Contains(type))
             {
                 throw new Exception($"cannot remove non-existent component {type.Type.Name} from entity {identity}");
-            }
-
-            if (_isLocked)
-            {
-                _tableOperations.Add(new TableOperation { Add = false, Identity = identity, Type = type });
-                return;
             }
 
             var oldEdge = oldTable.GetTableEdge(type);
@@ -162,22 +141,19 @@ namespace RelEcs
                 var newEdge = newTable.GetTableEdge(type);
                 newEdge.Add = oldTable;
 
-                Tables.Add(newTable);
+                _tables.Add(newTable);
             }
 
             var newRow = Table.MoveEntry(identity, meta.Row, oldTable, newTable);
-
-            meta.Row = newRow;
-            meta.TableId = newTable.Id;
+            _meta[identity.Id] = new EntityMeta(identity, row: newRow, tableId: newTable.Id);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Query GetQuery(Mask mask, Func<Archetypes, Mask, List<Table>, Query> createQuery)
+        internal Query GetQuery(Mask mask, Func<Archetypes, Mask, List<Table>, Query> createQuery)
         {
             // TODO: replace hash by something more safer? Set? BitArray?
             var hash = mask.GetHashCode();
 
-            if (Queries.TryGetValue(hash, out var query))
+            if (_queries.TryGetValue(hash, out var query))
             {
                 MaskPool.Add(mask);
                 return query;
@@ -185,11 +161,11 @@ namespace RelEcs
 
             var matchingTables = new List<Table>();
 
-            var type = mask.HasTypes[0];
-            if (!TablesByType.TryGetValue(type, out var typeTables))
+            var type = mask._hasTypes.Count == 0 ? StorageType.Create<Entity>() : mask._hasTypes[0];
+            if (!_tablesByType.TryGetValue(type, out var typeTables))
             {
                 typeTables = new List<Table>();
-                TablesByType[type] = typeTables;
+                _tablesByType[type] = typeTables;
             }
 
             foreach (var table in typeTables)
@@ -200,99 +176,78 @@ namespace RelEcs
             }
 
             query = createQuery(this, mask, matchingTables);
-            Queries.Add(hash, query);
+            _queries.Add(hash, query);
 
             return query;
         }
 
-        [SuppressMessage("Performance", "CA1822:Mark members as static")]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal bool IsMaskCompatibleWith(Mask mask, Table table)
+        internal static bool IsMaskCompatibleWith(Mask mask, Table table)
         {
-            var matchesComponents = table.TypesInHierarchy.IsSupersetOf(mask.HasTypes);
-            matchesComponents = matchesComponents && !table.TypesInHierarchy.Overlaps(mask.NotTypes);
-            matchesComponents = matchesComponents && (mask.AnyTypes.Count == 0 || table.TypesInHierarchy.Overlaps(mask.AnyTypes));
+            var matchesComponents = table.TypesInHierarchy.IsSupersetOf(mask._hasTypes);
+            matchesComponents = matchesComponents && !table.TypesInHierarchy.Overlaps(mask._notTypes);
+            matchesComponents = matchesComponents && (mask._anyTypes.Count == 0 || table.TypesInHierarchy.Overlaps(mask._anyTypes));
             return matchesComponents;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool IsAlive(Identity identity)
         {
-            return Meta[identity.Id].Identity != Identity.None;
+            return _meta[identity.Id].Identity != Identity.None;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal ref EntityMeta GetEntityMeta(Identity identity)
+        internal EntityMeta GetEntityMeta(in Identity identity)
         {
-            return ref Meta[identity.Id];
+            return _meta[identity.Id];
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void SetEntityMeta(in Identity identity, in EntityMeta meta)
+        {
+            _meta[identity.Id] = meta;
+        }
+
         internal Table GetTable(int tableId)
         {
-            return Tables[tableId];
+            return _tables[tableId];
         }
 
-        internal void GetComponents<T>(Identity identity, ICollection<T> components)
+        internal void FindAllComponents(Identity identity, ICollection<UntypedComponent> components)
         {
-            var meta = Meta[identity.Id];
-            var table = Tables[meta.TableId];
-
-            foreach (var (type, storage) in table.Storages)
+            var meta = _meta[identity.Id];
+            var table = _tables[meta.TableId];
+            foreach (var (type, storage) in table)
             {
-                if (typeof(T).IsAssignableFrom(type.Type))
-                    components.Add((T)storage.GetValue(meta.Row));
+                components.Add(new UntypedComponent { Storage = storage, Row = meta.Row, Type = type });
             }
         }
 
-        internal void GetComponents(Identity identity, ICollection<object> components)
+        internal void FindComponents<T>(Identity identity, Type realType, ICollection<T> components) where T : class
         {
-            var meta = Meta[identity.Id];
-            var table = Tables[meta.TableId];
+            var meta = _meta[identity.Id];
+            var table = _tables[meta.TableId];
 
-            foreach (var storage in table.Storages.Values)
+            foreach (var (type, storage) in table)
             {
-                components.Add(storage.GetValue(meta.Row));
+                if (realType.IsAssignableFrom(type.Type))
+                    components.Add(((T[])storage)[meta.Row]);
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal (StorageType, object?)[] GetComponents(Identity identity)
-        {
-            var meta = Meta[identity.Id];
-            var table = Tables[meta.TableId];
-
-            var list = ListPool<(StorageType, object?)>.Get();
-
-            foreach (var type in table.Types)
-            {
-                var storage = table.GetStorage(type);
-                list.Add((type, storage.GetValue(meta.Row)));
-            }
-
-            var array = list.ToArray();
-            ListPool<(StorageType, object?)>.Add(list);
-            return array;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         Table AddTable(SortedSet<StorageType> types)
         {
-            var table = new Table(Tables.Count, this, types);
-            Tables.Add(table);
+            var table = new Table(_tables.Count, this, types);
+            _tables.Add(table);
 
             foreach (var type in table.TypesInHierarchy)
             {
-                if (!TablesByType.TryGetValue(type, out var tableList))
+                if (!_tablesByType.TryGetValue(type, out var tableList))
                 {
                     tableList = new List<Table>();
-                    TablesByType[type] = tableList;
+                    _tablesByType[type] = tableList;
                 }
 
                 tableList.Add(table);
             }
 
-            foreach (var query in Queries.Values.Where(query => IsMaskCompatibleWith(query.Mask, table)))
+            foreach (var query in _queries.Values.Where(query => IsMaskCompatibleWith(query.Mask, table)))
             {
                 query.AddTable(table);
             }
@@ -300,45 +255,21 @@ namespace RelEcs
             return table;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        void ApplyTableOperations()
+#if DEBUG || UNITY_EDITOR || DEVELOPMENT
+        private static readonly HashSet<Type> s_checkedTypes = new();
+#endif
+        [Conditional("DEBUG")]
+        [Conditional("UNITY_EDITOR")]
+        [Conditional("DEVELOPMENT")]
+        private static void WarningIfCanBeUnmanaged(Type type)
         {
-            foreach (var op in _tableOperations)
-            {
-                if (!IsAlive(op.Identity)) continue;
-
-                if (op.Despawn) Despawn(op.Identity);
-                else if (op.Add) AddComponent(op.Type, op.Identity, op.Data);
-                else RemoveComponent(op.Type, op.Identity);
-            }
-
-            _tableOperations.Clear();
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Lock()
-        {
-            _lockCount++;
-            _isLocked = true;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Unlock()
-        {
-            _lockCount--;
-            if (_lockCount != 0) return;
-            _isLocked = false;
-
-            ApplyTableOperations();
-        }
-
-        struct TableOperation
-        {
-            public bool Despawn;
-            public bool Add;
-            public StorageType Type;
-            public Identity Identity;
-            public object Data;
+            if (s_checkedTypes.Contains(type)) return;
+            s_checkedTypes.Add(type);
+            if (!type.IsClass) return;
+            if (type.BaseType != typeof(object)) return;
+            var fields = type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            if (fields.Any(fi => !fi.FieldType.IsUnmanaged())) return;
+            Game.Debug.LogWarning($"{type} can be changed to `struct` for performance gain");
         }
     }
 }
