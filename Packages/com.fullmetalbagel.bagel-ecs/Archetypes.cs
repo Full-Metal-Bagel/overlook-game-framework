@@ -255,9 +255,8 @@ namespace RelEcs
             return table;
         }
 
-#if DEBUG || UNITY_EDITOR || DEVELOPMENT
         private static readonly HashSet<Type> s_checkedTypes = new();
-#endif
+
         [Conditional("DEBUG")]
         [Conditional("UNITY_EDITOR")]
         [Conditional("DEVELOPMENT")]
