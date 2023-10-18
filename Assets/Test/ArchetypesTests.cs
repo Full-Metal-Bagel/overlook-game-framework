@@ -20,14 +20,13 @@ namespace RelEcs.Tests
         public void Constructor_InitializesProperly()
         {
             Assert.IsNotNull(_archetypes);
-            Assert.That(_archetypes.EntityCount, Is.Zero); // Assuming EntityCount starts at 0
+            Assert.That(_archetypes._entityCount, Is.Zero); // Assuming EntityCount starts at 0
         }
 
         [Test]
         public void Spawn_ReturnsValidEntity()
         {
             var entity = _archetypes.Spawn();
-            Assert.That(entity, Is.Not.Null);
             Assert.That(_archetypes.IsAlive(entity.Identity), Is.True);
         }
 
@@ -65,7 +64,7 @@ namespace RelEcs.Tests
             // Arrange
             var entity = _archetypes.Spawn();
             var componentType = StorageType.Create(typeof(int));
-            _archetypes.AddComponent(componentType, entity.Identity, 42);
+            _archetypes.AddComponent(entity.Identity, 42);
 
             // Act
             _archetypes.Despawn(entity.Identity);
@@ -139,8 +138,8 @@ namespace RelEcs.Tests
         public void AddComponent_AddsComponentToEntity()
         {
             var entity = _archetypes.Spawn();
-            var type = StorageType.Create<string>(); // Assuming a valid StorageType instance
-            _archetypes.AddComponent(type, entity.Identity, "");
+            var type = StorageType.Create<int>(); // Assuming a valid StorageType instance
+            _archetypes.AddComponent(entity.Identity, 123);
             Assert.That(_archetypes.HasComponent(type, entity.Identity), Is.True);
         }
 
@@ -148,45 +147,20 @@ namespace RelEcs.Tests
         public void GetComponent_ReturnsValidComponent()
         {
             var entity = _archetypes.Spawn();
-            var type = StorageType.Create<string>(); // Assuming a valid StorageType instance
-            var data = "123";
-            _archetypes.AddComponent(type, entity.Identity, data);
-            var component = _archetypes.GetComponent(type, entity.Identity);
+            var type = StorageType.Create<int>(); // Assuming a valid StorageType instance
+            var data = 123;
+            _archetypes.AddComponent(entity.Identity, data);
+            var component = (int)_archetypes.GetComponent<int>(entity.Identity);
             Assert.That(component, Is.EqualTo(data));
         }
 
         [Test]
-        public void Lock_LocksArchetypes()
-        {
-            _archetypes.Lock();
-            var type = StorageType.Create<string>();
-            var identify = _archetypes.Spawn().Identity;
-            _archetypes.AddComponent(type, identify, "");
-            Assert.That(_archetypes.HasComponent(type, identify), Is.False);
-            _archetypes.Unlock();
-            Assert.That(_archetypes.HasComponent(type, identify), Is.True);
-        }
-
-        [Test]
-        public void Unlock_UnlocksArchetypes()
-        {
-            var entity = _archetypes.Spawn();
-            _archetypes.Lock();
-            _archetypes.Unlock();
-            Assert.DoesNotThrow(() =>
-                _archetypes.AddComponent(StorageType.Create<string>(), entity.Identity, "")); // Assuming operations don't throw when unlocked
-        }
-
-        // ... Add more tests for edge cases, different scenarios, and possible exceptions ...
-        [Test]
         public void AddComponent_ThrowsWhenComponentAlreadyExists()
         {
             var entity = _archetypes.Spawn();
-            var type = StorageType.Create<string>(); // Assuming a valid StorageType instance
-            _archetypes.AddComponent(type, entity.Identity, "");
-            Assert.Throws<Exception>(() =>
-                _archetypes.AddComponent(type, entity.Identity,
-                    "")); // Assuming it throws an exception when trying to add an existing component
+            var type = StorageType.Create<int>(); // Assuming a valid StorageType instance
+            _archetypes.AddComponent(entity.Identity, 123);
+            Assert.Throws<Exception>(() => _archetypes.AddComponent(entity.Identity, 123)); // Assuming it throws an exception when trying to add an existing component
         }
 
         [Test]
@@ -203,35 +177,8 @@ namespace RelEcs.Tests
         public void GetComponent_ThrowsWhenComponentDoesNotExist()
         {
             var entity = _archetypes.Spawn();
-            var type = StorageType.Create<string>(); // Assuming a valid StorageType instance
-            Assert.Catch<Exception>(() =>
-                _archetypes.GetComponent(type,
-                    entity.Identity)); // Assuming it throws an exception when trying to get a non-existent component
-        }
-
-        [Test]
-        public void AddComponent_WhenLocked_QueuesOperation()
-        {
-            var entity = _archetypes.Spawn();
-            var type = StorageType.Create<string>(); // Assuming a valid StorageType instance
-            _archetypes.Lock();
-            _archetypes.AddComponent(type, entity.Identity, "123");
-            _archetypes.Unlock();
-            Assert.That(_archetypes.HasComponent(type,
-                entity.Identity), Is.True); // Assuming the component is added after unlocking
-        }
-
-        [Test]
-        public void RemoveComponent_WhenLocked_QueuesOperation()
-        {
-            var entity = _archetypes.Spawn();
-            var type = StorageType.Create<string>(); // Assuming a valid StorageType instance
-            _archetypes.AddComponent(type, entity.Identity, "123");
-            _archetypes.Lock();
-            _archetypes.RemoveComponent(type, entity.Identity);
-            _archetypes.Unlock();
-            Assert.That(_archetypes.HasComponent(type,
-                entity.Identity), Is.False); // Assuming the component is removed after unlocking
+            var type = StorageType.Create<int>(); // Assuming a valid StorageType instance
+            Assert.Catch<Exception>(() => _archetypes.GetComponent<int>(entity.Identity)); // Assuming it throws an exception when trying to get a non-existent component
         }
 
         [Test]
@@ -251,10 +198,10 @@ namespace RelEcs.Tests
         public void GetComponent_ReturnsCorrectComponent()
         {
             var entity = _archetypes.Spawn();
-            var type = StorageType.Create<string>(); // Assuming a valid StorageType instance
-            var data = "123";
-            _archetypes.AddComponent(type, entity.Identity, data);
-            var component = _archetypes.GetComponent(type, entity.Identity);
+            var type = StorageType.Create<int>(); // Assuming a valid StorageType instance
+            var data = 123;
+            _archetypes.AddComponent(entity.Identity, data);
+            var component = (int)_archetypes.GetComponent<int>(entity.Identity);
             Assert.That(component, Is.EqualTo(data));
         }
 
@@ -262,8 +209,8 @@ namespace RelEcs.Tests
         public void GetComponent_ThrowsWhenEntityDoesNotExist()
         {
             var nonExistentIdentity = new Identity(); // Assuming a valid Identity instance not linked to any entity
-            var type = StorageType.Create<string>(); // Assuming a valid StorageType instance
-            Assert.Catch<Exception>(() => _archetypes.GetComponent(type, nonExistentIdentity));
+            var type = StorageType.Create<int>(); // Assuming a valid StorageType instance
+            Assert.Catch<Exception>(() => _archetypes.GetComponent<int>(nonExistentIdentity));
         }
 
         [Test]
@@ -272,8 +219,7 @@ namespace RelEcs.Tests
             var mask = new Mask(); // Assuming a valid Mask instance
             mask.Has(StorageType.Create<string>());
             var query = _archetypes.GetQuery(mask,
-                (archetypes, mask, tables) => new Query(archetypes, mask, tables)); // Assuming a valid delegate
-            Assert.That(query, Is.Not.Null);
+                (archetypes, mask, tables) => new Query { Archetypes = archetypes, Mask = mask, Tables = tables }); // Assuming a valid delegate
             Assert.That(query.Mask, Is.EqualTo(mask));
         }
 
@@ -293,12 +239,13 @@ namespace RelEcs.Tests
             var entity = _archetypes.Spawn();
             var type1 = StorageType.Create<int>(); // Assuming a valid StorageType instance
             var type2 = StorageType.Create<float>(); // Another StorageType instance
-            _archetypes.AddComponent(type1, entity.Identity, 123);
-            _archetypes.AddComponent(type2, entity.Identity, 123f);
-            var components = _archetypes.GetComponents(entity.Identity);
-            Assert.That(components.Length, Is.EqualTo(3)); // will added `Entity` as component by default
-            Assert.That(components.Any(c => c.Item1 == type1), Is.True);
-            Assert.That(components.Any(c => c.Item1 == type2), Is.True);
+            _archetypes.AddComponent(entity.Identity, 123);
+            _archetypes.AddComponent(entity.Identity, 123f);
+            var components = ListPool<UntypedComponent>.Get();
+            _archetypes.FindAllComponents(entity.Identity, components);
+            Assert.That(components.Count, Is.EqualTo(3)); // will added `Entity` as component by default
+            Assert.That(components.Any(c => c.Type == type1), Is.True);
+            Assert.That(components.Any(c => c.Type == type2), Is.True);
         }
 
 
@@ -309,7 +256,7 @@ namespace RelEcs.Tests
             mask.Has(StorageType.Create<int>());
             var tableTypes = new SortedSet<StorageType> { StorageType.Create<int>() };
             var table = new Table(0, _archetypes, tableTypes);
-            Assert.That(_archetypes.IsMaskCompatibleWith(mask, table), Is.True);
+            Assert.That(Archetypes.IsMaskCompatibleWith(mask, table), Is.True);
         }
 
         [Test]
@@ -319,7 +266,7 @@ namespace RelEcs.Tests
             mask.Has(StorageType.Create<int>());
             var tableTypes = new SortedSet<StorageType> { StorageType.Create<string>() };
             var table = new Table(0, _archetypes, tableTypes);
-            Assert.That(_archetypes.IsMaskCompatibleWith(mask, table), Is.False);
+            Assert.That(Archetypes.IsMaskCompatibleWith(mask, table), Is.False);
         }
 
         [Test]
@@ -329,7 +276,7 @@ namespace RelEcs.Tests
             mask.Not(StorageType.Create<int>());
             var tableTypes = new SortedSet<StorageType> { StorageType.Create<int>() };
             var table = new Table(0, _archetypes, tableTypes);
-            Assert.That(_archetypes.IsMaskCompatibleWith(mask, table), Is.False);
+            Assert.That(Archetypes.IsMaskCompatibleWith(mask, table), Is.False);
         }
 
         [Test]
@@ -340,7 +287,7 @@ namespace RelEcs.Tests
             mask.Any(StorageType.Create<string>());
             var tableTypes = new SortedSet<StorageType> { StorageType.Create<int>() };
             var table = new Table(0, _archetypes, tableTypes);
-            Assert.That(_archetypes.IsMaskCompatibleWith(mask, table), Is.True);
+            Assert.That(Archetypes.IsMaskCompatibleWith(mask, table), Is.True);
         }
 
         [Test]
@@ -351,7 +298,7 @@ namespace RelEcs.Tests
             mask.Any(StorageType.Create<string>());
             var tableTypes = new SortedSet<StorageType> { StorageType.Create(typeof(double)) };
             var table = new Table(0, _archetypes, tableTypes);
-            Assert.That(_archetypes.IsMaskCompatibleWith(mask, table), Is.False);
+            Assert.That(Archetypes.IsMaskCompatibleWith(mask, table), Is.False);
         }
 
         [Test]
@@ -363,7 +310,7 @@ namespace RelEcs.Tests
             mask.Not(StorageType.Create(typeof(double)));
             var tableTypes = new SortedSet<StorageType> { StorageType.Create(typeof(int)), StorageType.Create(typeof(string)) };
             var table = new Table(0, _archetypes, tableTypes);
-            Assert.That(_archetypes.IsMaskCompatibleWith(mask, table), Is.True);
+            Assert.That(Archetypes.IsMaskCompatibleWith(mask, table), Is.True);
         }
 
         [Test]
@@ -374,7 +321,7 @@ namespace RelEcs.Tests
             mask.Not(StorageType.Create(typeof(string)));
             var tableTypes = new SortedSet<StorageType> { StorageType.Create(typeof(int)), StorageType.Create(typeof(string)) };
             var table = new Table(0, _archetypes, tableTypes);
-            Assert.That(_archetypes.IsMaskCompatibleWith(mask, table), Is.False);
+            Assert.That(Archetypes.IsMaskCompatibleWith(mask, table), Is.False);
         }
 
         [Test]
@@ -385,7 +332,7 @@ namespace RelEcs.Tests
             mask.Any(StorageType.Create(typeof(string)));
             var tableTypes = new SortedSet<StorageType> { StorageType.Create(typeof(int)), StorageType.Create(typeof(string)) };
             var table = new Table(0, _archetypes, tableTypes);
-            Assert.That(_archetypes.IsMaskCompatibleWith(mask, table), Is.True);
+            Assert.That(Archetypes.IsMaskCompatibleWith(mask, table), Is.True);
         }
 
         [Test]
@@ -396,7 +343,7 @@ namespace RelEcs.Tests
             mask.Any(StorageType.Create(typeof(string)));
             var tableTypes = new SortedSet<StorageType> { StorageType.Create(typeof(double)) };
             var table = new Table(0, _archetypes, tableTypes);
-            Assert.That(_archetypes.IsMaskCompatibleWith(mask, table), Is.False);
+            Assert.That(Archetypes.IsMaskCompatibleWith(mask, table), Is.False);
         }
 
         [Test]
@@ -408,7 +355,7 @@ namespace RelEcs.Tests
             mask.Any(StorageType.Create(typeof(string)));
             var tableTypes = new SortedSet<StorageType> { StorageType.Create(typeof(int)), StorageType.Create(typeof(string)) };
             var table = new Table(0, _archetypes, tableTypes);
-            Assert.That(_archetypes.IsMaskCompatibleWith(mask, table), Is.False);
+            Assert.That(Archetypes.IsMaskCompatibleWith(mask, table), Is.False);
         }
     }
 }

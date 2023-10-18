@@ -5,19 +5,19 @@ namespace RelEcs
 {
     public static class ListPool<T>
     {
-        static readonly Stack<List<T>> Stack = new();
+        private static readonly Stack<List<T>> s_stack = new();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static List<T> Get()
         {
-            return Stack.Count > 0 ? Stack.Pop() : new List<T>();
+            return s_stack.Count > 0 ? s_stack.Pop() : new List<T>();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Add(List<T> list)
         {
             list.Clear();
-            Stack.Push(list);
+            s_stack.Push(list);
         }
     }
 }

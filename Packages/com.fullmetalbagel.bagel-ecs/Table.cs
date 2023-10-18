@@ -27,10 +27,12 @@ namespace RelEcs
 
         Identity[] _identities;
 
-        readonly Dictionary<StorageType, TableEdge> _edges = new();
-        readonly Dictionary<StorageType, Array> _storages = new();
+        private readonly Dictionary<StorageType, TableEdge> _edges = new();
+        private readonly Dictionary<StorageType, Array> _storages = new();
 
-        public IReadOnlyDictionary<StorageType, Array> Storages => _storages;
+        public Dictionary<StorageType, Array>.Enumerator GetEnumerator() => _storages.GetEnumerator();
+
+        public int StorageCount => _storages.Count;
 
         public Table(int id, Archetypes archetypes, SortedSet<StorageType> types)
         {
@@ -89,7 +91,8 @@ namespace RelEcs
                     Array.Copy(storage, Count, storage, row, 1);
                 }
 
-                _archetypes.GetEntityMeta(_identities[row]).Row = row;
+                var meta = _archetypes.GetEntityMeta(_identities[row]);
+                _archetypes.SetEntityMeta(_identities[row], new EntityMeta(meta.Identity, tableId: meta.TableId, row: row));
             }
 
             _identities[Count] = Identity.None;
@@ -110,17 +113,16 @@ namespace RelEcs
             return edge;
         }
 
-        public T[] GetStorage<T>()
+        internal T[] GetStorage<T>() where T : struct
         {
-            var type = StorageType.Create<T>();
-            return (T[])GetStorage(type);
+            return (T[])GetStorage(StorageType.Create<T>());
         }
 
-        public Array GetStorage(StorageType type)
+        internal Array GetStorage(StorageType type)
         {
             if (_storages.TryGetValue(type, out var array)) return array;
             // TODO: optimize by building map of base/interface -> actualType during creation
-            foreach (var (storageType, storage) in Storages)
+            foreach (var (storageType, storage) in _storages)
             {
                 if (type.Type.IsAssignableFrom(storageType.Type))
                     return storage;

@@ -1,64 +1,81 @@
-using System.Runtime.CompilerServices;
+using System;
 
 namespace RelEcs
 {
-    public struct EntityMeta
+    public readonly struct EntityMeta : IEquatable<EntityMeta>
     {
-        public Identity Identity;
-        public int TableId;
-        public int Row;
+        public Identity Identity { get; }
+        public int TableId { get; }
+        public int Row { get; }
 
-        public EntityMeta(Identity identity, int tableId, int row)
+        public EntityMeta(in Identity identity, int tableId, int row)
         {
             Identity = identity;
             TableId = tableId;
             Row = row;
         }
+
+        public override bool Equals(object? obj)
+        {
+            return obj is EntityMeta other && other.Equals(this);
+        }
+
+        public bool Equals(EntityMeta other)
+        {
+            return Identity.Equals(other.Identity) && TableId == other.TableId && Row == other.Row;
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(Identity, TableId, Row);
+        }
+
+        public static bool operator ==(in EntityMeta left, in EntityMeta right)
+        {
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(in EntityMeta left, in EntityMeta right)
+        {
+            return !(left == right);
+        }
     }
 
-    public readonly struct Identity
+    public readonly struct Identity : IEquatable<Identity>
     {
         public static Identity None;
         public static Identity Any = new(int.MaxValue, 0);
 
-        public readonly int Id;
-        public readonly ushort Generation;
+        public int Id { get; }
+        public ushort Generation { get; }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Identity(int id, ushort generation = 1)
         {
             Id = id;
             Generation = generation;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
-            return (obj is Identity other) && Id == other.Id && Generation == other.Generation;
+            return (obj is Identity other) && other.Equals(this);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Equals(Identity other)
+        {
+            return Id == other.Id && Generation == other.Generation;
+        }
+
         public override int GetHashCode()
         {
-            unchecked // Allow arithmetic overflow, numbers will just "wrap around"
-            {
-                var hashcode = 1430287;
-                hashcode = hashcode * 7302013 ^ Id.GetHashCode();
-                hashcode = hashcode * 7302013 ^ Generation.GetHashCode();
-                return hashcode;
-            }
+            return HashCode.Combine(Id, Generation);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override string ToString()
         {
-            return $"{Id}";
+            return $"{Id}({Generation})";
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator ==(Identity left, Identity right) => left.Equals(right);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator !=(Identity left, Identity right) => !left.Equals(right);
     }
 }

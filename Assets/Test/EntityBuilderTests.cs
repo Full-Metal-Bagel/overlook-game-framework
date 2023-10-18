@@ -8,14 +8,13 @@ namespace RelEcs.Tests
     {
         private World _world;
         private Entity _entity;
-        private EntityBuilder _builder;
+        private EntityBuilder _builder => _world.On(_entity);
 
         [SetUp]
         public void Setup()
         {
             _world = new World();
-            _builder = _world.Spawn();
-            _entity = _builder.Id();
+            _entity = _world.Spawn().Id();
         }
 
         [Test]

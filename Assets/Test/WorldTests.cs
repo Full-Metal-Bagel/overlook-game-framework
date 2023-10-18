@@ -6,31 +6,6 @@ using NUnit.Framework;
 
 namespace RelEcs.Tests
 {
-    public class Position
-    {
-        public int X { get; }
-        public int Y { get; }
-        public Position(int x, int y) { X = x; Y = y; }
-        public Position() {}
-    }
-
-    public class Velocity
-    {
-        public int X { get; }
-        public int Y { get; }
-        public Velocity(int x, int y) { X = x; Y = y; }
-        public Velocity() {}
-    }
-
-    public class SomeNonExistentComponent { }
-
-    public class Health
-    {
-        public int Value;
-        public Health(int value) { Value = value; }
-        public Health() { }
-    }
-
     [TestFixture]
     public class WorldTests
     {
@@ -43,22 +18,12 @@ namespace RelEcs.Tests
         }
 
         [Test]
-        public void Query_ReturnsQueryBuilder()
-        {
-            _world.Spawn().Add<Position>();
-            _world.Spawn().Add<Position>().Add<Velocity>();
-            _world.Spawn().Add<Health>();
-            var queryBuilder = _world.Query<Position>();
-            Assert.IsInstanceOf<QueryBuilder>(queryBuilder);
-        }
-
-        [Test]
         public void Query_WithComponent_ReturnsCorrectEntities()
         {
             _world.Spawn().Add<Position>();
             _world.Spawn().Add<Position>().Add<Velocity>();
             _world.Spawn().Add<Health>();
-            var query = _world.Query<Position>().Build();
+            var query = _world.Query().Has<Position>().Build();
             var count = query.Count();
             Assert.That(count, Is.EqualTo(2));
         }
@@ -69,7 +34,7 @@ namespace RelEcs.Tests
             _world.Spawn().Add<Position>();
             _world.Spawn().Add<Position>().Add<Velocity>();
             _world.Spawn().Add<Health>();
-            var query = _world.Query<Position>().Not<Velocity>().Build();
+            var query = _world.Query().Has<Position>().Not<Velocity>().Build();
             var count = query.Count();
             Assert.That(count, Is.EqualTo(1));
         }
@@ -80,7 +45,7 @@ namespace RelEcs.Tests
             _world.Spawn().Add<Position>();
             _world.Spawn().Add<Position>().Add<Velocity>();
             _world.Spawn().Add<Health>();
-            var query = _world.Query<Position>().Has<Velocity>().Build();
+            var query = _world.Query().Has<Position>().Has<Velocity>().Build();
             var count = query.Count();
             Assert.That(count, Is.EqualTo(1));
         }
@@ -91,7 +56,7 @@ namespace RelEcs.Tests
             _world.Spawn().Add<Position>();
             _world.Spawn().Add<Position>().Add<Velocity>();
             _world.Spawn().Add<Health>();
-            var query = _world.Query<Position>().Not<Velocity>().Not<Health>().Build();
+            var query = _world.Query().Has<Position>().Not<Velocity>().Not<Health>().Build();
             var count = query.Count();
             Assert.That(count, Is.EqualTo(1));
         }
@@ -147,7 +112,7 @@ namespace RelEcs.Tests
             var position = new Position();
             _world.AddComponent(entity, position);
             var retrievedPosition = _world.GetComponent<Position>(entity);
-            Assert.That(retrievedPosition, Is.SameAs(position));
+            Assert.That(retrievedPosition, Is.EqualTo(position));
         }
 
         [Test]
@@ -181,22 +146,22 @@ namespace RelEcs.Tests
             var entity = _world.Spawn().Id();
             var position = new Position();
             _world.AddComponent(entity, position);
-            Assert.That(_world.TryGetComponent(entity, out Position retrievedPosition), Is.True);
-            Assert.That(retrievedPosition, Is.SameAs(position));
+            Assert.That(_world.TryGetComponent<Position>(entity, out var retrievedPosition), Is.True);
+            Assert.That(retrievedPosition, Is.EqualTo(position));
         }
 
         [Test]
         public void TryGetComponent_NonExistentEntity_ReturnsFalse()
         {
             var entity = new Entity(new Identity(999)); // Assuming 999 is an invalid ID
-            Assert.Catch<Exception>(() => _world.TryGetComponent(entity, out Position _));
+            Assert.Catch<Exception>(() => _world.TryGetComponent<Position>(entity, out var _));
         }
 
         [Test]
         public void TryGetComponent_EntityWithoutComponent_ReturnsFalse()
         {
             var entity = _world.Spawn().Id();
-            Assert.That(_world.TryGetComponent(entity, out Position _), Is.False);
+            Assert.That(_world.TryGetComponent(entity, out Position? _), Is.False);
         }
 
         [Test]
@@ -229,7 +194,7 @@ namespace RelEcs.Tests
             var position = new Position();
             _world.AddComponent(entity, position);
             var retrievedPosition = _world.GetComponent<Position>(entity);
-            Assert.That(retrievedPosition, Is.SameAs(position));
+            Assert.That(retrievedPosition, Is.EqualTo(position));
         }
 
         [Test]
@@ -241,52 +206,11 @@ namespace RelEcs.Tests
         }
 
         [Test]
-        public void GetComponents_SuccessfullyRetrieved()
-        {
-            var entity = _world.Spawn().Id();
-            var position = new Position();
-            var velocity = new Velocity();
-            _world.AddComponent(entity, position);
-            _world.AddComponent(entity, velocity);
-            var components = _world.GetComponents(entity).Select(t => t.Item2);
-            Assert.That(components, Is.EquivalentTo(new object[] { entity, position, velocity }));
-        }
-
-        [Test]
-        public void GetComponents_NonExistentEntity_ReturnsEmptyList()
-        {
-            var entity = new Entity(new Identity(999)); // Assuming 999 is an invalid ID
-            Assert.Catch<Exception>(() => _world.GetComponents(entity));
-        }
-
-        [Test]
-        public void GetComponents_EntityWithoutComponents_ReturnsEmptyList()
-        {
-            var entity = _world.Spawn().Id();
-            var components = _world.GetComponents(entity).Select(t => t.Item2);
-            Assert.That(components, Is.EquivalentTo(new [] { entity }));
-        }
-
-        [Test]
-        public void GetComponents_AfterRemovingComponent_ExcludesRemovedComponent()
-        {
-            var entity = _world.Spawn().Id();
-            var position = new Position();
-            var velocity = new Velocity();
-            _world.AddComponent(entity, position);
-            _world.AddComponent(entity, velocity);
-            _world.RemoveComponent<Position>(entity);
-            var components = _world.GetComponents(entity).Select(t => t.Item2);
-            Assert.That(components, Is.EquivalentTo(new object[] { entity, velocity }));
-        }
-
-        [Test]
         public void AddObjectComponent_SuccessfullyAdded()
         {
             var entity = _world.Spawn().Id();
-            var position = new Position();
-            _world.AddComponent(entity, position);
-            Assert.That(_world.HasComponent<Position>(entity), Is.True);
+            _world.AddComponent<object>(entity);
+            Assert.That(_world.HasComponent<object>(entity), Is.True);
         }
 
         [Test]
@@ -319,7 +243,7 @@ namespace RelEcs.Tests
         {
             var entity1 = _world.Spawn().Id();
             var entity2 = _world.Spawn().Id();
-            var results = _world.Query<Entity>().Build().Count();
+            var results = _world.Query().Build().Count();
             Assert.That(results, Is.EqualTo(2));
         }
 
@@ -328,7 +252,7 @@ namespace RelEcs.Tests
         {
             var entity1 = _world.Spawn().Add(new Position(1, 1)).Id();
             var entity2 = _world.Spawn().Id();
-            var count = _world.Query<Position>().Build().Count();
+            var count = _world.Query().Has<Position>().Build().Count();
             Assert.That(count, Is.EqualTo(1));
         }
 
@@ -337,7 +261,7 @@ namespace RelEcs.Tests
         {
             var entity1 = _world.Spawn().Add(new Position(1, 1)).Add(new Velocity(2, 2)).Id();
             var entity2 = _world.Spawn().Add(new Position(1, 1)).Id();
-            var count = _world.Query<Position, Velocity>().Build().Count();
+            var count = _world.Query().Has<Position>().Has<Velocity>().Build().Count();
             Assert.That(count, Is.EqualTo(1));
         }
 
@@ -345,8 +269,8 @@ namespace RelEcs.Tests
         public void Query_NonExistentComponent_ReturnsEmpty()
         {
             var entity1 = _world.Spawn().Add(new Position(1, 1)).Id();
-            var results = _world.Query<SomeNonExistentComponent>().Build().AsEnumerable();
-            Assert.That(results, Is.Empty);
+            var count = _world.Query().Has<SomeNonExistentComponent>().Build().Count();
+            Assert.That(count, Is.Zero);
         }
 
         [Test]
@@ -374,6 +298,12 @@ namespace RelEcs.Tests
             var entity2 = _world.Spawn().Add(new Velocity(2, 2)).Id();
             var results = _world.Query().Not<Position>().Not<Velocity>().Build().AsEnumerable();
             Assert.That(results, Is.Empty);
+        }
+
+        [Test]
+        public void should_throw_on_add_struct_component_by_its_interface()
+        {
+            Assert.Catch(() => _world.Spawn().Add<I>(new S()));
         }
     }
 }

@@ -5,19 +5,19 @@ namespace RelEcs
 {
     public static class MaskPool
     {
-        static readonly Stack<Mask> Stack = new();
+        private static readonly Stack<Mask> s_stack = new();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Mask Get()
         {
-            return Stack.Count > 0 ? Stack.Pop() : new Mask();
+            return s_stack.Count > 0 ? s_stack.Pop() : new Mask();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Add(Mask list)
         {
             list.Clear();
-            Stack.Push(list);
+            s_stack.Push(list);
         }
     }
 }

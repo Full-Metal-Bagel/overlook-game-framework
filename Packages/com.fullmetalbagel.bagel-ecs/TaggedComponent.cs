@@ -1,99 +1,109 @@
-﻿using System;
+﻿#pragma warning disable CS0618 // Type or member is obsolete
+
+using System;
+using System.Diagnostics;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
 namespace RelEcs
 {
+    [Obsolete("use `ITaggedComponent<T>` instead")]
+    [SuppressMessage("Design", "CA1040:Avoid empty interfaces")]
     public interface ITaggedComponent
     {
-        object UntypedComponent { get; set; }
     }
 
-    public abstract class TaggedComponent<T> : ITaggedComponent where T : class
+    public interface ITaggedComponent<out T> : ITaggedComponent
     {
-        public T Component { get; private set; } = default!;
-
-        public object UntypedComponent
-        {
-            get => Component;
-            set => Component = (T)value;
-        }
+        T Component { get; }
     }
 
     public static class TaggedComponentExtension
     {
-        public static void AddTaggedComponent<T>(this World world, Entity entity, Type tagType, [DisallowNull] T component) where T : class
+        public static void AddTaggedComponent<T>(this World world, Entity entity, [DisallowNull] T component, Type tagType)
         {
-            // TODO: optimize?
-            var taggedComponent = (ITaggedComponent)Activator.CreateInstance(tagType.MakeGenericType(component.GetType()));
-            taggedComponent.UntypedComponent = component;
-            world.AddComponent(entity, taggedComponent);
+            // ReSharper disable once SuspiciousTypeConversion.Global
+            Debug.Assert(component is not ITaggedComponent, $"{tagType}: tag of tag is not supporting yet");
+            Debug.Assert(typeof(ITaggedComponent).IsAssignableFrom(tagType), $"{tagType} must implement {typeof(ITaggedComponent)}<T>");
+            Debug.Assert(tagType is { IsGenericTypeDefinition: true, IsValueType: true }, $"{tagType} must be a `struct` with one and only one type parameter");
+            // TODO: optimize by using a delegate creator instead of constructor?
+            var concreteTagType = tagType.MakeGenericType(component.GetType());
+            var ctor = concreteTagType.GetConstructor(new[] { component.GetType() });
+            Debug.Assert(ctor != null);
+            var tag = ctor.Invoke(new object[] { component });
+            // HACK: set tag as object component?
+            world.Archetypes.AddObjectComponent(entity.Identity, tag);
         }
 
-        public static void AddTaggedComponent<T>(this World world, Entity entity, Type tagType) where T : class, new()
+        public static bool TryGetObjectComponent<TComponent, TTag>(this World world, Entity entity, out TComponent? component, TTag _ = default)
+            where TComponent : class
+            where TTag : struct, ITaggedComponent<TComponent>
         {
-            AddTaggedComponent(world, entity, tagType, new T());
-        }
+            Debug.Assert(typeof(TTag) is { IsGenericType: true } && typeof(TTag).GetGenericArguments().Length == 1, $"{typeof(TTag)} must be a `struct` with one and only one type parameter");
+            var archetypes = world.Archetypes;
+            var meta = archetypes._meta[entity.Identity.Id];
+            var table = archetypes._tables[meta.TableId];
 
-        public static void GetUnwrappedComponents(this World world, Entity entity, ICollection<object> components)
-        {
-            var archetypes = world._archetypes;
-            var meta = archetypes.Meta[entity.Identity.Id];
-            var table = archetypes.Tables[meta.TableId];
+            component = null;
 
-            foreach (var (storageType, storage) in table.Storages)
+            foreach (var (storageType, storage) in table)
             {
-                if (typeof(ITaggedComponent).IsAssignableFrom(storageType.Type))
+                var type = storageType.Type;
+                // HACK: tricky way to check "covariant" converting on the tag struct
+                //       vote for proper covariant of struct here:
+                //       https://github.com/dotnet/csharplang/discussions/2498
+                if (type.IsGenericType &&
+                    typeof(ITaggedComponent<TComponent>).IsAssignableFrom(type) &&
+                    type.GetGenericTypeDefinition() == typeof(TTag).GetGenericTypeDefinition())
                 {
-                    var value = Unwrap((ITaggedComponent)storage.GetValue(meta.Row));
-                    components.Add(value);
+                    // TODO: how to avoid boxing for accessing tag `struct`?
+                    component = ((ITaggedComponent<TComponent>)storage.GetValue(meta.Row)).Component;
+                    return true;
                 }
-                else
+            }
+            return false;
+        }
+
+        public static void FindUnwrappedComponents<T>(this World world, Entity entity, ICollection<T> components) where T : struct
+        {
+            var archetypes = world.Archetypes;
+            var meta = archetypes._meta[entity.Identity.Id];
+            var table = archetypes._tables[meta.TableId];
+
+            foreach (var (storageType, storage) in table)
+            {
+                var type = storageType.Type;
+                if (typeof(T) == type)
                 {
-                    components.Add(storage.GetValue(meta.Row));
+                    components.Add(((T[])storage)[meta.Row]);
+                }
+                else if (typeof(ITaggedComponent<T>).IsAssignableFrom(type))
+                {
+                    var value = ((ITaggedComponent<T>[])storage)[meta.Row];
+                    components.Add(value.Component);
                 }
             }
         }
 
-        public static void GetUnwrappedComponents<T>(this World world, Entity entity, ICollection<T> components) where T : class
+        public static void FindUnwrappedObjectComponents<T>(this World world, Entity entity, ICollection<T> components) where T : class
         {
-            var archetypes = world._archetypes;
-            var meta = archetypes.Meta[entity.Identity.Id];
-            var table = archetypes.Tables[meta.TableId];
+            var archetypes = world.Archetypes;
+            var meta = archetypes._meta[entity.Identity.Id];
+            var table = archetypes._tables[meta.TableId];
 
-            foreach (var (storageType, storage) in table.Storages)
+            foreach (var (storageType, storage) in table)
             {
                 var type = storageType.Type;
                 if (typeof(T).IsAssignableFrom(type))
                 {
                     components.Add((T)storage.GetValue(meta.Row));
                 }
-                else if (typeof(ITaggedComponent).IsAssignableFrom(type))
+                else if (typeof(ITaggedComponent).IsAssignableFrom(type) && typeof(T).IsAssignableFrom(type.GetGenericArguments()[0]))
                 {
-                    var value = Unwrap<T>((ITaggedComponent)storage.GetValue(meta.Row));
-                    if (value != null) components.Add(value);
+                    var value = ((ITaggedComponent<T>)storage.GetValue(meta.Row)).Component;
+                    components.Add(value);
                 }
             }
-        }
-
-        private static T? Unwrap<T>(ITaggedComponent wrapper) where T : class
-        {
-            var value = wrapper.UntypedComponent;
-            while (value is not T && value is ITaggedComponent w)
-            {
-                value = w.UntypedComponent;
-            }
-            return value as T;
-        }
-
-        private static object Unwrap(ITaggedComponent wrapper)
-        {
-            var value = wrapper.UntypedComponent;
-            while (value is ITaggedComponent w)
-            {
-                value = w.UntypedComponent;
-            }
-            return value;
         }
     }
 }

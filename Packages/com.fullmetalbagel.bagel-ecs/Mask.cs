@@ -5,45 +5,45 @@ namespace RelEcs
 {
     public sealed class Mask
     {
-        internal readonly List<StorageType> HasTypes = new();
-        internal readonly List<StorageType> NotTypes = new();
-        internal readonly List<StorageType> AnyTypes = new();
+        internal readonly List<StorageType> _hasTypes = new();
+        internal readonly List<StorageType> _notTypes = new();
+        internal readonly List<StorageType> _anyTypes = new();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Has(StorageType type)
         {
-            HasTypes.Add(type);
+            _hasTypes.Add(type);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Not(StorageType type)
         {
-            NotTypes.Add(type);
+            _notTypes.Add(type);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Any(StorageType type)
         {
-            AnyTypes.Add(type);
+            _anyTypes.Add(type);
         }
 
         public void Clear()
         {
-            HasTypes.Clear();
-            NotTypes.Clear();
-            AnyTypes.Clear();
+            _hasTypes.Clear();
+            _notTypes.Clear();
+            _anyTypes.Clear();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode()
         {
-            var hash = HasTypes.Count + AnyTypes.Count + NotTypes.Count;
+            var hash = _hasTypes.Count + _anyTypes.Count + _notTypes.Count;
 
             unchecked
             {
-                foreach (var type in HasTypes) hash = hash * 314159 + type.Value.GetHashCode();
-                foreach (var type in NotTypes) hash = hash * 314159 - type.Value.GetHashCode();
-                foreach (var type in AnyTypes) hash *= 314159 * type.Value.GetHashCode();
+                foreach (var type in _hasTypes) hash = hash * 314159 + type.Value.GetHashCode();
+                foreach (var type in _notTypes) hash = hash * 314159 - type.Value.GetHashCode();
+                foreach (var type in _anyTypes) hash *= 314159 * type.Value.GetHashCode();
             }
 
             return hash;
