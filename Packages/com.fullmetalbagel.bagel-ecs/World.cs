@@ -1,6 +1,6 @@
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
-using Game;
 
 namespace RelEcs
 {
@@ -47,6 +47,11 @@ namespace RelEcs
             return ref Archetypes.GetComponent<T>(entity.Identity);
         }
 
+        public Span<byte> GetComponentRawData(Entity entity, StorageType type)
+        {
+            return Archetypes.GetComponentRawData(entity.Identity, type);
+        }
+
         public T GetObjectComponent<T>(Entity entity) where T : class
         {
             return Archetypes.GetObjectComponent<T>(entity.Identity);
@@ -74,6 +79,11 @@ namespace RelEcs
 
             component = Archetypes.GetComponent<T>(entity.Identity);
             return true;
+        }
+
+        public bool HasComponent(Entity entity, Type type)
+        {
+            return Archetypes.HasComponent(StorageType.Create(type), entity.Identity);
         }
 
         public bool HasComponent<T>(Entity entity)

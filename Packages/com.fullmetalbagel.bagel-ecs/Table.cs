@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using Game;
 
 namespace RelEcs
 {
@@ -129,7 +127,7 @@ namespace RelEcs
                 if (type.Type.IsAssignableFrom(storageType.Type))
                     return storage;
             }
-            throw new ArgumentException($"invalid StorageType: {type}");
+            throw new ArgumentException($"invalid StorageType: {type.Type}");
         }
 
         internal void EnsureCapacity(int capacity)
