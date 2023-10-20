@@ -3,6 +3,7 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace RelEcs
 {
@@ -76,7 +77,7 @@ namespace RelEcs
 
             if (oldTable.Types.Contains(type))
             {
-                throw new Exception($"Entity {identity} already has component of type {type}");
+                throw new Exception($"Entity {identity} already has component of type {type.Type.Name}");
             }
 
             var oldEdge = oldTable.GetTableEdge(type);
@@ -95,6 +96,18 @@ namespace RelEcs
             var newRow = Table.MoveEntry(identity, meta.Row, oldTable, newTable);
             _meta[identity.Id] = new EntityMeta(identity, tableId: newTable.Id, row: newRow);
             return (newTable, newRow);
+        }
+
+        public unsafe Span<byte> GetComponentRawData(Identity identity, StorageType type)
+        {
+            Debug.Assert(type.Type.IsUnmanaged());
+            var meta = _meta[identity.Id];
+            var table = _tables[meta.TableId];
+            var storage = table.GetStorage(type);
+            Debug.Assert(storage.GetType().GetElementType() == type.Type);
+            var ptr = Marshal.UnsafeAddrOfPinnedArrayElement(storage, meta.Row);
+            var size = Marshal.SizeOf(type.Type);
+            return new Span<byte>(ptr.ToPointer(), size);
         }
 
         public ref T GetComponent<T>(Identity identity) where T : struct
