@@ -72,6 +72,24 @@ public class AttributesSourceGenerator : ISourceGenerator
                      """;
         }
 
+        string Equatable(string structName, params string[] fields)
+        {
+            var equals = string.Join(" && ", fields.Select(name => $"{name}.Equals(other.{name})"));
+            return $$"""
+                        public bool Equals({{structName}} other) => {{equals}};
+                        public override bool Equals(object obj) => obj is {{structName}} other && Equals(other);
+                        public override int GetHashCode() => System.HashCode.Combine({{string.Join(", ", fields)}});
+                        public static bool operator ==({{structName}} left, {{structName}} right)
+                        {
+                            return left.Equals(right);
+                        }
+                        public static bool operator !=({{structName}} left, {{structName}} right)
+                        {
+                            return !(left == right);
+                        }
+                     """;
+        }
+
         void GenerateSingleFieldAttribute(StructDeclarationSyntax node)
         {
             var structName = node.Identifier.ValueText;
@@ -84,6 +102,8 @@ public class AttributesSourceGenerator : ISourceGenerator
                               {{AttributeBasic(structName)}}
                                   public static implicit operator {{fieldType}}({{structName}} data) => data.{{fieldName}};
                                   public static explicit operator {{structName}}({{fieldType}} value) => new() { {{fieldName}} = value };
+
+                              {{Equatable(structName, fieldName)}}
                               }
                               """);
         }
@@ -92,7 +112,7 @@ public class AttributesSourceGenerator : ISourceGenerator
         {
             var structName = node.Identifier.ValueText;
             var fields = node.Members.OfType<FieldDeclarationSyntax>().Select(f => f.Declaration).ToArray();
-            var fieldsName = fields.Select(f => f.Variables.First().Identifier.Text);
+            var fieldsName = fields.Select(f => f.Variables.First().Identifier.Text).ToArray();
             var fieldsPublicName = fieldsName.Select(name => name.TrimStart('_'));
             var fieldsType = fields.Select(f => f.Type.ToString());
             var fieldsTuple = string.Join(", ", fieldsPublicName.Zip(fieldsType, (name, type) => $"{type} {name}"));
@@ -111,10 +131,12 @@ public class AttributesSourceGenerator : ISourceGenerator
 
             foreach (var body in deconstructBody) source.AppendLine(body);
 
-            source.AppendLine("""
-                                  }
-                              }
-                              """);
+            source.AppendLine($$"""
+                                    }
+
+                                {{Equatable(structName, fieldsName)}}
+                                }
+                                """);
         }
     }
 
