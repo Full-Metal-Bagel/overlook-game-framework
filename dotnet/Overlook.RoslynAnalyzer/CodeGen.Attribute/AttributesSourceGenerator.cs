@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -43,7 +44,7 @@ public class AttributesSourceGenerator : ISourceGenerator
         foreach (var node in validNodes)
         {
             source.AppendLine();
-            var fieldCount = node.Members.Count(m => m is FieldDeclarationSyntax);
+            var fieldCount = node.Members.Count(m => m is FieldDeclarationSyntax or PropertyDeclarationSyntax);
             if (fieldCount == 0) GenerateNonFieldAttribute(node);
             else if (fieldCount == 1) GenerateSingleFieldAttribute(node);
             else GenerateMultipleFieldAttribute(node);
@@ -90,13 +91,22 @@ public class AttributesSourceGenerator : ISourceGenerator
                      """;
         }
 
+        (string name, string type) GetMemberNameAndType(MemberDeclarationSyntax member) => member switch
+        {
+            FieldDeclarationSyntax field => (field.Declaration.Variables.First().Identifier.Text, field.Declaration.Type.ToString()),
+            PropertyDeclarationSyntax property => (property.Identifier.ToString(), property.Type.ToString()),
+            _ => ("", "")
+        };
+
         void GenerateSingleFieldAttribute(StructDeclarationSyntax node)
         {
             var structName = node.Identifier.ValueText;
-            var field = node.Members.OfType<FieldDeclarationSyntax>().Select(f => f.Declaration).Single();
-            var fieldName = field.Variables.First().Identifier.Text;
-            var fieldType = field.Type.ToString();
+            var (fieldName, fieldType) = node.Members
+                .Select(GetMemberNameAndType)
+                .Single(t => !string.IsNullOrEmpty(t.name))
+            ;
             source.AppendLine($$"""
+                              [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1066:Implement IEquatable when overriding Object.Equals")]
                               public partial struct {{structName}}
                               {
                               {{AttributeBasic(structName)}}
@@ -111,15 +121,16 @@ public class AttributesSourceGenerator : ISourceGenerator
         void GenerateMultipleFieldAttribute(StructDeclarationSyntax node)
         {
             var structName = node.Identifier.ValueText;
-            var fields = node.Members.OfType<FieldDeclarationSyntax>().Select(f => f.Declaration).ToArray();
-            var fieldsName = fields.Select(f => f.Variables.First().Identifier.Text).ToArray();
+            var fieldsNameAndType = node.Members.Select(GetMemberNameAndType).Where(t => !string.IsNullOrEmpty(t.name)).ToArray();
+            var fieldsName = fieldsNameAndType.Select(t => t.name).ToArray();
             var fieldsPublicName = fieldsName.Select(name => name.TrimStart('_'));
-            var fieldsType = fields.Select(f => f.Type.ToString());
+            var fieldsType = fieldsNameAndType.Select(t => t.type);
             var fieldsTuple = string.Join(", ", fieldsPublicName.Zip(fieldsType, (name, type) => $"{type} {name}"));
             var fieldsAssignment = string.Join(", ", fieldsName.Select(name => $"{name} = value.{name.TrimStart('_')}"));
             var deconstructParameters = string.Join(",", fieldsPublicName.Zip(fieldsType, (name, type) => $"out {type} {name}"));
             var deconstructBody = fieldsName.Zip(fieldsPublicName, (name, publicName) => $"        {publicName} = {name};");
             source.AppendLine($$"""
+                                [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1066:Implement IEquatable when overriding Object.Equals")]
                                 public partial struct {{structName}}
                                 {
                                 {{AttributeBasic(structName)}}
