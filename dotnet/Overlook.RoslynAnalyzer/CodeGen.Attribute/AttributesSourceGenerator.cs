@@ -159,8 +159,8 @@ public class AttributesSourceGenerator : ISourceGenerator
         {
             if (node is not StructDeclarationSyntax structNode) return;
             if (structNode.BaseList == null) return;
-            // TODO: restrict to `Game.IAttribute`
-            if (structNode.BaseList.Types.All(type => !type.ToString().EndsWith("IAttribute"))) return;
+            // TODO: restrict to `Game.IAttribute` or `Game.IAttribute<T>`
+            if (structNode.BaseList.Types.Select(type => type.ToString()).All(type => !type.Contains("IAttribute"))) return;
             Nodes.Add(structNode);
         }
     }
