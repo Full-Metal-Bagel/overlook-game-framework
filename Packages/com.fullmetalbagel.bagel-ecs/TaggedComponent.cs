@@ -64,28 +64,7 @@ namespace RelEcs
             return false;
         }
 
-        public static void FindUnwrappedComponents<T>(this World world, Entity entity, ICollection<T> components) where T : struct
-        {
-            var archetypes = world.Archetypes;
-            var meta = archetypes._meta[entity.Identity.Id];
-            var table = archetypes._tables[meta.TableId];
-
-            foreach (var (storageType, storage) in table)
-            {
-                var type = storageType.Type;
-                if (typeof(T) == type)
-                {
-                    components.Add(((T[])storage)[meta.Row]);
-                }
-                else if (typeof(ITaggedComponent<T>).IsAssignableFrom(type))
-                {
-                    var value = ((ITaggedComponent<T>[])storage)[meta.Row];
-                    components.Add(value.Component);
-                }
-            }
-        }
-
-        public static void FindUnwrappedObjectComponents<T>(this World world, Entity entity, ICollection<T> components) where T : class
+        public static IEnumerable<T> FindUnwrappedComponents<T>(this World world, Entity entity)
         {
             var archetypes = world.Archetypes;
             var meta = archetypes._meta[entity.Identity.Id];
@@ -96,12 +75,32 @@ namespace RelEcs
                 var type = storageType.Type;
                 if (typeof(T).IsAssignableFrom(type))
                 {
-                    components.Add((T)storage.GetValue(meta.Row));
+                    yield return ((T[])storage)[meta.Row];
                 }
                 else if (typeof(ITaggedComponent).IsAssignableFrom(type) && typeof(T).IsAssignableFrom(type.GetGenericArguments()[0]))
                 {
-                    var value = ((ITaggedComponent<T>)storage.GetValue(meta.Row)).Component;
-                    components.Add(value);
+                    var value = ((ITaggedComponent<T>[])storage)[meta.Row].Component;
+                    yield return value;
+                }
+            }
+        }
+
+        public static void RemoveComponentsIncludingTagged<T>(this World world, Entity entity)
+        {
+            var archetypes = world.Archetypes;
+            var meta = archetypes._meta[entity.Identity.Id];
+            var table = archetypes._tables[meta.TableId];
+
+            foreach (var (storageType, _) in table)
+            {
+                var type = storageType.Type;
+                if (typeof(T).IsAssignableFrom(type))
+                {
+                    archetypes.RemoveComponent(storageType, entity.Identity);
+                }
+                else if (typeof(ITaggedComponent).IsAssignableFrom(type) && typeof(T).IsAssignableFrom(type.GetGenericArguments()[0]))
+                {
+                    archetypes.RemoveComponent(storageType, entity.Identity);
                 }
             }
         }
