@@ -72,15 +72,15 @@ namespace RelEcs
 
             foreach (var (storageType, storage) in table)
             {
-                var type = storageType.Type;
-                if (typeof(T).IsAssignableFrom(type))
+                if (storage is T[] typedStorage)
                 {
-                    yield return ((T[])storage)[meta.Row];
+                    yield return typedStorage[meta.Row];
                 }
-                else if (typeof(ITaggedComponent).IsAssignableFrom(type) && typeof(T).IsAssignableFrom(type.GetGenericArguments()[0]))
+                else if (typeof(ITaggedComponent<T>).IsAssignableFrom(storageType.Type))
                 {
-                    var value = ((ITaggedComponent<T>[])storage)[meta.Row].Component;
-                    yield return value;
+                    // TODO: optimize boxing of `struct` tag
+                    var boxedValue = storage.GetValue(meta.Row);
+                    yield return ((ITaggedComponent<T>)boxedValue).Component;
                 }
             }
         }
