@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 
@@ -114,6 +115,12 @@ namespace RelEcs
             Archetypes.RemoveComponent(type, entity.Identity);
         }
 
+        public void RemoveComponent(Entity entity, Type type)
+        {
+            var storageType = StorageType.Create(type);
+            Archetypes.RemoveComponent(storageType, entity.Identity);
+        }
+
         public Query.Builder Query()
         {
             return new Query.Builder(Archetypes);
@@ -140,6 +147,11 @@ namespace RelEcs
         public static bool TryGetComponent<T>(this World world, Entity entity, out T? component) where T : class
         {
             return world.TryGetObjectComponent(entity, out component);
+        }
+
+        public static void FindComponents<T>(this World world, Entity entity, ICollection<T> collection) where T : class
+        {
+            world.Archetypes.FindComponents(entity.Identity, typeof(T), collection);
         }
     }
 }
