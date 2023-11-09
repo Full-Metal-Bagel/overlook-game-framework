@@ -57,6 +57,22 @@ namespace RelEcs
             return new Enumerator(this);
         }
 
+        public QueryEntity Single()
+        {
+            var enumerator = GetEnumerator();
+            if (!enumerator.MoveNext()) throw new NoElementsException();
+            var entity = enumerator.Current;
+            if (enumerator.MoveNext()) throw new MoreThanOneElementsException();
+            return entity;
+        }
+
+        public QueryEntity First()
+        {
+            var enumerator = GetEnumerator();
+            if (!enumerator.MoveNext()) throw new NoElementsException();
+            return enumerator.Current;
+        }
+
         public ref struct Enumerator
         {
             private readonly Query _query;
@@ -171,5 +187,19 @@ namespace RelEcs
         {
             return queryEntity.GetObject<T>();
         }
+    }
+
+    public class NoElementsException : Exception
+    {
+        public NoElementsException() { }
+        public NoElementsException(string message) : base(message) { }
+        public NoElementsException(string message, Exception inner) : base(message, inner) { }
+    }
+
+    public class MoreThanOneElementsException : Exception
+    {
+        public MoreThanOneElementsException() { }
+        public MoreThanOneElementsException(string message) : base(message) { }
+        public MoreThanOneElementsException(string message, Exception inner) : base(message, inner) { }
     }
 }
