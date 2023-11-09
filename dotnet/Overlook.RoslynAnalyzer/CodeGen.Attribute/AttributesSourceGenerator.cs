@@ -29,7 +29,20 @@ public class AttributesSourceGenerator : ISourceGenerator
         var validNodes = new List<StructDeclarationSyntax>();
         foreach (var node in nodes)
         {
-            if (node.Modifiers.All(m => m.ValueText != "partial")) continue;
+            if (node.Modifiers.All(m => m.ValueText != "partial"))
+            {
+                var noPartial = Diagnostic.Create(new DiagnosticDescriptor("AR0001", "invalid attribute", $"attribute {node.Identifier.ToString()} must be `partial` for code-gen", "ATTR", DiagnosticSeverity.Error, true), node.GetLocation());
+                context.ReportDiagnostic(noPartial);
+                continue;
+            }
+
+            if (node.AttributeLists
+                .SelectMany(a => a.Attributes)
+                .All(attribute => attribute.Name.ToString() != "TypeGuid"))
+            {
+                var noGuid = Diagnostic.Create(new DiagnosticDescriptor("AR0002", "invalid attribute", $"attribute {node.Identifier.ToString()} must have `TypeGuidAttribute` for code-gen", "ATTR", DiagnosticSeverity.Error, true), node.GetLocation());
+                context.ReportDiagnostic(noGuid);
+            }
             validNodes.Add(node);
         }
 
