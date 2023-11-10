@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
 using OneShot;
+using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace Game
@@ -12,9 +13,9 @@ namespace Game
     [Serializable]
     public class SystemGroup
     {
-        [field: SerializeField] public string Name { get; private set; } = "Update";
-        [field: SerializeField] public TickStage TickStage { get; private set; } = TickStage.Update;
-        [field: SerializeField] public int TickTimes { get; set; } = -1;
+        [field: SerializeField, HorizontalGroup, HideLabel] public string Name { get; private set; } = "Update";
+        [field: SerializeField, HorizontalGroup, HideLabel] public TickStage TickStage { get; private set; } = TickStage.Update;
+        [field: SerializeField, HorizontalGroup, HideLabel] public int TickTimes { get; set; } = -1;
         public IEnumerable<Guid> SystemsGuid => _systems.Select(system => system.Guid);
         public IEnumerable<Type> SystemsType => _systems.Select(system => system.Type);
         public int Count => _systems.Length;
