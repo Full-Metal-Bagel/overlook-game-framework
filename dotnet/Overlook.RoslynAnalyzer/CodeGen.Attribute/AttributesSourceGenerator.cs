@@ -34,12 +34,18 @@ public class AttributesSourceGenerator : ISourceGenerator
                 continue;
             }
 
-            if (node.AttributeLists
-                .SelectMany(a => a.Attributes)
-                .All(attribute => attribute.Name.ToString() != "TypeGuid"))
+            if (GetImplementedInterfaceNames(node).Any(interfaceName => interfaceName != "IAttribute`1"))
+            {
+                var noPartial = Diagnostic.Create(new DiagnosticDescriptor("AR0003", "invalid attribute", $"attribute {node.Identifier.ToString()} must be implement `IAttribute<T>` for code-gen", "ATTR", DiagnosticSeverity.Error, true), node.GetLocation());
+                context.ReportDiagnostic(noPartial);
+                continue;
+            }
+
+            if (string.IsNullOrEmpty(FindTypeGuid(node)))
             {
                 var noGuid = Diagnostic.Create(new DiagnosticDescriptor("AR0002", "invalid attribute", $"attribute {node.Identifier.ToString()} must have `TypeGuidAttribute` for code-gen", "ATTR", DiagnosticSeverity.Error, true), node.GetLocation());
                 context.ReportDiagnostic(noGuid);
+                continue;
             }
             validNodes.Add(node);
         }
@@ -67,20 +73,28 @@ public class AttributesSourceGenerator : ISourceGenerator
         void GenerateNonFieldAttribute(StructDeclarationSyntax node)
         {
             var structName = node.Identifier.ValueText;
+            var guid = FindTypeGuid(node);
             using var _ = new NamespaceNameScope(source, node);
             source.AppendLine($$"""
                               public partial struct {{structName}}
                               {
-                              {{AttributeBasic(structName)}}
+                              {{AttributeBasic(structName: structName, guid: guid)}}
                               }
                               """);
         }
 
-        string AttributeBasic(string structName)
+        string FindTypeGuid(TypeDeclarationSyntax node)
+        {
+            var guidAttribute = node.AttributeLists.SelectMany(a => a.Attributes).SingleOrDefault(attribute => attribute.Name.ToString() == "TypeGuid");
+            return guidAttribute == null ? "" : guidAttribute.ArgumentList!.Arguments[0].ToString();
+        }
+
+        string AttributeBasic(string structName, string guid)
         {
             return $$"""
-                         public static {{idType}} Id => {{attributeId++}};
-                         public static ushort TypeId { get; } = RelEcs.StorageType.Create<{{structName}}>();
+                         public static System.Guid AttributeTypeGuid { get; } = System.Guid.Parse({{guid}});
+                         public static {{idType}} UnstableShortId => {{attributeId++}};
+                         public static ushort StorageTypeId { get; } = RelEcs.StorageType.Create<{{structName}}>();
                      """;
         }
 
@@ -112,6 +126,7 @@ public class AttributesSourceGenerator : ISourceGenerator
         void GenerateSingleFieldAttribute(StructDeclarationSyntax node)
         {
             var structName = node.Identifier.ValueText;
+            var guid = FindTypeGuid(node);
             var (fieldName, fieldType) = node.Members
                 .Select(GetMemberNameAndType)
                 .Single(t => !string.IsNullOrEmpty(t.name))
@@ -121,7 +136,7 @@ public class AttributesSourceGenerator : ISourceGenerator
                               [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1066:Implement IEquatable when overriding Object.Equals")]
                               public partial struct {{structName}}
                               {
-                              {{AttributeBasic(structName)}}
+                              {{AttributeBasic(structName: structName, guid: guid)}}
 
                                   public {{structName}}({{fieldType}} value) => {{fieldName}} = value;
                                   public static implicit operator {{fieldType}}({{structName}} data) => data.{{fieldName}};
@@ -135,12 +150,13 @@ public class AttributesSourceGenerator : ISourceGenerator
         void GenerateMultipleFieldAttribute(StructDeclarationSyntax node)
         {
             var structName = node.Identifier.ValueText;
+            var guid = FindTypeGuid(node);
             var fieldsNameAndType = node.Members.Select(GetMemberNameAndType).Where(t => !string.IsNullOrEmpty(t.name)).ToArray();
             var fieldsName = fieldsNameAndType.Select(t => t.name).ToArray();
-            var fieldsPublicName = fieldsName.Select(name => name.TrimStart('_'));
-            var fieldsType = fieldsNameAndType.Select(t => t.type);
+            var fieldsPublicName = fieldsName.Select(name => name.TrimStart('_')).Select(name => char.ToLower(name[0]) + name.Substring(1)).ToArray();
+            var fieldsType = fieldsNameAndType.Select(t => t.type).ToArray();
             var fieldsTuple = string.Join(", ", fieldsPublicName.Zip(fieldsType, (name, type) => $"{type} {name}"));
-            var fieldsAssignment = string.Join("; ", fieldsName.Select(name => $"{name} = value.{name.TrimStart('_')}"));
+            var fieldsAssignment = string.Join("; ", fieldsName.Zip(fieldsPublicName, (name, publicName) => (name, publicName)).Select(t => $"{t.name} = {t.publicName}"));
             var deconstructParameters = string.Join(",", fieldsPublicName.Zip(fieldsType, (name, type) => $"out {type} {name}"));
             var deconstructBody = fieldsName.Zip(fieldsPublicName, (name, publicName) => $"        {publicName} = {name};");
             using var _ = new NamespaceNameScope(source, node);
@@ -148,8 +164,8 @@ public class AttributesSourceGenerator : ISourceGenerator
                                 [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1066:Implement IEquatable when overriding Object.Equals")]
                                 public partial struct {{structName}}
                                 {
-                                {{AttributeBasic(structName)}}
-                                    public {{structName}}({{fieldsTuple}}) { {{fieldsAssignment}} }
+                                {{AttributeBasic(structName: structName, guid: guid)}}
+                                    public {{structName}}({{fieldsTuple}}) { {{fieldsAssignment}}; }
                                     public void Deconstruct({{deconstructParameters}})
                                     {
                                 """);
@@ -162,6 +178,31 @@ public class AttributesSourceGenerator : ISourceGenerator
                                 {{Equatable(structName, fieldsName)}}
                                 }
                                 """);
+        }
+    }
+
+    // https://chat.openai.com/share/f70c449a-6956-41cc-a7bc-2cc7799b2d4b
+    private IEnumerable<string> GetImplementedInterfaceNames(StructDeclarationSyntax structDeclaration)
+    {
+        if (structDeclaration.BaseList != null)
+        {
+            foreach (var baseType in structDeclaration.BaseList.Types)
+            {
+                // Check if the base type is an interface
+                if (baseType is SimpleBaseTypeSyntax simpleBaseType)
+                {
+                    var type = simpleBaseType.Type;
+
+                    if (type is IdentifierNameSyntax identifierName)
+                    {
+                        yield return identifierName.Identifier.Text;
+                    }
+                    else if (type is QualifiedNameSyntax qualifiedName)
+                    {
+                        yield return qualifiedName.Right.Identifier.Text;
+                    }
+                }
+            }
         }
     }
 
