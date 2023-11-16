@@ -4,10 +4,10 @@ using System;
 using System.Diagnostics;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Contracts;
 
 namespace RelEcs
 {
-    [Obsolete("use `ITaggedComponent<T>` instead")]
     [SuppressMessage("Design", "CA1040:Avoid empty interfaces")]
     public interface ITaggedComponent
     {
@@ -48,13 +48,7 @@ namespace RelEcs
 
             foreach (var (storageType, storage) in table)
             {
-                var type = storageType.Type;
-                // HACK: tricky way to check "covariant" converting on the tag struct
-                //       vote for proper covariant of struct here:
-                //       https://github.com/dotnet/csharplang/discussions/2498
-                if (type.IsGenericType &&
-                    typeof(ITaggedComponent<TComponent>).IsAssignableFrom(type) &&
-                    type.GetGenericTypeDefinition() == typeof(TTag).GetGenericTypeDefinition())
+                if (storageType.Type.IsTagTypeOf<TComponent>(typeof(TTag).GetGenericTypeDefinition()))
                 {
                     // TODO: how to avoid boxing for accessing tag `struct`?
                     component = ((ITaggedComponent<TComponent>)storage.GetValue(meta.Row)).Component;
@@ -62,6 +56,37 @@ namespace RelEcs
                 }
             }
             return false;
+        }
+
+        public static T? FindUnwrappedComponent<T>(this World world, Entity entity, Type tagGenericDefinition) where T : class
+        {
+            Debug.Assert(tagGenericDefinition.IsGenericTypeDefinition);
+
+            var archetypes = world.Archetypes;
+            var meta = archetypes._meta[entity.Identity.Id];
+            var table = archetypes._tables[meta.TableId];
+
+            foreach (var (storageType, storage) in table)
+            {
+                if (storageType.Type.IsTagTypeOf<T>(tagGenericDefinition))
+                {
+                    // TODO: optimize boxing of `struct` tag
+                    var boxedValue = storage.GetValue(meta.Row);
+                    return ((ITaggedComponent<T>)boxedValue).Component;
+                }
+            }
+            return null;
+        }
+
+        [Pure]
+        internal static bool IsTagTypeOf<T>(this Type concreteType, Type tagGenericTypeDefinition)
+        {
+            // HACK: tricky way to check "covariant" converting on the tag struct
+            //       vote for proper covariant of struct here:
+            //       https://github.com/dotnet/csharplang/discussions/2498
+            return concreteType.IsGenericType &&
+                   typeof(ITaggedComponent<T>).IsAssignableFrom(concreteType) &&
+                   concreteType.GetGenericTypeDefinition() == tagGenericTypeDefinition;
         }
 
         public static IEnumerable<T> FindUnwrappedComponents<T>(this World world, Entity entity)
