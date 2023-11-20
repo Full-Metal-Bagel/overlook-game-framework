@@ -89,7 +89,7 @@ namespace RelEcs
                    concreteType.GetGenericTypeDefinition() == tagGenericTypeDefinition;
         }
 
-        public static IEnumerable<T> FindUnwrappedComponents<T>(this World world, Entity entity)
+        public static void FindUnwrappedComponents<T>(this World world, Entity entity, IList<T> components)
         {
             var archetypes = world.Archetypes;
             var meta = archetypes._meta[entity.Identity.Id];
@@ -99,13 +99,13 @@ namespace RelEcs
             {
                 if (storage is T[] typedStorage)
                 {
-                    yield return typedStorage[meta.Row];
+                    components.Add(typedStorage[meta.Row]);
                 }
                 else if (typeof(ITaggedComponent<T>).IsAssignableFrom(storageType.Type))
                 {
                     // TODO: optimize boxing of `struct` tag
                     var boxedValue = storage.GetValue(meta.Row);
-                    yield return ((ITaggedComponent<T>)boxedValue).Component;
+                    components.Add(((ITaggedComponent<T>)boxedValue).Component);
                 }
             }
         }
