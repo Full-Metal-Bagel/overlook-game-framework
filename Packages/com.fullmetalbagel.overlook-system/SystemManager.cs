@@ -76,6 +76,8 @@ namespace Game
         {
             for (var systemIndex = 0; systemIndex < Systems.Count; systemIndex++)
             {
+                if (tickStage == TickStage.Update) data.TickSystemEvents(systemIndex);
+
                 var stage = Stages[systemIndex];
                 if (stage != tickStage) continue;
 
