@@ -2,6 +2,7 @@
 
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 
 namespace Game
 {
@@ -27,7 +28,11 @@ namespace Game
 
         private readonly Lazy<int> _threadId = new(() => Environment.CurrentManagedThreadId);
 
-        public SystemEvents(int capacity = 4)
+        public SystemEvents() : this(typeof(T).GetCustomAttribute<SystemEventAttribute>()?.InitCapacity ?? 4)
+        {
+        }
+
+        public SystemEvents(int capacity)
         {
             _events = new(capacity);
         }
