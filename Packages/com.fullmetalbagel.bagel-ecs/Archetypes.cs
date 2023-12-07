@@ -119,6 +119,7 @@ namespace RelEcs
 
         public T GetObjectComponent<T>(Identity identity) where T : class
         {
+            WarnSystemType(typeof(T));
             var meta = _meta[identity.Id];
             var table = _tables[meta.TableId];
             return (T)table.GetStorage(StorageType.Create<T>()).GetValue(meta.Row);
@@ -126,8 +127,20 @@ namespace RelEcs
 
         public bool HasComponent(StorageType type, Identity identity)
         {
+            WarnSystemType(type.Type);
             var meta = _meta[identity.Id];
             return meta.Identity != Identity.None && _tables[meta.TableId].TypesInHierarchy.Contains(type);
+        }
+
+        [Conditional("UNITY_EDITOR")]
+        [Conditional("DEVELOPMENT")]
+        private static void WarnSystemType(Type type)
+        {
+            // HACK: system interfaces had been skipped
+            if (!string.IsNullOrEmpty(type.Namespace) && type.Namespace.StartsWith("System.", StringComparison.InvariantCulture))
+            {
+                Game.Debug.LogWarning("don't use system interface as component of entity, they had been skipped for performance reason");
+            }
         }
 
         public void RemoveComponent(StorageType type, Identity identity)
