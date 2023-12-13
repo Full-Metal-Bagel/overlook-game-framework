@@ -110,6 +110,13 @@ namespace RelEcs
             return new Span<byte>(ptr.ToPointer(), size);
         }
 
+        public unsafe void SetComponentRawData(Identity identity, StorageType type, Span<byte> data)
+        {
+            var component = GetComponentRawData(identity, type);
+            Debug.Assert(data.Length == component.Length);
+            data.CopyTo(component);
+        }
+
         public ref T GetComponent<T>(Identity identity) where T : struct
         {
             var meta = _meta[identity.Id];

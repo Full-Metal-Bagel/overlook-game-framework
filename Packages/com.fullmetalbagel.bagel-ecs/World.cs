@@ -53,6 +53,11 @@ namespace RelEcs
             return Archetypes.GetComponentRawData(entity.Identity, type);
         }
 
+        public void SetComponentRawData(Entity entity, StorageType type, Span<byte> data)
+        {
+            Archetypes.SetComponentRawData(entity.Identity, type, data);
+        }
+
         public T GetObjectComponent<T>(Entity entity) where T : class
         {
             return Archetypes.GetObjectComponent<T>(entity.Identity);
