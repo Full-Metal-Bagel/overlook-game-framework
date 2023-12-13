@@ -46,7 +46,7 @@ namespace Game
 
         public void UnionWith(IEnumerable<T> other) => _collection.UnionWith(other);
 
-        bool ISet<T>.Add(T item) => _collection.Add(item);
+        public bool Add(T item) => _collection.Add(item);
 
         public void Clear() => _collection.Clear();
 
