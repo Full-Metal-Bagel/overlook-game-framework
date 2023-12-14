@@ -7,53 +7,56 @@ namespace Game
 {
     public sealed class PooledDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IDisposable
     {
-        private Dictionary<TKey, TValue> _collection = null!;
+        public Dictionary<TKey, TValue> Value { get; private set; }
 
         public PooledDictionary()
         {
-            _collection = CollectionPool<Dictionary<TKey, TValue>, KeyValuePair<TKey, TValue>>.Get();
+            Value = CollectionPool<Dictionary<TKey, TValue>, KeyValuePair<TKey, TValue>>.Get();
         }
+
+        public static implicit operator Dictionary<TKey, TValue>(PooledDictionary<TKey, TValue> self) => self.Value;
+        public Dictionary<TKey, TValue> ToDictionary() => Value;
 
         public void Dispose()
         {
-            CollectionPool<Dictionary<TKey, TValue>, KeyValuePair<TKey, TValue>>.Release(_collection);
-            _collection = null!;
+            CollectionPool<Dictionary<TKey, TValue>, KeyValuePair<TKey, TValue>>.Release(Value);
+            Value = null!;
         }
 
-        public Dictionary<TKey, TValue>.Enumerator GetEnumerator() => _collection.GetEnumerator();
+        public Dictionary<TKey, TValue>.Enumerator GetEnumerator() => Value.GetEnumerator();
         IEnumerator<KeyValuePair<TKey, TValue>> IEnumerable<KeyValuePair<TKey, TValue>>.GetEnumerator() => GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-        public void Add(KeyValuePair<TKey, TValue> item) => _collection.Add(item.Key, item.Value);
+        public void Add(KeyValuePair<TKey, TValue> item) => Value.Add(item.Key, item.Value);
 
-        public void Clear() => _collection.Clear();
+        public void Clear() => Value.Clear();
 
-        public bool Contains(KeyValuePair<TKey, TValue> item) => ((IDictionary<TKey, TValue>)_collection).Contains(item);
+        public bool Contains(KeyValuePair<TKey, TValue> item) => ((IDictionary<TKey, TValue>)Value).Contains(item);
 
-        public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex) => ((IDictionary<TKey, TValue>)_collection).CopyTo(array, arrayIndex);
+        public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex) => ((IDictionary<TKey, TValue>)Value).CopyTo(array, arrayIndex);
 
-        public bool Remove(KeyValuePair<TKey, TValue> item) => ((IDictionary<TKey, TValue>)_collection).Remove(item);
+        public bool Remove(KeyValuePair<TKey, TValue> item) => ((IDictionary<TKey, TValue>)Value).Remove(item);
 
-        public int Count => _collection.Count;
+        public int Count => Value.Count;
 
-        public bool IsReadOnly => ((IDictionary<TKey, TValue>)_collection).IsReadOnly;
+        public bool IsReadOnly => ((IDictionary<TKey, TValue>)Value).IsReadOnly;
 
-        public void Add(TKey key, TValue value) => _collection.Add(key, value);
+        public void Add(TKey key, TValue value) => Value.Add(key, value);
 
-        public bool ContainsKey(TKey key) => _collection.ContainsKey(key);
+        public bool ContainsKey(TKey key) => Value.ContainsKey(key);
 
-        public bool Remove(TKey key) => _collection.Remove(key);
+        public bool Remove(TKey key) => Value.Remove(key);
 
-        public bool TryGetValue(TKey key, out TValue value) => _collection.TryGetValue(key, out value);
+        public bool TryGetValue(TKey key, out TValue value) => Value.TryGetValue(key, out value);
 
         public TValue this[TKey key]
         {
-            get => _collection[key];
-            set => _collection[key] = value;
+            get => Value[key];
+            set => Value[key] = value;
         }
 
-        public ICollection<TKey> Keys => _collection.Keys;
+        public ICollection<TKey> Keys => Value.Keys;
 
-        public ICollection<TValue> Values => _collection.Values;
+        public ICollection<TValue> Values => Value.Values;
     }
 }

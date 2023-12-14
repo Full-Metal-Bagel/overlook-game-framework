@@ -1,53 +1,58 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using UnityEngine.Pool;
 
 namespace Game
 {
+    [SuppressMessage("Design", "CA1002:Do not expose generic lists")]
     public sealed class PooledList<T> : IList<T>, IDisposable
     {
-        private List<T> _collection = null!;
+        public List<T> Value { get; private set; }
 
         public PooledList()
         {
-            _collection = CollectionPool<List<T>, T>.Get();
+            Value = CollectionPool<List<T>, T>.Get();
         }
+
+        public static implicit operator List<T>(PooledList<T> self) => self.Value;
+        public List<T> ToList() => Value;
 
         public void Dispose()
         {
-            CollectionPool<List<T>, T>.Release(_collection);
-            _collection = null!;
+            CollectionPool<List<T>, T>.Release(Value);
+            Value = null!;
         }
 
-        public List<T>.Enumerator GetEnumerator() => _collection.GetEnumerator();
+        public List<T>.Enumerator GetEnumerator() => Value.GetEnumerator();
         IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-        public void Add(T item) => _collection.Add(item);
+        public void Add(T item) => Value.Add(item);
 
-        public void Clear() => _collection.Clear();
+        public void Clear() => Value.Clear();
 
-        public bool Contains(T item) => _collection.Contains(item);
+        public bool Contains(T item) => Value.Contains(item);
 
-        public void CopyTo(T[] array, int arrayIndex) => _collection.CopyTo(array, arrayIndex);
+        public void CopyTo(T[] array, int arrayIndex) => Value.CopyTo(array, arrayIndex);
 
-        public bool Remove(T item) => _collection.Remove(item);
+        public bool Remove(T item) => Value.Remove(item);
 
-        public int Count => _collection.Count;
+        public int Count => Value.Count;
 
-        public bool IsReadOnly => ((IList<T>)_collection).IsReadOnly;
+        public bool IsReadOnly => ((IList<T>)Value).IsReadOnly;
 
-        public int IndexOf(T item) => _collection.IndexOf(item);
+        public int IndexOf(T item) => Value.IndexOf(item);
 
-        public void Insert(int index, T item) => _collection.Insert(index, item);
+        public void Insert(int index, T item) => Value.Insert(index, item);
 
-        public void RemoveAt(int index) => _collection.RemoveAt(index);
+        public void RemoveAt(int index) => Value.RemoveAt(index);
 
         public T this[int index]
         {
-            get => _collection[index];
-            set => _collection[index] = value;
+            get => Value[index];
+            set => Value[index] = value;
         }
     }
 }
