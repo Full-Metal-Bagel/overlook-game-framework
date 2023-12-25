@@ -1,5 +1,4 @@
-﻿using System;
-using System.Buffers;
+﻿using System.Buffers;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -7,29 +6,49 @@ using System.Diagnostics.CodeAnalysis;
 namespace Game
 {
     [SuppressMessage("Performance", "CA1819:Properties should not return arrays")]
-    public sealed class PooledArray<T> : IReadOnlyList<T>, IDisposable
+    public readonly ref struct PooledArray<T>
     {
-        public T[] Value { get; private set; }
-        public int Count => Value.Length;
-        public T this[int index] => Value[index];
+#if !DISABLE_POOLED_COLLECTIONS_CHECKS
+        private static readonly HashSet<object> s_usingCollections = new();
+#endif
+
+        private readonly T[] _value;
+
+        public T[] GetValue()
+        {
+#if !DISABLE_POOLED_COLLECTIONS_CHECKS
+            if (!s_usingCollections.Contains(_value))
+                throw new PooledCollectionException("the collection had been disposed already");
+#endif
+            return _value;
+        }
+
+        public int Count => GetValue().Length;
+        public T this[int index] => GetValue()[index];
 
         public PooledArray(int minimumLength)
         {
-            Value = ArrayPool<T>.Shared.Rent(minimumLength);
+            _value = ArrayPool<T>.Shared.Rent(minimumLength);
+#if !DISABLE_POOLED_COLLECTIONS_CHECKS
+            if (!s_usingCollections.Add(_value))
+                throw new PooledCollectionException("the collection had been occupied already");
+#endif
         }
 
-        public static implicit operator T[](PooledArray<T> self) => self.Value;
-        public T[] ToTArray() => Value;
+        public static implicit operator T[](PooledArray<T> self) => self.GetValue();
+
+        public T[] ToTArray() => GetValue();
 
         public void Dispose()
         {
-            ArrayPool<T>.Shared.Return(Value);
-            Value = null!;
+#if !DISABLE_POOLED_COLLECTIONS_CHECKS
+            if (!s_usingCollections.Remove(_value))
+                throw new PooledCollectionException("the collection had been disposed already");
+#endif
+            ArrayPool<T>.Shared.Return(_value);
         }
 
-        public Enumerator GetEnumerator() => new(Value);
-        IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        public Enumerator GetEnumerator() => new(GetValue());
 
         // Enumerator struct
         public struct Enumerator : IEnumerator<T>
