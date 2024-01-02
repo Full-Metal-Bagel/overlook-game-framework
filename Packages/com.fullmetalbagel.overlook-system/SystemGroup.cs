@@ -17,18 +17,25 @@ namespace Game
         [field: SerializeField, HorizontalGroup, HideLabel] public TickStage TickStage { get; private set; } = TickStage.Update;
         [field: SerializeField, HorizontalGroup, HideLabel] public int TickTimes { get; set; } = -1;
         public IEnumerable<Guid> SystemsGuid => _systems.Select(system => system.Guid);
-        public IEnumerable<Type> SystemsType => _systems.Select(system => system.Type!);
+        public IEnumerable<Type?> SystemsType => _systems.Select(system => system.Type);
         public int Count => _systems.Length;
         [SerializeField, TypeConstraint(BaseType = typeof(IGameSystem))]
-        private GuidTypeReference[] _systems = default!;
+        internal GuidTypeReference[] _systems = default!;
     }
 
     public static class SystemGroupExtension
     {
         public static void RegisterGroupSystems(this Container container, IReadOnlyList<SystemGroup> groups)
         {
-            foreach (var systemType in groups.SelectMany(g => g.SystemsType))
+            foreach (var system in groups.SelectMany(g => g._systems))
             {
+                var systemType = system.Type;
+                if (systemType == null)
+                {
+                    Debug.LogError($"invalid system: {system.GuidAndName}");
+                    continue;
+                }
+
                 if (!container.IsRegisteredInHierarchy(systemType))
                 {
                     container.Register(systemType).Singleton().AsInterfaces().AsSelf();
