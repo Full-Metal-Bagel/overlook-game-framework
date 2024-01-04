@@ -10,7 +10,9 @@ namespace Game
 {
     public enum TickStage
     {
-        Update, PhysicsUpdate
+        Update,
+        PhysicsUpdate,
+        LateUpdate
     }
 
     public readonly ref struct RuntimeSystem

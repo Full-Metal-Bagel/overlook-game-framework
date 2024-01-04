@@ -16,7 +16,7 @@ namespace Game
         [field: SerializeField, HorizontalGroup, HideLabel] public string Name { get; private set; } = "Update";
         [field: SerializeField, HorizontalGroup, HideLabel] public TickStage TickStage { get; private set; } = TickStage.Update;
         [field: SerializeField, HorizontalGroup, HideLabel] public int TickTimes { get; set; } = -1;
-        public IEnumerable<Guid> SystemsGuid => _systems.Select(system => system.Guid);
+        public IEnumerable<Guid> SystemsGuid => _systems.Select(system => system.Id);
         public IEnumerable<Type?> SystemsType => _systems.Select(system => system.Type);
         public int Count => _systems.Length;
         [SerializeField, TypeConstraint(BaseType = typeof(IGameSystem))]
@@ -32,7 +32,7 @@ namespace Game
                 var systemType = system.Type;
                 if (systemType == null)
                 {
-                    Debug.LogError($"invalid system: {system.GuidAndName}");
+                    Debug.LogError($"invalid system: {system.IdAndName}");
                     continue;
                 }
 
