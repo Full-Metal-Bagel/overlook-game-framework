@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Game;
 using NUnit.Framework;
 
 namespace RelEcs.Tests
@@ -241,13 +242,12 @@ namespace RelEcs.Tests
             var type2 = StorageType.Create<float>(); // Another StorageType instance
             _archetypes.AddComponent(entity.Identity, 123);
             _archetypes.AddComponent(entity.Identity, 123f);
-            var components = ListPool<UntypedComponent>.Get();
-            _archetypes.FindAllComponents(entity.Identity, components);
+            using var components = new PooledList<UntypedComponent>(32);
+            _archetypes.FindAllComponents(entity.Identity, components.GetValue());
             Assert.That(components.Count, Is.EqualTo(3)); // will added `Entity` as component by default
-            Assert.That(components.Any(c => c.Type == type1), Is.True);
-            Assert.That(components.Any(c => c.Type == type2), Is.True);
+            Assert.That(components.GetValue().Any(c => c.Type == type1), Is.True);
+            Assert.That(components.GetValue().Any(c => c.Type == type2), Is.True);
         }
-
 
         [Test]
         public void IsMaskCompatibleWith_ReturnsTrue_WhenTableMatchesMaskRequirements()
