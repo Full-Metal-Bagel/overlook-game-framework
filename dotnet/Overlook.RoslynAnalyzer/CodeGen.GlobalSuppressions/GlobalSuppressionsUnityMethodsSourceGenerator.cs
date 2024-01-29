@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 
@@ -27,13 +29,31 @@ public class GlobalSuppressionsUnityMethodsSourceGenerator : IIncrementalGenerat
     private static IEnumerable<ClassDeclarationSyntax> GetClassDeclarationForSourceGen(GeneratorSyntaxContext context)
     {
         var classDeclarationSyntax = (ClassDeclarationSyntax)context.Node;
-        if (IsSubClassOf(classDeclarationSyntax, "MonoBehaviour"))
+        if (IsSubClassOf(classDeclarationSyntax, context.SemanticModel, "MonoBehaviour"))
             yield return classDeclarationSyntax;
         yield break;
 
-        bool IsSubClassOf(ClassDeclarationSyntax node, string baseClassName)
+        bool IsSubClassOf(ClassDeclarationSyntax node, SemanticModel semanticModel, string baseClassName)
         {
-            return node.BaseList != null && node.BaseList.Types.Any(type => type.ToString() == baseClassName);
+            if (node.BaseList == null)
+                return false;
+
+            // Get the symbol for the class declaration
+            var classSymbol = semanticModel.GetDeclaredSymbol(node);
+            if (classSymbol == null)
+                return false;
+
+            // Traverse the base class hierarchy
+            var baseType = classSymbol.BaseType;
+            while (baseType != null)
+            {
+                if (baseType.Name.Equals(baseClassName, StringComparison.Ordinal))
+                    return true;
+
+                baseType = baseType.BaseType;
+            }
+
+            return false;
         }
     }
 
