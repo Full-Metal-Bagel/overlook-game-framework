@@ -25,9 +25,9 @@ namespace RelEcs
             // ReSharper disable once SuspiciousTypeConversion.Global
             Debug.Assert(component is not ITaggedComponent, $"{tagType}: tag of tag is not supporting yet");
             Debug.Assert(typeof(ITaggedComponent).IsAssignableFrom(tagType), $"{tagType} must implement {typeof(ITaggedComponent)}<T>");
-            Debug.Assert(tagType is { IsGenericTypeDefinition: true, IsValueType: true }, $"{tagType} must be a `struct` with one and only one type parameter");
+            // Debug.Assert(tagType is { IsGenericTypeDefinition: true, IsValueType: true }, $"{tagType} must be a `struct` with one and only one type parameter");
             // TODO: optimize by using a delegate creator instead of constructor?
-            var concreteTagType = tagType.MakeGenericType(component.GetType());
+            var concreteTagType = tagType.IsGenericType ? tagType.MakeGenericType(component.GetType()) : tagType;
             var ctor = concreteTagType.GetConstructor(new[] { component.GetType() });
             Debug.Assert(ctor != null);
             var tag = ctor.Invoke(new object[] { component });

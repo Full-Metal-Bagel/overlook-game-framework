@@ -155,6 +155,13 @@ namespace RelEcs
                 return this;
             }
 
+            public Builder Has(Type type)
+            {
+                var typeIndex = StorageType.Create(type);
+                Mask.Has(typeIndex);
+                return this;
+            }
+
             public Builder Not<T>()
             {
                 var typeIndex = StorageType.Create<T>();
