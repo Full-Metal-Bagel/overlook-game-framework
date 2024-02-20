@@ -19,11 +19,16 @@ namespace RelEcs
             Tables.Add(table);
         }
 
-        public bool Has(Entity entity)
+        public bool Contains(Entity entity)
         {
             var meta = Archetypes.GetEntityMeta(entity.Identity);
             var table = Archetypes.GetTable(meta.TableId);
             return Tables.Contains(table);
+        }
+
+        public bool Has<T>(Entity entity)
+        {
+            return Archetypes.HasComponent(StorageType.Create<T>(), entity.Identity);
         }
 
         public ref T Get<T>(Entity entity) where T : struct
@@ -61,6 +66,15 @@ namespace RelEcs
         {
             var enumerator = GetEnumerator();
             if (!enumerator.MoveNext()) throw new NoElementsException();
+            var entity = enumerator.Current;
+            if (enumerator.MoveNext()) throw new MoreThanOneElementsException();
+            return entity;
+        }
+
+        public QueryEntity SingleOrDefault()
+        {
+            var enumerator = GetEnumerator();
+            if (!enumerator.MoveNext()) return new QueryEntity();
             var entity = enumerator.Current;
             if (enumerator.MoveNext()) throw new MoreThanOneElementsException();
             return entity;
@@ -119,9 +133,9 @@ namespace RelEcs
             public Entity Entity { get; init; }
             public Query Query { get; init; }
 
-            public bool Has()
+            public bool Has<T>()
             {
-                return Query.Has(Entity);
+                return Query.Has<T>(Entity);
             }
 
             public ref T Get<T>() where T : struct
