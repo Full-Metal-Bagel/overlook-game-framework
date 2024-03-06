@@ -8,14 +8,6 @@ namespace CodeGen.DisallowConstructor;
 [Generator]
 public class DisallowDefaultConstructor : ISourceGenerator
 {
-    private const string DiagnosticId = "StructUsageError";
-    private const string Title = "Invalid struct usage";
-    private const string MessageFormat = "Struct '{0}' with 'SomeAttribute' cannot be used without parameters";
-    private const string Description = "Provide constructor parameters when using structs marked with 'SomeAttribute'.";
-
-    private static readonly DiagnosticDescriptor Rule = new(
-        DiagnosticId, Title, MessageFormat, "Usage", DiagnosticSeverity.Error, isEnabledByDefault: true, description: Description);
-
     public void Initialize(GeneratorInitializationContext context)
     {
         // Register a syntax receiver to find struct declarations and constructor usages
