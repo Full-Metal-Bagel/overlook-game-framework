@@ -5,6 +5,7 @@ using UnityEngine.Pool;
 namespace Game
 {
     [SuppressMessage("Naming", "CA1711:Identifiers should not have incorrect suffix")]
+    [DisallowDefaultConstructor]
     public readonly ref struct PooledDictionary<TKey, TValue>
     {
 #if !DISABLE_POOLED_COLLECTIONS_CHECKS

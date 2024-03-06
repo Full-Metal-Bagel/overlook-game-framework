@@ -3,6 +3,7 @@ using UnityEngine.Pool;
 
 namespace Game
 {
+    [DisallowDefaultConstructor]
     public readonly ref struct PooledHashSet<T>
     {
 #if !DISABLE_POOLED_COLLECTIONS_CHECKS

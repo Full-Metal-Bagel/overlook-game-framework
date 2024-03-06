@@ -5,6 +5,7 @@ using UnityEngine.Pool;
 
 namespace Game
 {
+    [DisallowDefaultConstructor]
     public readonly ref struct PooledStringBuilder
     {
 #if !DISABLE_POOLED_COLLECTIONS_CHECKS

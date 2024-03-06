@@ -1,25 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using NUnit.Framework;
 using Game;
 
 public class PooledListTests
 {
-    [Test]
-    public void Constructor_InvalidList()
-    {
-        var pooledList = new PooledList<int>();
-        try
-        {
-            var _ = pooledList.Count;
-        }
-        catch (Exception)
-        {
-            return;
-        }
-        Assert.Fail("Exception not thrown");
-    }
-
     [Test]
     public void Constructor_CreatesList()
     {

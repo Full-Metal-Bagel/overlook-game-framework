@@ -6,6 +6,7 @@ using UnityEngine.Pool;
 namespace Game
 {
     [SuppressMessage("Design", "CA1002:Do not expose generic lists")]
+    [DisallowDefaultConstructor]
     public readonly ref struct PooledList<T>
     {
 #if !DISABLE_POOLED_COLLECTIONS_CHECKS

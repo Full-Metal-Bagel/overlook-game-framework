@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 namespace Game
 {
     [SuppressMessage("Performance", "CA1819:Properties should not return arrays")]
+    [DisallowDefaultConstructor]
     public readonly ref struct PooledArray<T>
     {
 #if !DISABLE_POOLED_COLLECTIONS_CHECKS
