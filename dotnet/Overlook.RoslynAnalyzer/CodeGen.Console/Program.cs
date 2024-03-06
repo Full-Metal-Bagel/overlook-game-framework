@@ -3,18 +3,36 @@
 using System.Collections.Immutable;
 using CodeGen.Attribute;
 using CodeGen.GlobalSuppressions;
+using CodeGen.DisallowConstructor;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
 var generatorType = args[0];
 var inputDirectory = args[1];
-var outputDirectory = args[2];
+var outputDirectory = args.Length > 2 ? args[2] : ".";
 var unityMethodFileName = args.Length > 3 ? args[3] : "UnityMethods";
 var unityMethodFilePath = Path.Combine(outputDirectory, unityMethodFileName);
 
 if (generatorType == "sup") GenerateGlobalSuppressions();
 else if (generatorType == "attr") GenerateAttributes();
+else if (generatorType == "cons") DisallowDefaultConstructor();
 return;
+
+void DisallowDefaultConstructor()
+{
+    // Source generators should be tested using 'GeneratorDriver'.
+    var driver = CSharpGeneratorDriver.Create(new DisallowDefaultConstructor());
+    var files = Directory.GetFiles(inputDirectory, "*.cs", SearchOption.AllDirectories);
+
+    // We need to create a compilation with the required source code.
+    var compilation = CSharpCompilation.Create(
+        nameof(CodeGen.DisallowConstructor),
+        files.Select(File.ReadAllText).Select(text => CSharpSyntaxTree.ParseText(text))
+    );
+
+    // Run generators and retrieve all results.
+    _ = driver.RunGenerators(compilation).GetRunResult();
+}
 
 void GenerateAttributes()
 {
