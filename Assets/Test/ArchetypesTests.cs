@@ -117,8 +117,8 @@ namespace RelEcs.Tests
             // Assert
             var meta = _archetypes.GetEntityMeta(entity.Identity); // Assuming GetEntityMeta is accessible
             Assert.That(meta.Identity, Is.EqualTo(Identity.None));
-            Assert.That(meta.Row, Is.EqualTo(0));
-            // ... any other checks on meta ...
+            Assert.That(meta.Row, Is.EqualTo(-1));
+            Assert.That(meta.TableId, Is.EqualTo(-1));
         }
 
         [Test]
@@ -170,8 +170,7 @@ namespace RelEcs.Tests
             var entity = _archetypes.Spawn();
             var type = StorageType.Create<string>(); // Assuming a valid StorageType instance
             Assert.Throws<Exception>(() =>
-                _archetypes.RemoveComponent(type,
-                    entity.Identity)); // Assuming it throws an exception when trying to remove a non-existent component
+                _archetypes.RemoveComponent(entity.Identity, type)); // Assuming it throws an exception when trying to remove a non-existent component
         }
 
         [Test]
@@ -243,7 +242,7 @@ namespace RelEcs.Tests
             _archetypes.AddComponent(entity.Identity, 123);
             _archetypes.AddComponent(entity.Identity, 123f);
             using var components = new PooledList<UntypedComponent>(32);
-            _archetypes.FindAllComponents(entity.Identity, components.GetValue());
+            _archetypes.GetAllValueComponents(entity.Identity, components.GetValue());
             Assert.That(components.Count, Is.EqualTo(3)); // will added `Entity` as component by default
             Assert.That(components.GetValue().Any(c => c.Type == type1), Is.True);
             Assert.That(components.GetValue().Any(c => c.Type == type2), Is.True);
@@ -255,7 +254,8 @@ namespace RelEcs.Tests
             var mask = new Mask();
             mask.Has(StorageType.Create<int>());
             var tableTypes = new SortedSet<StorageType> { StorageType.Create<int>() };
-            var table = new Table(0, _archetypes, tableTypes);
+            var tableStorage = new TableStorage(tableTypes);
+            var table = new Table(0, tableTypes, tableStorage);
             Assert.That(Archetypes.IsMaskCompatibleWith(mask, table), Is.True);
         }
 
@@ -265,7 +265,8 @@ namespace RelEcs.Tests
             var mask = new Mask();
             mask.Has(StorageType.Create<int>());
             var tableTypes = new SortedSet<StorageType> { StorageType.Create<string>() };
-            var table = new Table(0, _archetypes, tableTypes);
+            var tableStorage = new TableStorage(tableTypes);
+            var table = new Table(0, tableTypes, tableStorage);
             Assert.That(Archetypes.IsMaskCompatibleWith(mask, table), Is.False);
         }
 
@@ -275,7 +276,8 @@ namespace RelEcs.Tests
             var mask = new Mask();
             mask.Not(StorageType.Create<int>());
             var tableTypes = new SortedSet<StorageType> { StorageType.Create<int>() };
-            var table = new Table(0, _archetypes, tableTypes);
+            var tableStorage = new TableStorage(tableTypes);
+            var table = new Table(0, tableTypes, tableStorage);
             Assert.That(Archetypes.IsMaskCompatibleWith(mask, table), Is.False);
         }
 
@@ -286,7 +288,8 @@ namespace RelEcs.Tests
             mask.Any(StorageType.Create<int>());
             mask.Any(StorageType.Create<string>());
             var tableTypes = new SortedSet<StorageType> { StorageType.Create<int>() };
-            var table = new Table(0, _archetypes, tableTypes);
+            var tableStorage = new TableStorage(tableTypes);
+            var table = new Table(0, tableTypes, tableStorage);
             Assert.That(Archetypes.IsMaskCompatibleWith(mask, table), Is.True);
         }
 
@@ -297,7 +300,8 @@ namespace RelEcs.Tests
             mask.Any(StorageType.Create<int>());
             mask.Any(StorageType.Create<string>());
             var tableTypes = new SortedSet<StorageType> { StorageType.Create(typeof(double)) };
-            var table = new Table(0, _archetypes, tableTypes);
+            var tableStorage = new TableStorage(tableTypes);
+            var table = new Table(0, tableTypes, tableStorage);
             Assert.That(Archetypes.IsMaskCompatibleWith(mask, table), Is.False);
         }
 
@@ -309,7 +313,8 @@ namespace RelEcs.Tests
             mask.Any(StorageType.Create(typeof(string)));
             mask.Not(StorageType.Create(typeof(double)));
             var tableTypes = new SortedSet<StorageType> { StorageType.Create(typeof(int)), StorageType.Create(typeof(string)) };
-            var table = new Table(0, _archetypes, tableTypes);
+            var tableStorage = new TableStorage(tableTypes);
+            var table = new Table(0, tableTypes, tableStorage);
             Assert.That(Archetypes.IsMaskCompatibleWith(mask, table), Is.True);
         }
 
@@ -320,7 +325,8 @@ namespace RelEcs.Tests
             mask.Has(StorageType.Create(typeof(int)));
             mask.Not(StorageType.Create(typeof(string)));
             var tableTypes = new SortedSet<StorageType> { StorageType.Create(typeof(int)), StorageType.Create(typeof(string)) };
-            var table = new Table(0, _archetypes, tableTypes);
+            var tableStorage = new TableStorage(tableTypes);
+            var table = new Table(0, tableTypes, tableStorage);
             Assert.That(Archetypes.IsMaskCompatibleWith(mask, table), Is.False);
         }
 
@@ -331,7 +337,8 @@ namespace RelEcs.Tests
             mask.Any(StorageType.Create(typeof(int)));
             mask.Any(StorageType.Create(typeof(string)));
             var tableTypes = new SortedSet<StorageType> { StorageType.Create(typeof(int)), StorageType.Create(typeof(string)) };
-            var table = new Table(0, _archetypes, tableTypes);
+            var tableStorage = new TableStorage(tableTypes);
+            var table = new Table(0, tableTypes, tableStorage);
             Assert.That(Archetypes.IsMaskCompatibleWith(mask, table), Is.True);
         }
 
@@ -342,7 +349,8 @@ namespace RelEcs.Tests
             mask.Any(StorageType.Create(typeof(int)));
             mask.Any(StorageType.Create(typeof(string)));
             var tableTypes = new SortedSet<StorageType> { StorageType.Create(typeof(double)) };
-            var table = new Table(0, _archetypes, tableTypes);
+            var tableStorage = new TableStorage(tableTypes);
+            var table = new Table(0, tableTypes, tableStorage);
             Assert.That(Archetypes.IsMaskCompatibleWith(mask, table), Is.False);
         }
 
@@ -354,7 +362,8 @@ namespace RelEcs.Tests
             mask.Any(StorageType.Create(typeof(int)));
             mask.Any(StorageType.Create(typeof(string)));
             var tableTypes = new SortedSet<StorageType> { StorageType.Create(typeof(int)), StorageType.Create(typeof(string)) };
-            var table = new Table(0, _archetypes, tableTypes);
+            var tableStorage = new TableStorage(tableTypes);
+            var table = new Table(0, tableTypes, tableStorage);
             Assert.That(Archetypes.IsMaskCompatibleWith(mask, table), Is.False);
         }
     }

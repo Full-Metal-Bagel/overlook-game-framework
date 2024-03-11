@@ -32,14 +32,6 @@ namespace RelEcs.Tests
         }
 
         [Test]
-        public void Remove_Component_RemovesComponentFromEntity()
-        {
-            _builder.Add<Position>();
-            _builder.Remove<Position>();
-            Assert.That(_world.HasComponent<Position>(_entity), Is.False);
-        }
-
-        [Test]
         public void Id_ReturnsEntityIdentity()
         {
             var id = _builder.Id();
@@ -56,14 +48,6 @@ namespace RelEcs.Tests
             //
             // Assert.That(_world.GetComponents(_entity).Count(), Is.EqualTo(1));
             // Assert.That(_world.GetComponent<object>(_entity), Is.EqualTo(second));
-        }
-
-        [Test]
-        public void Remove_ComponentNotPresent_DoesNothing()
-        {
-            Assert.Catch<Exception>(() => _builder.Remove<object>());
-            // _builder.Remove<object>();
-            // Assert.That(_world.HasComponent<object>(_entity), Is.False);
         }
     }
 }

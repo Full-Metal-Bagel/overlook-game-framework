@@ -63,12 +63,6 @@ namespace RelEcs
             return this;
         }
 
-        public EntityBuilder Remove<T>()
-        {
-            World.RemoveComponent<T>(Entity);
-            return this;
-        }
-
         public Entity Id()
         {
             return Entity;

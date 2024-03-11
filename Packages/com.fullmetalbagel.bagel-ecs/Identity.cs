@@ -8,6 +8,8 @@ namespace RelEcs
         public int TableId { get; }
         public int Row { get; }
 
+        public static EntityMeta Invalid => new(Identity.None, -1, -1);
+
         public EntityMeta(in Identity identity, int tableId, int row)
         {
             Identity = identity;
