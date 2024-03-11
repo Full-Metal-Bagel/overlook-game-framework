@@ -19,7 +19,8 @@ namespace RelEcs
 
         public EntityBuilder Spawn()
         {
-            return new EntityBuilder(this, Archetypes.Spawn());
+            var entity = Archetypes.Spawn();
+            return new EntityBuilder(this, entity);
         }
 
         public EntityBuilder On(Entity entity)
@@ -34,7 +35,7 @@ namespace RelEcs
 
         public void DespawnAllWith<T>()
         {
-            var query = this.Query().Has<T>().Build();
+            var query = Query().Has<T>().Build();
             foreach (var entity in query) Despawn(entity);
         }
 
@@ -65,14 +66,7 @@ namespace RelEcs
 
         public bool TryGetObjectComponent<T>(Entity entity, out T? component) where T : class
         {
-            if (!HasComponent<T>(entity))
-            {
-                component = null;
-                return false;
-            }
-
-            component = Archetypes.GetObjectComponent<T>(entity.Identity);
-            return true;
+            return Archetypes.TryGetObjectComponent(entity.Identity, out component);
         }
 
         public bool TryGetComponent<T>(Entity entity, out T? component) where T : struct
@@ -103,6 +97,11 @@ namespace RelEcs
             return ref Archetypes.AddComponent(entity.Identity, component);
         }
 
+        public void AddUntypedValueComponent(Entity entity, object component)
+        {
+            Archetypes.AddUntypedValueComponent(entity.Identity, component);
+        }
+
         public T AddObjectComponent<T>(Entity entity) where T : class, new()
         {
             return AddObjectComponent(entity, new T());
@@ -110,20 +109,19 @@ namespace RelEcs
 
         public T AddObjectComponent<T>(Entity entity, [DisallowNull] T component) where T : class
         {
-            Archetypes.AddObjectComponent(entity.Identity, component);
-            return component;
+            return Archetypes.AddObjectComponent(entity.Identity, component);
         }
 
         public void RemoveComponent<T>(Entity entity)
         {
-            var type = StorageType.Create<T>();
-            Archetypes.RemoveComponent(type, entity.Identity);
+            var storageType = StorageType.Create<T>();
+            Archetypes.RemoveComponent(entity.Identity, storageType);
         }
 
         public void RemoveComponent(Entity entity, Type type)
         {
             var storageType = StorageType.Create(type);
-            Archetypes.RemoveComponent(storageType, entity.Identity);
+            Archetypes.RemoveComponent(entity.Identity, storageType);
         }
 
         public Query.Builder Query()
@@ -154,9 +152,9 @@ namespace RelEcs
             return world.TryGetObjectComponent(entity, out component);
         }
 
-        public static void FindComponents<T>(this World world, Entity entity, ICollection<T> collection) where T : class
+        public static void FindObjectComponents<T>(this World world, Entity entity, ICollection<T> collection) where T : class
         {
-            world.Archetypes.FindComponents(entity.Identity, typeof(T), collection);
+            world.Archetypes.FindObjectComponents(entity.Identity, collection);
         }
     }
 }

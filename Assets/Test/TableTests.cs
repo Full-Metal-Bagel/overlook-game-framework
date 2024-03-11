@@ -1,6 +1,10 @@
 ﻿using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+#if UNITY_5_3_OR_NEWER
+using UnityEngine;
+using UnityEngine.TestTools;
+#endif
 
 namespace RelEcs.Tests
 {
@@ -10,6 +14,7 @@ namespace RelEcs.Tests
         private Lazy<Table> _lazyTable;
         private Table _table => _lazyTable.Value;
         private Archetypes _mockArchetypes; // Assuming you have a way to mock or stub this.
+        private TableStorage _tableStorage;
         private SortedSet<StorageType> _mockTypes; // Assuming you have a way to mock or stub this.
 
         [SetUp]
@@ -18,7 +23,8 @@ namespace RelEcs.Tests
             // Initialize your mock objects here
             _mockArchetypes = new Archetypes(); // Replace with actual mock or stub.
             _mockTypes = new SortedSet<StorageType>(); // Replace with actual mock or stub.
-            _lazyTable = new Lazy<Table>(() => new Table(1, _mockArchetypes, _mockTypes));
+            _tableStorage = new TableStorage(_mockTypes);
+            _lazyTable = new Lazy<Table>(() => new Table(1, _mockTypes, _tableStorage));
         }
 
         [Test]
@@ -42,16 +48,22 @@ namespace RelEcs.Tests
         public void Remove_WithValidRow_DecreasesCount()
         {
             var identity = new Identity(1); // Replace with actual identity or mock.
-            _table.Add(identity);
-            _table.Remove(0);
+            var row = _table.Add(identity);
+            _table.Remove(row);
 
             Assert.That(_table.Count, Is.EqualTo(0));
         }
 
         [Test]
-        public void Remove_WithInvalidRow_ThrowsArgumentOutOfRangeException()
+        public void Remove_WithInvalidRow_ThrowsException()
         {
-            Assert.Throws<ArgumentOutOfRangeException>(() => _table.Remove(1));
+#if UNITY_5_3_OR_NEWER
+            LogAssert.Expect(LogType.Assert, "Assertion failed");
+            LogAssert.Expect(LogType.Assert, "Assertion failed");
+            _table.Remove(1);
+#else
+            Assert.Catch<Exception>(() => _table.Remove(1));
+#endif
         }
 
         [Test]
@@ -68,37 +80,42 @@ namespace RelEcs.Tests
         [Test]
         public void EnsureCapacity_WithValidCapacity_ResizesTable()
         {
-            _table.EnsureCapacity(10); // Assuming this method is public.
+            _tableStorage.EnsureCapacity(10); // Assuming this method is public.
 
-            Assert.That(_table.Identities.Length, Is.GreaterThanOrEqualTo(10));
+            Assert.That(_tableStorage.Capacity, Is.GreaterThanOrEqualTo(10));
         }
 
         [Test]
         public void EnsureCapacity_WithInvalidCapacity_ThrowsArgumentOutOfRangeException()
         {
-            Assert.Throws<ArgumentOutOfRangeException>(() => _table.EnsureCapacity(-1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => _tableStorage.EnsureCapacity(-1));
         }
 
         [Test]
         public void MoveEntry_WithValidParameters_MovesEntryToNewTable()
         {
             var identity = new Identity(1); // Replace with actual identity or mock.
-            var newTable = new Table(2, _mockArchetypes, _mockTypes);
+            var newTable = new Table(2, _mockTypes, _tableStorage);
 
-            _table.Add(identity);
-            Table.MoveEntry(identity, 0, _table, newTable);
+            var row = _table.Add(identity);
+            Table.MoveEntry(identity, row, _table, newTable);
 
             Assert.That(_table.Count, Is.EqualTo(0));
             Assert.That(newTable.Count, Is.EqualTo(1));
         }
 
         [Test]
-        public void MoveEntry_WithInvalidOldRow_ThrowsArgumentOutOfRangeException()
+        public void MoveEntry_WithInvalidOldRow_ThrowsException()
         {
             var identity = new Identity(1); // Replace with actual identity or mock.
-            var newTable = new Table(2, _mockArchetypes, _mockTypes);
+            var newTable = new Table(2, _mockTypes, _tableStorage);
 
-            Assert.Throws<ArgumentOutOfRangeException>(() => Table.MoveEntry(identity, 1, _table, newTable));
+#if UNITY_5_3_OR_NEWER
+            LogAssert.Expect(LogType.Assert, "Assertion failed");
+            Table.MoveEntry(identity, 999, _table, newTable);
+#else
+            Assert.Catch<Exception>(() => Table.MoveEntry(identity, 999, _table, newTable));
+#endif
         }
 
         [Test]

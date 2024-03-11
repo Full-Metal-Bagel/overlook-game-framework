@@ -10,6 +10,7 @@ namespace RelEcs
         public ushort Value { get; init; }
         public ushort TypeId => Value;
         public Type Type => TypeIdAssigner.GetType(Value);
+        public bool IsValueType => Type.IsValueType;
         public static implicit operator ushort(StorageType type) => type.TypeId;
 
         public static StorageType Create(Type type)

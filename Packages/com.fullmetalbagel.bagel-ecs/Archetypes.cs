@@ -24,9 +24,15 @@ namespace RelEcs
         internal readonly Dictionary<StorageType, List<Table>> _tablesByType = new();
         private static readonly StorageType s_entityType = StorageType.Create<Entity>();
 
+        // TODO: concurrent?
+        internal Dictionary<Identity/*entity*/, Dictionary<StorageType/*component type*/, object/*components*/>>
+            EntityReferenceTypeComponents
+        { get; } = new();
+
         public Archetypes()
         {
-            AddTable(new SortedSet<StorageType> { s_entityType });
+            var types = new SortedSet<StorageType> { s_entityType };
+            AddTable(types, new TableStorage(types));
         }
 
         public Entity Spawn()
@@ -37,6 +43,7 @@ namespace RelEcs
             if (_meta.Length == _entityCount) Array.Resize(ref _meta, _entityCount << 1);
             _meta[identity.Id] = new EntityMeta(identity, table.Id, row);
             var entity = new Entity(identity);
+            EntityReferenceTypeComponents[identity] = new();
             table.GetStorage<Entity>()[row] = entity;
             return entity;
         }
@@ -48,8 +55,9 @@ namespace RelEcs
             var meta = _meta[identity.Id];
             var table = _tables[meta.TableId];
             table.Remove(meta.Row);
-            _meta[identity.Id] = new EntityMeta(Identity.None, row: 0, tableId: 0);
+            _meta[identity.Id] = EntityMeta.Invalid;
             _unusedIds.Enqueue(identity);
+            EntityReferenceTypeComponents[identity].Clear();
         }
 
         public ref T AddComponent<T>(Identity identity, T data) where T : struct
@@ -61,14 +69,26 @@ namespace RelEcs
             return ref storage[row];
         }
 
-        public void AddObjectComponent<T>(Identity identity, T data) where T : class
+        public void AddUntypedValueComponent(Identity identity, object data)
         {
+            Debug.Assert(data.GetType().IsValueType);
             var type = StorageType.Create(data.GetType());
             var (table, row) = AddComponent(identity, type);
-            table.GetStorage(type).SetValue(data, row);
+            var storage = table.GetStorage(type);
+            storage.SetValue(data, row);
         }
 
-        private (Table table, int row) AddComponent(Identity identity, StorageType type)
+        public T AddObjectComponent<T>(Identity identity, T data) where T : class
+        {
+            Debug.Assert(!data.GetType().IsValueType);
+            if (data == null) throw new ArgumentNullException(nameof(data));
+            var type = StorageType.Create(data.GetType());
+            AddComponent(identity, type);
+            EntityReferenceTypeComponents[identity][type] = data;
+            return data;
+        }
+
+        internal (Table table, int row) AddComponent(Identity identity, StorageType type)
         {
             WarningIfCanBeUnmanaged(type.Type);
 
@@ -86,7 +106,8 @@ namespace RelEcs
             {
                 var newTypes = new SortedSet<StorageType>(oldTable.Types);
                 newTypes.Add(type);
-                newTable = AddTable(newTypes);
+                var storage = type.IsValueType ? new TableStorage(newTypes) : oldTable.TableStorage;
+                newTable = AddTable(newTypes, storage);
                 oldEdge.Add = newTable;
 
                 var newEdge = newTable.GetTableEdge(type);
@@ -110,7 +131,7 @@ namespace RelEcs
             return new Span<byte>(ptr.ToPointer(), size);
         }
 
-        public unsafe void SetComponentRawData(Identity identity, StorageType type, Span<byte> data)
+        public void SetComponentRawData(Identity identity, StorageType type, Span<byte> data)
         {
             var component = GetComponentRawData(identity, type);
             Debug.Assert(data.Length == component.Length);
@@ -124,19 +145,40 @@ namespace RelEcs
             return ref table.GetStorage<T>()[meta.Row];
         }
 
-        public T GetObjectComponent<T>(Identity identity) where T : class
-        {
-            WarnSystemType(typeof(T));
-            var meta = _meta[identity.Id];
-            var table = _tables[meta.TableId];
-            return (T)table.GetStorage(StorageType.Create<T>()).GetValue(meta.Row);
-        }
-
         public bool HasComponent(StorageType type, Identity identity)
         {
             WarnSystemType(type.Type);
             var meta = _meta[identity.Id];
             return meta.Identity != Identity.None && _tables[meta.TableId].TypesInHierarchy.Contains(type);
+        }
+
+        public T GetObjectComponent<T>(Identity identity) where T : class
+        {
+            TryGetObjectComponent(identity, out T? component);
+            Debug.Assert(component != null);
+            return component;
+        }
+
+        public bool TryGetObjectComponent<T>(Identity identity, out T? component) where T : class
+        {
+            var entityComponents = EntityReferenceTypeComponents[identity];
+            var hasComponent = entityComponents.TryGetValue(StorageType.Create<T>(), out var value);
+            if (hasComponent)
+            {
+                component = (T?)value;
+                return hasComponent;
+            }
+            // TODO: cache type hierarchy tree for optimization
+            foreach (var (type, v) in entityComponents)
+            {
+                if (typeof(T).IsAssignableFrom(type.Type))
+                {
+                    component = (T)v;
+                    return true;
+                }
+            }
+            component = null;
+            return false;
         }
 
         [Conditional("UNITY_EDITOR")]
@@ -150,7 +192,7 @@ namespace RelEcs
             }
         }
 
-        public void RemoveComponent(StorageType type, Identity identity)
+        public void RemoveComponent(Identity identity, StorageType type)
         {
             var meta = _meta[identity.Id];
             var oldTable = _tables[meta.TableId];
@@ -168,7 +210,8 @@ namespace RelEcs
             {
                 var newTypes = new SortedSet<StorageType>(oldTable.Types);
                 newTypes.Remove(type);
-                newTable = AddTable(newTypes);
+                var storage = type.IsValueType ? new TableStorage(newTypes) : oldTable.TableStorage;
+                newTable = AddTable(newTypes, storage);
                 oldEdge.Remove = newTable;
 
                 var newEdge = newTable.GetTableEdge(type);
@@ -242,31 +285,19 @@ namespace RelEcs
             return _tables[tableId];
         }
 
-        internal void FindAllComponents(Identity identity, ICollection<UntypedComponent> components)
+        internal void GetAllValueComponents(Identity identity, ICollection<UntypedComponent> components)
         {
             var meta = _meta[identity.Id];
             var table = _tables[meta.TableId];
-            foreach (var (type, storage) in table)
+            foreach (var (type, storage) in table.TableStorage.Storages)
             {
                 components.Add(new UntypedComponent { Storage = storage, Row = meta.Row, Type = type });
             }
         }
 
-        internal void FindComponents<T>(Identity identity, Type realType, ICollection<T> components) where T : class
+        Table AddTable(SortedSet<StorageType> types, TableStorage storage)
         {
-            var meta = _meta[identity.Id];
-            var table = _tables[meta.TableId];
-
-            foreach (var (type, storage) in table)
-            {
-                if (realType.IsAssignableFrom(type.Type))
-                    components.Add(((T[])storage)[meta.Row]);
-            }
-        }
-
-        Table AddTable(SortedSet<StorageType> types)
-        {
-            var table = new Table(_tables.Count, this, types);
+            var table = new Table(_tables.Count, types, storage);
             _tables.Add(table);
 
             foreach (var type in table.TypesInHierarchy)
@@ -286,6 +317,15 @@ namespace RelEcs
             }
 
             return table;
+        }
+
+        internal void FindObjectComponents<T>(Identity identity, ICollection<T> collection) where T : class
+        {
+            foreach (var (key, value) in EntityReferenceTypeComponents[identity])
+            {
+                if (typeof(T).IsAssignableFrom(key.Type))
+                    collection.Add((T)value);
+            }
         }
 
         private static readonly HashSet<Type> s_checkedTypes = new();

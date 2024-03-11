@@ -34,22 +34,13 @@ namespace RelEcs
         public ref T Get<T>(Entity entity) where T : struct
         {
             Debug.Assert(Mask._hasTypes.Contains(StorageType.Create<T>()));
-            var (meta, table) = Get(entity);
-            return ref table.GetStorage<T>()[meta.Row];
+            return ref Archetypes.GetComponent<T>(entity.Identity);
         }
 
         public T GetObject<T>(Entity entity) where T : class
         {
             Debug.Assert(Mask._hasTypes.Contains(StorageType.Create<T>()) || Mask._hasTypes.Any(type => typeof(T).IsAssignableFrom(type.Type)));
-            var (meta, table) = Get(entity);
-            return (T)table.GetStorage(StorageType.Create<T>()).GetValue(meta.Row);
-        }
-
-        private (EntityMeta meta, Table table) Get(Entity entity)
-        {
-            var meta = Archetypes.GetEntityMeta(entity.Identity);
-            var table = Archetypes.GetTable(meta.TableId);
-            return (meta, table);
+            return Archetypes.GetObjectComponent<T>(entity.Identity);
         }
 
         public void ForEach(Action<Entity> action)
@@ -122,7 +113,9 @@ namespace RelEcs
             {
                 get
                 {
-                    var entity = _query.Tables[_tableIndex].GetStorage<Entity>()[_entityIndex];
+                    var table = _query.Tables[_tableIndex];
+                    var row = table.Rows[_entityIndex];
+                    var entity = table.GetStorage<Entity>()[row];
                     return new QueryEntity { Entity = entity, Query = _query };
                 }
             }

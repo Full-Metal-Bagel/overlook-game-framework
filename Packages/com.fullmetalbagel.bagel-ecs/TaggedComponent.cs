@@ -20,7 +20,7 @@ namespace RelEcs
 
     public static class TaggedComponentExtension
     {
-        public static void AddTaggedComponent<T>(this World world, Entity entity, [DisallowNull] T component, Type tagType)
+        public static void AddTaggedComponent<T>(this World world, Entity entity, [DisallowNull] T component, Type tagType) where T : class
         {
             // ReSharper disable once SuspiciousTypeConversion.Global
             Debug.Assert(component is not ITaggedComponent, $"{tagType}: tag of tag is not supporting yet");
@@ -31,27 +31,21 @@ namespace RelEcs
             var ctor = concreteTagType.GetConstructor(new[] { component.GetType() });
             Debug.Assert(ctor != null);
             var tag = ctor.Invoke(new object[] { component });
-            // HACK: set tag as object component?
-            world.Archetypes.AddObjectComponent(entity.Identity, tag);
+            // HACK: set tag as value type component?
+            world.AddObjectComponent(entity, tag);
         }
 
-        public static bool TryGetObjectComponent<TComponent, TTag>(this World world, Entity entity, out TComponent? component, TTag _ = default)
+        public static bool TryGetObjectComponent<TComponent, TTag>(this World world, Entity entity, out TComponent? component, TTag _ = default!)
             where TComponent : class
-            where TTag : struct, ITaggedComponent<TComponent>
+            where TTag : class, ITaggedComponent<TComponent>
         {
             Debug.Assert(typeof(TTag) is { IsGenericType: true } && typeof(TTag).GetGenericArguments().Length == 1, $"{typeof(TTag)} must be a `struct` with one and only one type parameter");
-            var archetypes = world.Archetypes;
-            var meta = archetypes._meta[entity.Identity.Id];
-            var table = archetypes._tables[meta.TableId];
-
             component = null;
-
-            foreach (var (storageType, storage) in table)
+            foreach (var (storageType, entityComponent) in world.Archetypes.EntityReferenceTypeComponents[entity.Identity])
             {
                 if (storageType.Type.IsTagTypeOf<TComponent>(typeof(TTag).GetGenericTypeDefinition()))
                 {
-                    // TODO: how to avoid boxing for accessing tag `struct`?
-                    component = ((ITaggedComponent<TComponent>)storage.GetValue(meta.Row)).Component;
+                    component = ((ITaggedComponent<TComponent>)entityComponent).Component;
                     return true;
                 }
             }
@@ -61,25 +55,18 @@ namespace RelEcs
         public static T? FindUnwrappedComponent<T>(this World world, Entity entity, Type tagGenericDefinition) where T : class
         {
             Debug.Assert(tagGenericDefinition.IsGenericTypeDefinition);
-
-            var archetypes = world.Archetypes;
-            var meta = archetypes._meta[entity.Identity.Id];
-            var table = archetypes._tables[meta.TableId];
-
-            foreach (var (storageType, storage) in table)
+            foreach (var (storageType, component) in world.Archetypes.EntityReferenceTypeComponents[entity.Identity])
             {
                 if (storageType.Type.IsTagTypeOf<T>(tagGenericDefinition))
                 {
-                    // TODO: optimize boxing of `struct` tag
-                    var boxedValue = storage.GetValue(meta.Row);
-                    return ((ITaggedComponent<T>)boxedValue).Component;
+                    return ((ITaggedComponent<T>)component).Component;
                 }
             }
             return null;
         }
 
         [Pure]
-        internal static bool IsTagTypeOf<T>(this Type concreteType, Type tagGenericTypeDefinition)
+        internal static bool IsTagTypeOf<T>(this Type concreteType, Type tagGenericTypeDefinition) where T : class
         {
             // HACK: tricky way to check "covariant" converting on the tag struct
             //       vote for proper covariant of struct here:
@@ -88,43 +75,34 @@ namespace RelEcs
                    concreteType.GetGenericTypeDefinition() == tagGenericTypeDefinition;
         }
 
-        public static void FindUnwrappedComponents<T>(this World world, Entity entity, IList<T> components)
+        public static void FindUnwrappedComponents<T>(this World world, Entity entity, ICollection<T> components) where T : class
         {
-            var archetypes = world.Archetypes;
-            var meta = archetypes._meta[entity.Identity.Id];
-            var table = archetypes._tables[meta.TableId];
-
-            foreach (var (storageType, storage) in table)
+            foreach (var (_, component) in world.Archetypes.EntityReferenceTypeComponents[entity.Identity])
             {
-                if (storage is T[] typedStorage)
+                if (component is T value)
                 {
-                    components.Add(typedStorage[meta.Row]);
+                    components.Add(value);
                 }
-                else if (typeof(ITaggedComponent<T>).IsAssignableFrom(storageType.Type))
+                else if (component is ITaggedComponent<T> tagged)
                 {
-                    // TODO: optimize boxing of `struct` tag
-                    var boxedValue = storage.GetValue(meta.Row);
-                    components.Add(((ITaggedComponent<T>)boxedValue).Component);
+                    components.Add(tagged.Component);
                 }
             }
         }
 
-        public static void RemoveComponentsIncludingTagged<T>(this World world, Entity entity)
+        public static void RemoveComponentsIncludingTagged<T>(this World world, Entity entity) where T : class
         {
             var archetypes = world.Archetypes;
-            var meta = archetypes._meta[entity.Identity.Id];
-            var table = archetypes._tables[meta.TableId];
-
-            foreach (var (storageType, _) in table)
+            foreach (var (storageType, _) in world.Archetypes.EntityReferenceTypeComponents[entity.Identity])
             {
                 var type = storageType.Type;
                 if (typeof(T).IsAssignableFrom(type))
                 {
-                    archetypes.RemoveComponent(storageType, entity.Identity);
+                    archetypes.RemoveComponent(entity.Identity, storageType);
                 }
                 else if (typeof(ITaggedComponent).IsAssignableFrom(type) && typeof(T).IsAssignableFrom(type.GetGenericArguments()[0]))
                 {
-                    archetypes.RemoveComponent(storageType, entity.Identity);
+                    archetypes.RemoveComponent(entity.Identity, storageType);
                 }
             }
         }
