@@ -1,6 +1,11 @@
 using System;
 using System.Collections.Generic;
 using Game;
+#if ARCHETYPE_USE_NATIVE_BIT_ARRAY
+using TSet = RelEcs.NativeBitArraySet;
+#else
+using TSet = RelEcs.SortedSetTypeSet;
+#endif
 
 namespace RelEcs
 {
@@ -14,8 +19,8 @@ namespace RelEcs
     {
         public int Id { get; }
 
-        public SortedSet<StorageType> Types { get; }
-        public SortedSet<StorageType> TypesInHierarchy { get; } = new();
+        public TSet Types { get; }
+        public TSet TypesInHierarchy { get; } = TSet.Create();
 
         public IList<Identity> Identities => _sortedIdentities.Values;
         public IList<int> Rows => _sortedIdentities.Keys;
@@ -27,7 +32,7 @@ namespace RelEcs
         private readonly SortedList<int /*row*/, Identity> _sortedIdentities = new(32);
         private readonly Dictionary<StorageType, TableEdge> _edges = new();
 
-        public Table(int id, SortedSet<StorageType> types, TableStorage tableStorage)
+        public Table(int id, TSet types, TableStorage tableStorage)
         {
             TableStorage = tableStorage;
 
@@ -40,7 +45,7 @@ namespace RelEcs
             }
 
             // TODO: cache
-            static void FillAllTypes(StorageType storageType, SortedSet<StorageType> set)
+            static void FillAllTypes(StorageType storageType, TSet set)
             {
                 var type = storageType.Type;
                 foreach (var interfaceType in type.GetInterfaces())

@@ -5,6 +5,14 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
+#if ARCHETYPE_USE_NATIVE_BIT_ARRAY
+using TMask = RelEcs.NativeBitArrayMask;
+using TSet = RelEcs.NativeBitArraySet;
+#else
+using TMask = RelEcs.Mask;
+using TSet = RelEcs.SortedSetTypeSet;
+#endif
+
 namespace RelEcs
 {
     public readonly struct UntypedComponent
@@ -19,7 +27,8 @@ namespace RelEcs
         internal EntityMeta[] _meta = new EntityMeta[512];
         internal readonly Queue<Identity> _unusedIds = new();
         internal readonly List<Table> _tables = new();
-        internal readonly Dictionary<int, Query> _queries = new();
+        // TODO: profile
+        internal readonly Dictionary<TMask, Query> _queries = new();
         internal int _entityCount;
         internal readonly Dictionary<StorageType, List<Table>> _tablesByType = new();
         private static readonly StorageType s_entityType = StorageType.Create<Entity>();
@@ -31,7 +40,7 @@ namespace RelEcs
 
         public Archetypes()
         {
-            var types = new SortedSet<StorageType> { s_entityType };
+            var types = TSet.Create(s_entityType);
             AddTable(types, new TableStorage(types));
         }
 
@@ -104,7 +113,7 @@ namespace RelEcs
             var newTable = oldEdge.Add;
             if (newTable == null)
             {
-                var newTypes = new SortedSet<StorageType>(oldTable.Types);
+                var newTypes = TSet.Create(oldTable.Types);
                 newTypes.Add(type);
                 var storage = type.IsValueType ? new TableStorage(newTypes) : oldTable.TableStorage;
                 newTable = AddTable(newTypes, storage);
@@ -208,7 +217,7 @@ namespace RelEcs
 
             if (newTable == null)
             {
-                var newTypes = new SortedSet<StorageType>(oldTable.Types);
+                var newTypes = TSet.Create(oldTable.Types);
                 newTypes.Remove(type);
                 var storage = type.IsValueType ? new TableStorage(newTypes) : oldTable.TableStorage;
                 newTable = AddTable(newTypes, storage);
@@ -224,20 +233,17 @@ namespace RelEcs
             _meta[identity.Id] = new EntityMeta(identity, row: newRow, tableId: newTable.Id);
         }
 
-        internal Query GetQuery(Mask mask, Func<Archetypes, Mask, List<Table>, Query> createQuery)
+        internal Query GetQuery(TMask mask, Func<Archetypes, TMask, List<Table>, Query> createQuery)
         {
-            // TODO: replace hash by something more safer? Set? BitArray?
-            var hash = mask.GetHashCode();
-
-            if (_queries.TryGetValue(hash, out var query))
+            if (_queries.TryGetValue(mask, out var query))
             {
-                MaskPool.Add(mask);
+                mask.Dispose();
                 return query;
             }
 
             var matchingTables = new List<Table>();
 
-            var type = mask._hasTypes.Count == 0 ? StorageType.Create<Entity>() : mask._hasTypes[0];
+            var type = mask.FirstType;
             if (!_tablesByType.TryGetValue(type, out var typeTables))
             {
                 typeTables = new List<Table>();
@@ -252,17 +258,13 @@ namespace RelEcs
             }
 
             query = createQuery(this, mask, matchingTables);
-            _queries.Add(hash, query);
-
+            _queries.Add(mask, query);
             return query;
         }
 
-        internal static bool IsMaskCompatibleWith(Mask mask, Table table)
+        internal static bool IsMaskCompatibleWith(TMask mask, Table table)
         {
-            var matchesComponents = table.TypesInHierarchy.IsSupersetOf(mask._hasTypes);
-            matchesComponents = matchesComponents && !table.TypesInHierarchy.Overlaps(mask._notTypes);
-            matchesComponents = matchesComponents && (mask._anyTypes.Count == 0 || table.TypesInHierarchy.Overlaps(mask._anyTypes));
-            return matchesComponents;
+            return mask.IsMaskCompatibleWith(table.TypesInHierarchy);
         }
 
         internal bool IsAlive(Identity identity)
@@ -295,7 +297,7 @@ namespace RelEcs
             }
         }
 
-        Table AddTable(SortedSet<StorageType> types, TableStorage storage)
+        Table AddTable(TSet types, TableStorage storage)
         {
             var table = new Table(_tables.Count, types, storage);
             _tables.Add(table);

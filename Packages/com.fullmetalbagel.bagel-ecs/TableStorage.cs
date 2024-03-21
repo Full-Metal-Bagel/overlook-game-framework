@@ -2,25 +2,31 @@ using System;
 using System.Collections.Generic;
 using Game;
 
+#if ARCHETYPE_USE_NATIVE_BIT_ARRAY
+using TSet = RelEcs.NativeBitArraySet;
+#else
+using TSet = RelEcs.SortedSetTypeSet;
+#endif
+
 namespace RelEcs
 {
     public sealed class TableStorage
     {
-        private static readonly int s_initCapacity = 4;
-        private static readonly int s_minimumExpandingCapacity = 32;
+        private const int InitCapacity = 4;
+        private const int MinimumExpandingCapacity = 32;
 
         private readonly Dictionary<StorageType, Array> _storages = new();
         public IReadOnlyDictionary<StorageType, Array> Storages => _storages;
 
-        public int Capacity { get; private set; } = s_initCapacity;
+        public int Capacity { get; private set; } = InitCapacity;
 
         public delegate int ExpandCapacity(int current, int expect);
-        public ExpandCapacity ExpandCapacityFunc { get; init; } = (current, expect) => Math.Max(current + s_minimumExpandingCapacity, expect);
+        public ExpandCapacity ExpandCapacityFunc { get; init; } = (current, expect) => Math.Max(current + MinimumExpandingCapacity, expect);
 
         // TODO: sort unused indices by descending order?
         private List<int> UnusedList { get; } = new(32);
 
-        public TableStorage(SortedSet<StorageType> types)
+        public TableStorage(TSet types)
         {
             foreach (var type in types)
             {
