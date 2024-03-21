@@ -1,7 +1,12 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Diagnostics.CodeAnalysis;
 using Game;
+#if ARCHETYPE_USE_NATIVE_BIT_ARRAY
+using TMask = RelEcs.NativeBitArrayMask;
+#else
+using TMask = RelEcs.Mask;
+#endif
 
 namespace RelEcs
 {
@@ -9,9 +14,9 @@ namespace RelEcs
     {
         internal List<Table> Tables { get; init; }
         internal Archetypes Archetypes { get; init; }
-        internal Mask Mask { get; init; }
+        internal TMask Mask { get; init; }
 
-        internal static readonly Func<Archetypes, Mask, List<Table>, Query> s_createQuery =
+        internal static readonly Func<Archetypes, TMask, List<Table>, Query> s_createQuery =
             (archetypes, mask, matchingTables) => new Query { Archetypes = archetypes, Mask = mask, Tables = matchingTables };
 
         internal void AddTable(Table table)
@@ -33,13 +38,13 @@ namespace RelEcs
 
         public ref T Get<T>(Entity entity) where T : struct
         {
-            Debug.Assert(Mask._hasTypes.Contains(StorageType.Create<T>()));
+            Debug.Assert(Mask.HasTypesContainsAny(type => type == StorageType.Create<T>()));
             return ref Archetypes.GetComponent<T>(entity.Identity);
         }
 
         public T GetObject<T>(Entity entity) where T : class
         {
-            Debug.Assert(Mask._hasTypes.Contains(StorageType.Create<T>()) || Mask._hasTypes.Any(type => typeof(T).IsAssignableFrom(type.Type)));
+            Debug.Assert(Mask.HasTypesContainsAny(type => type == StorageType.Create<T>() || typeof(T).IsAssignableFrom(type.Type)));
             return Archetypes.GetObjectComponent<T>(entity.Identity);
         }
 
@@ -144,48 +149,49 @@ namespace RelEcs
             public static implicit operator Entity(QueryEntity self) => self.Entity;
         }
 
-        public readonly ref struct Builder
+        public ref struct Builder
         {
-            internal Archetypes Archetypes { get; }
-            internal Mask Mask { get; }
+            private readonly Archetypes _archetypes;
+            [SuppressMessage("Style", "IDE0044:Add readonly modifier")]
+            private TMask _mask;
 
             public Builder(Archetypes archetypes)
             {
-                Archetypes = archetypes;
-                Mask = MaskPool.Get();
+                _archetypes = archetypes;
+                _mask = TMask.Create();
             }
 
             public Builder Has<T>()
             {
                 var typeIndex = StorageType.Create<T>();
-                Mask.Has(typeIndex);
+                _mask.Has(typeIndex);
                 return this;
             }
 
             public Builder Has(Type type)
             {
                 var typeIndex = StorageType.Create(type);
-                Mask.Has(typeIndex);
+                _mask.Has(typeIndex);
                 return this;
             }
 
             public Builder Not<T>()
             {
                 var typeIndex = StorageType.Create<T>();
-                Mask.Not(typeIndex);
+                _mask.Not(typeIndex);
                 return this;
             }
 
             public Builder Any<T>()
             {
                 var typeIndex = StorageType.Create<T>();
-                Mask.Any(typeIndex);
+                _mask.Any(typeIndex);
                 return this;
             }
 
             public Query Build()
             {
-                return Archetypes.GetQuery(Mask, Query.s_createQuery);
+                return _archetypes.GetQuery(_mask, s_createQuery);
             }
         }
     }

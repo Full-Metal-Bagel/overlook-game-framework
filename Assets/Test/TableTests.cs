@@ -5,6 +5,11 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.TestTools;
 #endif
+#if ARCHETYPE_USE_NATIVE_BIT_ARRAY
+using TSet = RelEcs.NativeBitArraySet;
+#else
+using TSet = RelEcs.SortedSetTypeSet;
+#endif
 
 namespace RelEcs.Tests
 {
@@ -15,14 +20,14 @@ namespace RelEcs.Tests
         private Table _table => _lazyTable.Value;
         private Archetypes _mockArchetypes; // Assuming you have a way to mock or stub this.
         private TableStorage _tableStorage;
-        private SortedSet<StorageType> _mockTypes; // Assuming you have a way to mock or stub this.
+        private TSet _mockTypes; // Assuming you have a way to mock or stub this.
 
         [SetUp]
         public void SetUp()
         {
             // Initialize your mock objects here
             _mockArchetypes = new Archetypes(); // Replace with actual mock or stub.
-            _mockTypes = new SortedSet<StorageType>(); // Replace with actual mock or stub.
+            _mockTypes = TSet.Create(); // Replace with actual mock or stub.
             _tableStorage = new TableStorage(_mockTypes);
             _lazyTable = new Lazy<Table>(() => new Table(1, _mockTypes, _tableStorage));
         }

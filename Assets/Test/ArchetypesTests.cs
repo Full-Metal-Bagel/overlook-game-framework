@@ -1,8 +1,14 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using Game;
 using NUnit.Framework;
+#if ARCHETYPE_USE_NATIVE_BIT_ARRAY
+using TMask = RelEcs.NativeBitArrayMask;
+using TSet = RelEcs.NativeBitArraySet;
+#else
+using TMask = RelEcs.Mask;
+using TSet = RelEcs.SortedSetTypeSet;
+#endif
 
 namespace RelEcs.Tests
 {
@@ -216,10 +222,9 @@ namespace RelEcs.Tests
         [Test]
         public void GetQuery_ReturnsValidQuery()
         {
-            var mask = new Mask(); // Assuming a valid Mask instance
+            var mask = TMask.Create(); // Assuming a valid Mask instance
             mask.Has(StorageType.Create<string>());
-            var query = _archetypes.GetQuery(mask,
-                (archetypes, mask, tables) => new Query { Archetypes = archetypes, Mask = mask, Tables = tables }); // Assuming a valid delegate
+            var query = _archetypes.GetQuery(mask, (archetypes, mask, tables) => new Query { Archetypes = archetypes, Mask = mask, Tables = tables }); // Assuming a valid delegate
             Assert.That(query.Mask, Is.EqualTo(mask));
         }
 
@@ -251,9 +256,9 @@ namespace RelEcs.Tests
         [Test]
         public void IsMaskCompatibleWith_ReturnsTrue_WhenTableMatchesMaskRequirements()
         {
-            var mask = new Mask();
+            var mask = TMask.Create();
             mask.Has(StorageType.Create<int>());
-            var tableTypes = new SortedSet<StorageType> { StorageType.Create<int>() };
+            var tableTypes = TSet.Create(StorageType.Create<int>());
             var tableStorage = new TableStorage(tableTypes);
             var table = new Table(0, tableTypes, tableStorage);
             Assert.That(Archetypes.IsMaskCompatibleWith(mask, table), Is.True);
@@ -262,9 +267,9 @@ namespace RelEcs.Tests
         [Test]
         public void IsMaskCompatibleWith_ReturnsFalse_WhenTableDoesNotMatchMaskRequirements()
         {
-            var mask = new Mask();
+            var mask = TMask.Create();
             mask.Has(StorageType.Create<int>());
-            var tableTypes = new SortedSet<StorageType> { StorageType.Create<string>() };
+            var tableTypes = TSet.Create(StorageType.Create<string>());
             var tableStorage = new TableStorage(tableTypes);
             var table = new Table(0, tableTypes, tableStorage);
             Assert.That(Archetypes.IsMaskCompatibleWith(mask, table), Is.False);
@@ -273,9 +278,9 @@ namespace RelEcs.Tests
         [Test]
         public void IsMaskCompatibleWith_ReturnsFalse_WhenTableContainsExcludedTypes()
         {
-            var mask = new Mask();
+            var mask = TMask.Create();
             mask.Not(StorageType.Create<int>());
-            var tableTypes = new SortedSet<StorageType> { StorageType.Create<int>() };
+            var tableTypes = TSet.Create(StorageType.Create<int>());
             var tableStorage = new TableStorage(tableTypes);
             var table = new Table(0, tableTypes, tableStorage);
             Assert.That(Archetypes.IsMaskCompatibleWith(mask, table), Is.False);
@@ -284,10 +289,10 @@ namespace RelEcs.Tests
         [Test]
         public void IsMaskCompatibleWith_ReturnsTrue_WhenTableContainsAnyOfTheMaskTypes()
         {
-            var mask = new Mask();
+            var mask = TMask.Create();
             mask.Any(StorageType.Create<int>());
             mask.Any(StorageType.Create<string>());
-            var tableTypes = new SortedSet<StorageType> { StorageType.Create<int>() };
+            var tableTypes = TSet.Create(StorageType.Create<int>());
             var tableStorage = new TableStorage(tableTypes);
             var table = new Table(0, tableTypes, tableStorage);
             Assert.That(Archetypes.IsMaskCompatibleWith(mask, table), Is.True);
@@ -296,10 +301,10 @@ namespace RelEcs.Tests
         [Test]
         public void IsMaskCompatibleWith_ReturnsFalse_WhenTableDoesNotContainAnyOfTheMaskTypes()
         {
-            var mask = new Mask();
+            var mask = TMask.Create();
             mask.Any(StorageType.Create<int>());
             mask.Any(StorageType.Create<string>());
-            var tableTypes = new SortedSet<StorageType> { StorageType.Create(typeof(double)) };
+            var tableTypes = TSet.Create(StorageType.Create(typeof(double)));
             var tableStorage = new TableStorage(tableTypes);
             var table = new Table(0, tableTypes, tableStorage);
             Assert.That(Archetypes.IsMaskCompatibleWith(mask, table), Is.False);
@@ -308,11 +313,11 @@ namespace RelEcs.Tests
         [Test]
         public void IsMaskCompatibleWith_ReturnsTrue_WhenTableMatchesAllMaskRequirements()
         {
-            var mask = new Mask();
+            var mask = TMask.Create();
             mask.Has(StorageType.Create(typeof(int)));
             mask.Any(StorageType.Create(typeof(string)));
             mask.Not(StorageType.Create(typeof(double)));
-            var tableTypes = new SortedSet<StorageType> { StorageType.Create(typeof(int)), StorageType.Create(typeof(string)) };
+            var tableTypes = TSet.Create(new [] { StorageType.Create(typeof(int)), StorageType.Create(typeof(string))});
             var tableStorage = new TableStorage(tableTypes);
             var table = new Table(0, tableTypes, tableStorage);
             Assert.That(Archetypes.IsMaskCompatibleWith(mask, table), Is.True);
@@ -321,10 +326,10 @@ namespace RelEcs.Tests
         [Test]
         public void IsMaskCompatibleWith_ReturnsFalse_WhenTableContainsExcludedAndRequiredTypes()
         {
-            var mask = new Mask();
+            var mask = TMask.Create();
             mask.Has(StorageType.Create(typeof(int)));
             mask.Not(StorageType.Create(typeof(string)));
-            var tableTypes = new SortedSet<StorageType> { StorageType.Create(typeof(int)), StorageType.Create(typeof(string)) };
+            var tableTypes = TSet.Create(new [] { StorageType.Create(typeof(int)), StorageType.Create(typeof(string)) });
             var tableStorage = new TableStorage(tableTypes);
             var table = new Table(0, tableTypes, tableStorage);
             Assert.That(Archetypes.IsMaskCompatibleWith(mask, table), Is.False);
@@ -333,10 +338,10 @@ namespace RelEcs.Tests
         [Test]
         public void IsMaskCompatibleWith_ReturnsTrue_WhenMaskHasOptionalTypesAndTableContainsThem()
         {
-            var mask = new Mask();
+            var mask = TMask.Create();
             mask.Any(StorageType.Create(typeof(int)));
             mask.Any(StorageType.Create(typeof(string)));
-            var tableTypes = new SortedSet<StorageType> { StorageType.Create(typeof(int)), StorageType.Create(typeof(string)) };
+            var tableTypes = TSet.Create(new [] { StorageType.Create(typeof(int)), StorageType.Create(typeof(string)) });
             var tableStorage = new TableStorage(tableTypes);
             var table = new Table(0, tableTypes, tableStorage);
             Assert.That(Archetypes.IsMaskCompatibleWith(mask, table), Is.True);
@@ -345,10 +350,10 @@ namespace RelEcs.Tests
         [Test]
         public void IsMaskCompatibleWith_ReturnsTrue_WhenMaskHasRequiredAnyTypesAndTableDoesNotContainThem()
         {
-            var mask = new Mask();
+            var mask = TMask.Create();
             mask.Any(StorageType.Create(typeof(int)));
             mask.Any(StorageType.Create(typeof(string)));
-            var tableTypes = new SortedSet<StorageType> { StorageType.Create(typeof(double)) };
+            var tableTypes = TSet.Create(StorageType.Create(typeof(double)));
             var tableStorage = new TableStorage(tableTypes);
             var table = new Table(0, tableTypes, tableStorage);
             Assert.That(Archetypes.IsMaskCompatibleWith(mask, table), Is.False);
@@ -357,11 +362,11 @@ namespace RelEcs.Tests
         [Test]
         public void IsMaskCompatibleWith_ReturnsFalse_WhenMaskHasRequiredAndOptionalTypesButTableDoesNotContainRequired()
         {
-            var mask = new Mask();
+            var mask = TMask.Create();
             mask.Has(StorageType.Create(typeof(double)));
             mask.Any(StorageType.Create(typeof(int)));
             mask.Any(StorageType.Create(typeof(string)));
-            var tableTypes = new SortedSet<StorageType> { StorageType.Create(typeof(int)), StorageType.Create(typeof(string)) };
+            var tableTypes = TSet.Create(new [] { StorageType.Create(typeof(int)), StorageType.Create(typeof(string)) });
             var tableStorage = new TableStorage(tableTypes);
             var table = new Table(0, tableTypes, tableStorage);
             Assert.That(Archetypes.IsMaskCompatibleWith(mask, table), Is.False);

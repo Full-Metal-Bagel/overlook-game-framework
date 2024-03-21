@@ -1,10 +1,11 @@
 using System;
-using System.Diagnostics;
 using System.Collections.Generic;
 using System.Threading;
+using Game;
 
 namespace RelEcs
 {
+    [DisallowDefaultConstructor]
     public readonly struct StorageType : IComparable<StorageType>, IEquatable<StorageType>
     {
         public ushort Value { get; init; }
@@ -13,14 +14,24 @@ namespace RelEcs
         public bool IsValueType => Type.IsValueType;
         public static implicit operator ushort(StorageType type) => type.TypeId;
 
+        public static StorageType Create(ushort typeId)
+        {
+            return new StorageType(typeId);
+        }
+
         public static StorageType Create(Type type)
         {
-            return new StorageType { Value = TypeIdAssigner.GetOrCreate(type) };
+            return new StorageType(TypeIdAssigner.GetOrCreate(type));
         }
 
         public static StorageType Create<T>()
         {
-            return new StorageType { Value = TypeIdAssigner<T>.Id };
+            return new StorageType(TypeIdAssigner<T>.Id);
+        }
+
+        private StorageType(ushort value)
+        {
+            Value = value;
         }
 
         public void Deconstruct(out Type type, out ushort typeId)
@@ -48,11 +59,12 @@ namespace RelEcs
 
     internal static class TypeIdAssigner
     {
-        private static int s_counter;
+        public const int MaxTypeCapacity = 512;
+        private static int s_counter = -1;
         private static readonly Dictionary<Type, ushort> s_typeIdMap = new();
-        private static readonly List<Type> s_types = new(64);
+        private static readonly Type[] s_types = new Type[MaxTypeCapacity];
 
-        public static Type GetType(int typeId) => s_types[typeId - 1];
+        public static Type GetType(int typeId) => s_types[typeId];
 
         public static ushort GetOrCreate(Type type)
         {
@@ -61,10 +73,10 @@ namespace RelEcs
             if (!s_typeIdMap.TryGetValue(type, out ushort typeId))
             {
                 var id = Interlocked.Increment(ref s_counter);
-                if (id > ushort.MaxValue) throw new IndexOutOfRangeException();
+                if (id is >= MaxTypeCapacity or < 0) throw new IndexOutOfRangeException();
                 typeId = (ushort)id;
                 s_typeIdMap.Add(type, typeId);
-                s_types.Add(type);
+                s_types[typeId] = type;
             }
             return typeId;
         }

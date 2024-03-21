@@ -2,7 +2,9 @@
     "name": "RelEcs",
     "rootNamespace": "",
     "references": [
-        "GUID:64b2c2c6713d0eb4da059cc0c4b68035"
+        "GUID:64b2c2c6713d0eb4da059cc0c4b68035",
+        "GUID:e0cd26848372d4e5c891c569017e11f1",
+        "GUID:d8b63aba1907145bea998dd612889d6b"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
