@@ -22,7 +22,7 @@ namespace RelEcs
         public StorageType Type { get; init; }
     }
 
-    public sealed class Archetypes
+    public sealed class Archetypes : IDisposable
     {
         internal EntityMeta[] _meta = new EntityMeta[512];
         internal readonly Queue<Identity> _unusedIds = new();
@@ -344,6 +344,12 @@ namespace RelEcs
             var fields = type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
             if (fields.Any(fi => !fi.FieldType.IsUnmanaged())) return;
             Game.Debug.LogWarning($"{type} can be changed to `struct` for performance gain");
+        }
+
+        public void Dispose()
+        {
+            foreach (var table in _tables) table.Dispose();
+            foreach (var query in _queries.Values) query.Mask.Dispose();
         }
     }
 }

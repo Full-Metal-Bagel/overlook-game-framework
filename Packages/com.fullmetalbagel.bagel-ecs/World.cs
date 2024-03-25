@@ -5,7 +5,7 @@ using System.Threading;
 
 namespace RelEcs
 {
-    public sealed class World
+    public sealed class World : IDisposable
     {
         private static int s_worldCount;
 
@@ -128,6 +128,8 @@ namespace RelEcs
         {
             return new Query.Builder(Archetypes);
         }
+
+        public void Dispose() => Archetypes.Dispose();
     }
 
     public static partial class ObjectComponentExtension
