@@ -15,7 +15,7 @@ namespace RelEcs
         public Table? Remove { get; set; }
     }
 
-    public sealed class Table
+    public sealed class Table : IDisposable
     {
         public int Id { get; }
 
@@ -128,6 +128,12 @@ namespace RelEcs
                 s += $"{type} ";
             }
             return s;
+        }
+
+        public void Dispose()
+        {
+            Types.Dispose();
+            TypesInHierarchy.Dispose();
         }
     }
 }
