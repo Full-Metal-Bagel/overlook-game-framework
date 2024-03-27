@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using CodeGen.Attribute;
 using CodeGen.GlobalSuppressions;
 using CodeGen.DisallowConstructor;
+using CodeGen.FlowNode;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
@@ -16,7 +17,24 @@ var unityMethodFilePath = Path.Combine(outputDirectory, unityMethodFileName);
 if (generatorType == "sup") GenerateGlobalSuppressions();
 else if (generatorType == "attr") GenerateAttributes();
 else if (generatorType == "cons") DisallowDefaultConstructor();
+else if (generatorType == "nodes") FlowNodes();
 return;
+
+void FlowNodes()
+{
+    // Source generators should be tested using 'GeneratorDriver'.
+    var driver = CSharpGeneratorDriver.Create(new CustomEventNodeSourceGenerator());
+    var files = Directory.GetFiles(inputDirectory, "*.cs", SearchOption.AllDirectories);
+
+    // We need to create a compilation with the required source code.
+    var compilation = CSharpCompilation.Create(
+        nameof(CodeGen.FlowNode),
+        files.Select(File.ReadAllText).Select(text => CSharpSyntaxTree.ParseText(text))
+    );
+
+    // Run generators and retrieve all results.
+    _ = driver.RunGenerators(compilation).GetRunResult();
+}
 
 void DisallowDefaultConstructor()
 {
