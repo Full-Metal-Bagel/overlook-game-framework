@@ -75,7 +75,12 @@ public class CustomEventNodeSourceGenerator : ISourceGenerator
             builder.AppendLine($$"""
                                      }
 
-                                     public void Invoke({{typeName}} value)
+                                     public void HandleSystemEvents(GameData data)
+                                     {
+                                         foreach (var e in data.GetEvents<{{typeName}}>()) ManualInvoke(e);
+                                     }
+
+                                     public void ManualInvoke({{typeName}} value)
                                      {
                                          _event = value;
                                          _on.Call(new FlowCanvas.Flow());
