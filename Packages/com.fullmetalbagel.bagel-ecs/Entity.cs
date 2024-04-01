@@ -1,3 +1,5 @@
+using Game;
+
 namespace RelEcs
 {
     public readonly struct Entity : System.IEquatable<Entity>
@@ -78,7 +80,14 @@ namespace RelEcs
 
         public static EntityBuilder Add<T>(this in EntityBuilder builder, T component) where T : class
         {
+            Debug.Assert(!component.GetType().IsValueType);
             builder.World.AddComponent(builder.Entity, component);
+            return builder;
+        }
+
+        public static EntityBuilder AddUntypedValueComponent(this in EntityBuilder builder, object component)
+        {
+            builder.World.Archetypes.AddUntypedValueComponent(builder.Entity.Identity, component);
             return builder;
         }
     }
