@@ -2,11 +2,15 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Reflection;
 using JetBrains.Annotations;
+using NodeCanvas.Framework;
 using OneShot;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 
 namespace Game
 {
@@ -16,18 +20,35 @@ namespace Game
         [field: SerializeField, HorizontalGroup, HideLabel] public string Name { get; private set; } = "Update";
         [field: SerializeField, HorizontalGroup, HideLabel] public TickStage TickStage { get; private set; } = TickStage.Update;
         [field: SerializeField, HorizontalGroup, HideLabel] public int TickTimes { get; set; } = -1;
-        public IEnumerable<Guid> SystemsGuid => _systems.Select(system => system.Id);
-        public IEnumerable<Type?> SystemsType => _systems.Select(system => system.Type);
+        public IReadOnlyList<SystemData> Systems => _systems;
         public int Count => _systems.Length;
-        [SerializeField, TypeConstraint(BaseType = typeof(IGameSystem))]
-        internal GuidTypeReference[] _systems = default!;
+        [SerializeField] private SystemData[] _systems = default!;
+
+        [Serializable]
+        [SuppressMessage("Design", "CA1034:Nested types should not be visible")]
+        public class SystemData
+        {
+            [field: SerializeField, HorizontalGroup, TypeConstraint(BaseType = typeof(IGameSystem))]
+            public GuidTypeReference Type { get; private set; } = default!;
+
+            [field: SerializeField, HideLabel, HorizontalGroup, ShowIf(nameof(IsGraphSystem)), AssetReferenceUILabelRestriction("system")]
+            public AssetReferenceT<Graph> Graph { get; private set; } = default!;
+
+            private bool IsGraphSystem => Type is { Type: not null } && Type.Type.GetCustomAttribute<GraphSystemAttribute>() != null;
+
+            public void Deconstruct(out GuidTypeReference type, out AssetReferenceT<Graph> graph)
+            {
+                type = Type;
+                graph = Graph;
+            }
+        }
     }
 
     public static class SystemGroupExtension
     {
         public static void RegisterGroupSystems(this Container container, IReadOnlyList<SystemGroup> groups)
         {
-            foreach (var system in groups.SelectMany(g => g._systems))
+            foreach (var (system, graph) in groups.SelectMany(g => g.Systems))
             {
                 var systemType = system.Type;
                 if (systemType == null)
@@ -48,13 +69,16 @@ namespace Game
         {
             var systemGroupAndTypes =
                 from @group in groups
-                from type in @group.SystemsType
-                select (@group, type)
+                from t in @group.Systems
+                select (@group, t.Type.Type, t.Graph)
             ;
 
-            foreach (var (group, systemType) in systemGroupAndTypes)
+            foreach (var (group, systemType, graph) in systemGroupAndTypes)
             {
-                yield return (group, container.Resolve(systemType));
+                Debug.Assert(systemType.GetCustomAttribute<GraphSystemAttribute>() == null || graph != null);
+                using var systemContainer = container.BeginScope();
+                systemContainer.Register(systemType).With(graph).AsSelf();
+                yield return (group, systemContainer.Resolve(systemType));
             }
         }
     }
