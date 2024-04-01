@@ -182,6 +182,20 @@ namespace RelEcs
                 return this;
             }
 
+            public Builder Not(Type type)
+            {
+                var typeIndex = StorageType.Create(type);
+                _mask.Not(typeIndex);
+                return this;
+            }
+
+            public Builder Any(Type type)
+            {
+                var typeIndex = StorageType.Create(type);
+                _mask.Any(typeIndex);
+                return this;
+            }
+
             public Builder Any<T>()
             {
                 var typeIndex = StorageType.Create<T>();
