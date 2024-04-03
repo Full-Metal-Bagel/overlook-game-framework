@@ -225,8 +225,6 @@ namespace RelEcs
 
                 var newEdge = newTable.GetTableEdge(type);
                 newEdge.Add = oldTable;
-
-                _tables.Add(newTable);
             }
 
             var newRow = Table.MoveEntry(identity, meta.Row, oldTable, newTable);
@@ -297,7 +295,7 @@ namespace RelEcs
             }
         }
 
-        Table AddTable(TSet types, TableStorage storage)
+        private Table AddTable(TSet types, TableStorage storage)
         {
             var table = new Table(_tables.Count, types, storage);
             _tables.Add(table);
