@@ -10,7 +10,7 @@ using TMask = RelEcs.Mask;
 
 namespace RelEcs
 {
-    public readonly struct Query
+    public readonly struct Query : IEquatable<Query>
     {
         internal List<Table> Tables { get; init; }
         internal Archetypes Archetypes { get; init; }
@@ -208,6 +208,15 @@ namespace RelEcs
                 return _archetypes.GetQuery(_mask, s_createQuery);
             }
         }
+
+        public bool Equals(Query other) => ReferenceEquals(Tables, other.Tables) && ReferenceEquals(Archetypes, other.Archetypes) && Mask.Equals(other.Mask);
+        public override bool Equals(object? obj)
+        {
+            if (obj == null) return false;
+            throw new NotSupportedException();
+        }
+
+        public override int GetHashCode() => HashCode.Combine(Tables, Archetypes, Mask);
     }
 
     public static partial class ObjectComponentExtension
