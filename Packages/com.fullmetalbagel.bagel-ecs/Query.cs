@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using Game;
 #if ARCHETYPE_USE_NATIVE_BIT_ARRAY
 using TMask = RelEcs.NativeBitArrayMask;
 #else
@@ -38,13 +37,13 @@ namespace RelEcs
 
         public ref T Get<T>(Entity entity) where T : struct
         {
-            Debug.Assert(Mask.HasTypesContainsAny(type => type == StorageType.Create<T>()));
+            // Debug.Assert(Mask.HasTypesContainsAny(type => type == StorageType.Create<T>()));
             return ref Archetypes.GetComponent<T>(entity.Identity);
         }
 
         public T GetObject<T>(Entity entity) where T : class
         {
-            Debug.Assert(Mask.HasTypesContainsAny(type => type == StorageType.Create<T>() || typeof(T).IsAssignableFrom(type.Type)));
+            // Debug.Assert(Mask.HasTypesContainsAny(type => type == StorageType.Create<T>() || typeof(T).IsAssignableFrom(type.Type)));
             return Archetypes.GetObjectComponent<T>(entity.Identity);
         }
 
