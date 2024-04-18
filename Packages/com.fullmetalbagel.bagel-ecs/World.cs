@@ -92,9 +92,9 @@ namespace RelEcs
             return Archetypes.HasComponent(type, entity.Identity);
         }
 
-        public ref T AddComponent<T>(Entity entity, T component = default) where T : struct
+        public void AddComponent<T>(Entity entity, T component = default) where T : struct
         {
-            return ref Archetypes.AddComponent(entity.Identity, component);
+            Archetypes.AddComponent(entity.Identity, component);
         }
 
         public void AddUntypedValueComponent(Entity entity, object component)

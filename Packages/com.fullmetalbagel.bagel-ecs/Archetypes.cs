@@ -69,13 +69,15 @@ namespace RelEcs
             EntityReferenceTypeComponents[identity].Clear();
         }
 
-        public ref T AddComponent<T>(Identity identity, T data) where T : struct
+        public void AddComponent<T>(Identity identity, T data) where T : struct
         {
             var type = StorageType.Create<T>();
             var (table, row) = AddComponent(identity, type);
-            var storage = table.GetStorage<T>();
-            storage[row] = data;
-            return ref storage[row];
+            if (!type.IsTag)
+            {
+                var storage = table.GetStorage<T>();
+                storage[row] = data;
+            }
         }
 
         public void AddUntypedValueComponent(Identity identity, object data)
@@ -83,12 +85,16 @@ namespace RelEcs
             Debug.Assert(data.GetType().IsValueType);
             var type = StorageType.Create(data.GetType());
             var (table, row) = AddComponent(identity, type);
-            var storage = table.GetStorage(type);
-            storage.SetValue(data, row);
+            if (!type.IsTag)
+            {
+                var storage = table.GetStorage(type);
+                storage.SetValue(data, row);
+            }
         }
 
         public T AddObjectComponent<T>(Identity identity, T data) where T : class
         {
+            WarningIfTagClass(data.GetType());
             Debug.Assert(!data.GetType().IsValueType);
             if (data == null) throw new ArgumentNullException(nameof(data));
             var type = StorageType.Create(data.GetType());
@@ -115,7 +121,7 @@ namespace RelEcs
             {
                 var newTypes = TSet.Create(oldTable.Types);
                 newTypes.Add(type);
-                var storage = type.IsValueType ? new TableStorage(newTypes) : oldTable.TableStorage;
+                var storage = type is { IsValueType: true, IsTag: false } ? new TableStorage(newTypes) : oldTable.TableStorage;
                 newTable = AddTable(newTypes, storage);
                 oldEdge.Add = newTable;
 
@@ -131,6 +137,8 @@ namespace RelEcs
         public unsafe Span<byte> GetComponentRawData(Identity identity, StorageType type)
         {
             Debug.Assert(type.Type.IsUnmanaged());
+            if (type.IsTag) return Span<byte>.Empty;
+
             var meta = _meta[identity.Id];
             var table = _tables[meta.TableId];
             var storage = table.GetStorage(type);
@@ -149,6 +157,7 @@ namespace RelEcs
 
         public ref T GetComponent<T>(Identity identity) where T : struct
         {
+            Debug.Assert(!StorageType.Create<T>().IsTag);
             var meta = _meta[identity.Id];
             var table = _tables[meta.TableId];
             return ref table.GetStorage<T>()[meta.Row];
@@ -219,7 +228,7 @@ namespace RelEcs
             {
                 var newTypes = TSet.Create(oldTable.Types);
                 newTypes.Remove(type);
-                var storage = type.IsValueType ? new TableStorage(newTypes) : oldTable.TableStorage;
+                var storage = type is { IsValueType: true, IsTag: false } ? new TableStorage(newTypes) : oldTable.TableStorage;
                 newTable = AddTable(newTypes, storage);
                 oldEdge.Remove = newTable;
 
@@ -342,6 +351,15 @@ namespace RelEcs
             var fields = type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
             if (fields.Any(fi => !fi.FieldType.IsUnmanaged())) return;
             Game.Debug.LogWarning($"{type} can be changed to `struct` for performance gain");
+        }
+
+        [Conditional("DEBUG")]
+        [Conditional("UNITY_EDITOR")]
+        [Conditional("DEVELOPMENT")]
+        private static void WarningIfTagClass(Type type)
+        {
+            if (!type.IsValueType && StorageType.Create(type).IsTag)
+                Game.Debug.LogWarning($"{type} can be changed to `struct` tag");
         }
 
         public void Dispose()
