@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Threading;
 using Game;
 
@@ -8,7 +9,8 @@ namespace RelEcs
     [DisallowDefaultConstructor]
     public readonly struct StorageType : IComparable<StorageType>, IEquatable<StorageType>
     {
-        public ushort Value { get; init; }
+        public bool IsTag { get; }
+        public ushort Value { get; }
         public ushort TypeId => Value;
         public Type Type => TypeIdAssigner.GetType(Value);
         public bool IsValueType => Type.IsValueType;
@@ -16,22 +18,38 @@ namespace RelEcs
 
         public static StorageType Create(ushort typeId)
         {
-            return new StorageType(typeId);
+            var type = TypeIdAssigner.GetType(typeId);
+            return new StorageType(typeId, IsTagType(type));
         }
 
         public static StorageType Create(Type type)
         {
-            return new StorageType(TypeIdAssigner.GetOrCreate(type));
+            return Create(TypeIdAssigner.GetOrCreate(type));
         }
 
         public static StorageType Create<T>()
         {
-            return new StorageType(TypeIdAssigner<T>.Id);
+            return TypeIdAssigner<T>.StorageType;
         }
 
-        private StorageType(ushort value)
+        private StorageType(ushort value, bool isTagType)
         {
             Value = value;
+            IsTag = isTagType;
+        }
+
+        public static bool IsTagType(Type type)
+        {
+            // Check the current type and all base types for fields
+            while (type != null && type != typeof(object) && type != typeof(ValueType))
+            {
+                if (type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).Length > 0)
+                {
+                    return false; // Fields are found, thus not empty
+                }
+                type = type.BaseType; // Move to the base class
+            }
+            return true; // No fields found in any base class or itself
         }
 
         public void Deconstruct(out Type type, out ushort typeId)
@@ -84,6 +102,13 @@ namespace RelEcs
 
     internal static class TypeIdAssigner<T>
     {
-        public static readonly ushort Id = TypeIdAssigner.GetOrCreate(typeof(T));
+        public static ushort Id { get; }
+        public static StorageType StorageType { get; }
+
+        static TypeIdAssigner()
+        {
+            Id = TypeIdAssigner.GetOrCreate(typeof(T));
+            StorageType = StorageType.Create(Id);
+        }
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Runtime.InteropServices;
 using Game;
 using NUnit.Framework;
 #if ARCHETYPE_USE_NATIVE_BIT_ARRAY
@@ -9,6 +10,9 @@ using TSet = RelEcs.NativeBitArraySet;
 using TMask = RelEcs.Mask;
 using TSet = RelEcs.SortedSetTypeSet;
 #endif
+
+#pragma warning disable CS0169 // Field is never used
+#pragma warning disable CA1823 // unused field
 
 namespace RelEcs.Tests
 {
@@ -370,6 +374,66 @@ namespace RelEcs.Tests
             var tableStorage = new TableStorage(tableTypes);
             var table = new Table(0, tableTypes, tableStorage);
             Assert.That(Archetypes.IsMaskCompatibleWith(mask, table), Is.False);
+        }
+
+        [StructLayout(LayoutKind.Explicit, Size = 0)]
+        private struct ZeroStruct { }
+        private struct EmptyStruct { }
+        private class EmptyClass { }
+        private sealed class EmptyInheritedClass : EmptyClass { }
+        private struct IntStruct { int _a; }
+        private class IntClass { int _a; }
+        private sealed class IntInHeritedClass : IntClass { }
+
+        [Test]
+        public void StructTag_IsTag()
+        {
+            Assert.That(StorageType.Create<ZeroStruct>().IsTag, Is.True);
+            Assert.That(StorageType.Create<EmptyStruct>().IsTag, Is.True);
+            Assert.That(StorageType.Create<EmptyClass>().IsTag, Is.True);
+            Assert.That(StorageType.Create<EmptyInheritedClass>().IsTag, Is.True);
+            Assert.That(StorageType.Create<int>().IsTag, Is.False);
+            Assert.That(StorageType.Create<IntStruct>().IsTag, Is.False);
+            Assert.That(StorageType.Create<IntClass>().IsTag, Is.False);
+            Assert.That(StorageType.Create<IntInHeritedClass>().IsTag, Is.False);
+        }
+
+        [Test]
+        public void StructTag_AddTag()
+        {
+            var entity = _archetypes.Spawn().Identity;
+            _archetypes.AddComponent(entity, new ZeroStruct());
+            Assert.That(_archetypes.HasComponent(StorageType.Create<ZeroStruct>(), entity), Is.True);
+            Assert.Catch(() => _archetypes.GetComponent<ZeroStruct>(entity));
+        }
+
+        [Test]
+        public void StructTag_ThrowIfAddMoreThanOneTag()
+        {
+            var entity = _archetypes.Spawn().Identity;
+            _archetypes.AddComponent(entity, new ZeroStruct());
+            Assert.Catch(() => _archetypes.AddComponent(entity, new ZeroStruct()));
+        }
+
+        [Test]
+        public void StructTag_RemoveTag()
+        {
+            var entity = _archetypes.Spawn().Identity;
+            _archetypes.AddComponent(entity, new ZeroStruct());
+            _archetypes.RemoveComponent(entity, StorageType.Create<ZeroStruct>());
+            Assert.That(_archetypes.HasComponent(StorageType.Create<ZeroStruct>(), entity), Is.False);
+        }
+
+        [Test]
+        public void StructTag_AddTags()
+        {
+            var entity = _archetypes.Spawn().Identity;
+            _archetypes.AddComponent(entity, new ZeroStruct());
+            _archetypes.AddObjectComponent(entity, new EmptyClass());
+            _archetypes.AddComponent(entity, new EmptyStruct());
+            Assert.That(_archetypes.HasComponent(StorageType.Create<ZeroStruct>(), entity), Is.True);
+            Assert.That(_archetypes.HasComponent(StorageType.Create<EmptyClass>(), entity), Is.True);
+            Assert.That(_archetypes.HasComponent(StorageType.Create<EmptyStruct>(), entity), Is.True);
         }
     }
 }
