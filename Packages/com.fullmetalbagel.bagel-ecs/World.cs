@@ -97,9 +97,9 @@ namespace RelEcs
             Archetypes.AddComponent(entity.Identity, component);
         }
 
-        public void AddUntypedValueComponent(Entity entity, object component)
+        public T AddObjectComponent<T>(Entity entity) where T : class, new()
         {
-            Archetypes.AddUntypedValueComponent(entity.Identity, component);
+            return AddObjectComponent(entity, new T());
         }
 
         public T AddObjectComponent<T>(Entity entity, [DisallowNull] T component) where T : class
