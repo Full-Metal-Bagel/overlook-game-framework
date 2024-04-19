@@ -73,25 +73,18 @@ namespace RelEcs
     {
         public static EntityBuilder Add<T>(this in EntityBuilder builder) where T : class, new()
         {
-            return Add(builder, new T());
+            return builder.Add(new T());
         }
 
         public static EntityBuilder Add<T>(this in EntityBuilder builder, T component) where T : class
         {
-            if (component.GetType().IsValueType) AddUntypedValueComponent(builder, component);
-            else builder.World.AddComponent(builder.Entity, component);
+            builder.World.AddComponent(builder.Entity, component);
             return builder;
         }
 
         public static EntityBuilder AddMultiple<T>(this in EntityBuilder builder, T component) where T : class
         {
             builder.World.AddMultipleObjectComponent(builder.Entity, component);
-            return builder;
-        }
-
-        public static EntityBuilder AddUntypedValueComponent(this in EntityBuilder builder, object component)
-        {
-            builder.World.Archetypes.AddUntypedValueComponent(builder.Entity.Identity, component);
             return builder;
         }
     }

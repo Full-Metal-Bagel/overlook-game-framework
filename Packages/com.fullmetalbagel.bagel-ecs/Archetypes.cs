@@ -122,7 +122,6 @@ namespace RelEcs
         private List<object> GetOrCreateComponentsStorage(Identity identity, object data)
         {
             WarningIfTagClass(data.GetType());
-            Debug.Assert(!data.GetType().IsValueType);
             if (data == null) throw new ArgumentNullException(nameof(data));
             var type = StorageType.Create(data.GetType());
             if (!EntityReferenceTypeComponents[identity].TryGetValue(type, out var components))
@@ -186,7 +185,7 @@ namespace RelEcs
             _objectComponentsPool.Add(components);
         }
 
-        internal (Table table, int row) AddComponent(Identity identity, StorageType type)
+        private (Table table, int row) AddComponent(Identity identity, StorageType type)
         {
             WarningIfCanBeUnmanaged(type.Type);
 
