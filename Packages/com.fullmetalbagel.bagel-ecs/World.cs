@@ -102,26 +102,29 @@ namespace RelEcs
             Archetypes.AddUntypedValueComponent(entity.Identity, component);
         }
 
-        public T AddObjectComponent<T>(Entity entity) where T : class, new()
-        {
-            return AddObjectComponent(entity, new T());
-        }
-
         public T AddObjectComponent<T>(Entity entity, [DisallowNull] T component) where T : class
         {
             return Archetypes.AddObjectComponent(entity.Identity, component);
         }
 
-        public void RemoveComponent<T>(Entity entity)
+        public T AddMultipleObjectComponent<T>(Entity entity, [DisallowNull] T component) where T : class
         {
-            var storageType = StorageType.Create<T>();
-            Archetypes.RemoveComponent(entity.Identity, storageType);
+            return Archetypes.AddMultipleObjectComponent(entity.Identity, component);
+        }
+
+        public void RemoveComponent<T>(Entity entity) where T : struct
+        {
+            Archetypes.RemoveComponent<T>(entity.Identity);
+        }
+
+        public void RemoveObjectComponent<T>(Entity entity) where T : class
+        {
+            Archetypes.RemoveObjectComponent<T>(entity.Identity);
         }
 
         public void RemoveComponent(Entity entity, Type type)
         {
-            var storageType = StorageType.Create(type);
-            Archetypes.RemoveComponent(entity.Identity, storageType);
+            Archetypes.RemoveComponent(entity.Identity, type);
         }
 
         public Query.Builder Query()
@@ -134,6 +137,11 @@ namespace RelEcs
 
     public static partial class ObjectComponentExtension
     {
+        public static T AddObjectComponent<T>(this World world, Entity entity) where T : class, new()
+        {
+            return world.AddObjectComponent(entity, new T());
+        }
+
         public static T AddComponent<T>(this World world, Entity entity) where T : class, new()
         {
             return world.AddObjectComponent(entity, new T());
@@ -142,6 +150,11 @@ namespace RelEcs
         public static T AddComponent<T>(this World world, Entity entity, [DisallowNull] T component) where T : class
         {
             return world.AddObjectComponent(entity, component);
+        }
+
+        public static void RemoveComponent<T>(this World world, Entity entity) where T : class
+        {
+            world.RemoveObjectComponent<T>(entity);
         }
 
         public static T GetComponent<T>(this World world, Entity entity) where T : class

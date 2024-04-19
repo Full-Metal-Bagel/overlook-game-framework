@@ -39,15 +39,13 @@ namespace RelEcs.Tests
         }
 
         [Test]
-        public void Add_ComponentTwice_OverwritesExistingComponent()
+        public void Add_ComponentTwice_KeepFirstOne()
         {
             var first = new object();
             var second = new object();
             _builder.Add(first);
-            Assert.Catch<Exception>(() => _builder.Add(second));
-            //
-            // Assert.That(_world.GetComponents(_entity).Count(), Is.EqualTo(1));
-            // Assert.That(_world.GetComponent<object>(_entity), Is.EqualTo(second));
+            _builder.Add(second);
+            Assert.That(_world.GetComponent<object>(_entity), Is.EqualTo(first));
         }
     }
 }
