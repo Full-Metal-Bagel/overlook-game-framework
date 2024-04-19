@@ -59,9 +59,10 @@ public class CustomMethodNodeSourceGenerator : ISourceGenerator
             var methodName = methodSymbol.ToDisplayString().Substring(0, methodSymbol.ToDisplayString().IndexOf('('));
             var methodId = methodSymbol.GetAttributes()
                 .FirstOrDefault(attr => attr.AttributeClass?.Name == "MethodGuidAttribute")
-                ?.ConstructorArguments.FirstOrDefault().Value?.ToString()?.Replace("-", "");
+                ?.ConstructorArguments.FirstOrDefault().Value?.ToString();
             var nodeName = FindArgumentValue(attribute, "Name") ?? methodDeclaration.Identifier.Text;
             var category = FindArgumentValue(attribute, "Category");
+            var returnName = FindArgumentValue(attribute, "ReturnName") ?? "Result";
             if (string.IsNullOrEmpty(category))
             {
                 var index = methodName.LastIndexOf('.');
@@ -70,20 +71,31 @@ public class CustomMethodNodeSourceGenerator : ISourceGenerator
             builder.AppendLine($$"""
                                  [ParadoxNotion.Design.Category("{{category}}")]
                                  [ParadoxNotion.Design.Name("{{nodeName}}")]
-                                 public class CustomFunctionNode_{{(string.IsNullOrEmpty(methodId) ? nodeName : methodId)}} : FlowCanvas.FlowNode
+                                 public class CustomFunctionNode_{{(string.IsNullOrEmpty(methodId) ? nodeName : methodId!.Replace("-", ""))}} : FlowCanvas.FlowNode
                                  {
                                      protected override void RegisterPorts()
                                      {
                                  """);
+
+            var parameters = methodSymbol.Parameters.Select(parameter =>
+            {
+                var displayName = parameter.Name;
+                var displayType = parameter.Type.ToDisplayString();
+                var attributes = parameter.GetAttributes();
+                var isBlackboardParameter = attributes.Any(attr => attr.AttributeClass?.Name == "CustomMethodNodeBlackboardParameterAttribute");
+                var id = attributes.FirstOrDefault(attr => attr.AttributeClass?.Name == "ParameterGuidAttribute")
+                    ?.ConstructorArguments.FirstOrDefault().Value?.ToString() ?? "";
+                var variableName = isBlackboardParameter ? $"_{(string.IsNullOrEmpty(id) ? displayName : id.Replace("-", ""))}" : displayName;
+                return (displayName, displayType, variableName, id, isBlackboardParameter);
+            }).ToArray();
+
             var callString = methodSymbol.IsStatic
-                ? $"{methodName}({string.Join(",", methodSymbol.Parameters.Select(p => p.Name + ".GetValue()"))})"
+                ? $"{methodName}({string.Join(",", parameters.Select(t => t.variableName).Select(name => name + ".value"))})"
                 : $"instance.GetValue().{methodSymbol.Name}({string.Join(",", methodSymbol.Parameters.Select(p => p.Name + ".GetValue()"))})";
             if (!methodSymbol.IsStatic) builder.AppendLine($"        var instance = AddValueInput<{declaringType}>(\"Instance\");");
-            foreach (var parameter in methodSymbol.Parameters)
+            foreach (var (displayName, displayType, variableName, id, _) in parameters.Where(t => !t.isBlackboardParameter))
             {
-                var id = parameter.GetAttributes().FirstOrDefault(attr => attr.AttributeClass?.Name == "ParameterGuidAttribute")
-                    ?.ConstructorArguments.FirstOrDefault().Value?.ToString() ?? "";
-                builder.AppendLine($"        var {parameter.Name} = AddValueInput<{parameter.Type.ToDisplayString()}>(name: \"{parameter.Name}\", ID: \"{id}\");");
+                builder.AppendLine($"        var {variableName} = AddValueInput<{displayType}>(name: \"{displayName}\", ID: \"{id}\");");
             }
 
             if (methodSymbol.ReturnsVoid)
@@ -91,26 +103,33 @@ public class CustomMethodNodeSourceGenerator : ISourceGenerator
                 builder.AppendLine($$"""
                                              AddFlowInput("Call", flow => {{callString}});
                                          }
-                                     }
                                      """);
             }
             else
             {
                 builder.AppendLine($$"""
-                                             var result = AddValueOutput<{{methodSymbol.ReturnType.ToDisplayString()}}>("Result", () => {{callString}});
+                                             var result = AddValueOutput<{{methodSymbol.ReturnType.ToDisplayString()}}>(name: "{{returnName}}", ID: "{{methodId}}", () => {{callString}});
                                              var @out = AddFlowOutput("Out");
                                              AddFlowInput("Call", flow =>
                                              {
-                                                 flow.WriteParameter(_resultParameterName, ({{methodSymbol.ReturnType.ToDisplayString()}})result);
+                                                 var r = ({{methodSymbol.ReturnType.ToDisplayString()}})result;
+                                                 if (!string.IsNullOrEmpty(_resultParameterName)) flow.WriteParameter(_resultParameterName, r);
                                                  flow.Call(@out);
                                              });
                                          }
 
                                          [ParadoxNotion.Design.ExposeField, UnityEngine.SerializeField]
-                                         private string _resultParameterName = "__result__";
-                                     }
+                                         private string _resultParameterName = "";
                                      """);
             }
+
+            foreach (var (displayName, displayType, variableName, _, _) in parameters.Where(t => t.isBlackboardParameter))
+            {
+                builder.AppendLine($"    [ParadoxNotion.Design.ExposeField, UnityEngine.SerializeField, ParadoxNotion.Design.Name(\"{displayName}\")]");
+                builder.AppendLine($"    private NodeCanvas.Framework.BBParameter<{displayType}> {variableName} = default!;");
+            }
+
+            builder.AppendLine("}");
         }
 
         builder.AppendLine("}");
