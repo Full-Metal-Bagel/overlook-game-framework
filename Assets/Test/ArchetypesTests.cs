@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Game;
@@ -178,9 +179,8 @@ namespace RelEcs.Tests
         public void RemoveComponent_ThrowsWhenComponentDoesNotExist()
         {
             var entity = _archetypes.Spawn();
-            var type = StorageType.Create<string>(); // Assuming a valid StorageType instance
             Assert.Throws<Exception>(() =>
-                _archetypes.RemoveComponent(entity.Identity, type)); // Assuming it throws an exception when trying to remove a non-existent component
+                _archetypes.RemoveComponent(entity.Identity, typeof(string))); // Assuming it throws an exception when trying to remove a non-existent component
         }
 
         [Test]
@@ -420,7 +420,7 @@ namespace RelEcs.Tests
         {
             var entity = _archetypes.Spawn().Identity;
             _archetypes.AddComponent(entity, new ZeroStruct());
-            _archetypes.RemoveComponent(entity, StorageType.Create<ZeroStruct>());
+            _archetypes.RemoveComponent<ZeroStruct>(entity);
             Assert.That(_archetypes.HasComponent(StorageType.Create<ZeroStruct>(), entity), Is.False);
         }
 
@@ -434,6 +434,103 @@ namespace RelEcs.Tests
             Assert.That(_archetypes.HasComponent(StorageType.Create<ZeroStruct>(), entity), Is.True);
             Assert.That(_archetypes.HasComponent(StorageType.Create<EmptyClass>(), entity), Is.True);
             Assert.That(_archetypes.HasComponent(StorageType.Create<EmptyStruct>(), entity), Is.True);
+        }
+
+        private sealed class Foo { }
+
+        [Test]
+        public void MultipleComponentsWithSameType()
+        {
+            var type = StorageType.Create<Foo>();
+            var entity = _archetypes.Spawn();
+            Assert.That(_archetypes.HasComponent(type, entity.Identity), Is.False);
+            var a = new Foo();
+            var b = new Foo();
+            var c = new Foo();
+            _archetypes.AddMultipleObjectComponent(entity.Identity, a);
+            _archetypes.AddMultipleObjectComponent(entity.Identity, b);
+            _archetypes.AddMultipleObjectComponent(entity.Identity, c);
+            Assert.That(_archetypes.HasComponent(type, entity.Identity), Is.True);
+            Assert.That(_archetypes.EntityReferenceTypeComponents[entity.Identity][type], Is.EquivalentTo(new [] { a, b, c }));
+            _archetypes.RemoveObjectComponent(entity.Identity, b);
+            Assert.That(_archetypes.HasComponent(type, entity.Identity), Is.True);
+            Assert.That(_archetypes.EntityReferenceTypeComponents[entity.Identity][type], Is.EquivalentTo(new [] { a, c }));
+            _archetypes.RemoveObjectComponent(entity.Identity, a);
+            Assert.That(_archetypes.HasComponent(type, entity.Identity), Is.True);
+            Assert.That(_archetypes.EntityReferenceTypeComponents[entity.Identity][type], Is.EquivalentTo(new [] { c }));
+            _archetypes.RemoveObjectComponent(entity.Identity, a);
+            Assert.That(_archetypes.HasComponent(type, entity.Identity), Is.True);
+            Assert.That(_archetypes.EntityReferenceTypeComponents[entity.Identity][type], Is.EquivalentTo(new [] { c }));
+            _archetypes.RemoveObjectComponent(entity.Identity, c);
+            Assert.That(_archetypes.HasComponent(type, entity.Identity), Is.False);
+            Assert.That(_archetypes.EntityReferenceTypeComponents[entity.Identity].ContainsKey(type), Is.False);
+        }
+
+        [Test]
+        public void MultipleComponentsWithSameType_StructIsNotSupported()
+        {
+            var entity = _archetypes.Spawn();
+            _archetypes.AddComponent(entity.Identity, 1);
+            Assert.Catch(() => _archetypes.AddComponent(entity.Identity, 2));
+        }
+
+        [Test]
+        public void MultipleComponentsWithSameType_RemoveAll()
+        {
+            var type = StorageType.Create<Foo>();
+            var entity = _archetypes.Spawn();
+            Assert.That(_archetypes.HasComponent(type, entity.Identity), Is.False);
+            var a = new Foo();
+            var b = new Foo();
+            var c = new Foo();
+            _archetypes.AddMultipleObjectComponent(entity.Identity, a);
+            _archetypes.AddMultipleObjectComponent(entity.Identity, b);
+            _archetypes.AddMultipleObjectComponent(entity.Identity, c);
+            _archetypes.RemoveObjectComponent<Foo>(entity.Identity);
+            Assert.That(_archetypes.HasComponent(type, entity.Identity), Is.False);
+            Assert.That(_archetypes.EntityReferenceTypeComponents[entity.Identity].ContainsKey(type), Is.False);
+        }
+
+        [Test]
+        public void MultipleComponentsWithSameType_FindObjects()
+        {
+            var type = StorageType.Create<Foo>();
+            var entity = _archetypes.Spawn();
+            Assert.That(_archetypes.HasComponent(type, entity.Identity), Is.False);
+            var a = new Foo();
+            var b = new Foo();
+            var c = new Foo();
+            var d = new object();
+            var e = new object();
+            _archetypes.AddMultipleObjectComponent(entity.Identity, a);
+            _archetypes.AddMultipleObjectComponent(entity.Identity, b);
+            _archetypes.AddMultipleObjectComponent(entity.Identity, c);
+            _archetypes.AddMultipleObjectComponent(entity.Identity, d);
+            _archetypes.AddMultipleObjectComponent(entity.Identity, e);
+            _archetypes.AddComponent(entity.Identity, 1);
+            _archetypes.AddComponent(entity.Identity, 1L);
+
+            var foos = new List<Foo>();
+            _archetypes.FindObjectComponents(entity.Identity, foos);
+            Assert.That(foos, Is.EquivalentTo(new[] { a, b, c }));
+
+            var objects = new List<object>();
+            _archetypes.FindObjectComponents(entity.Identity, objects);
+            Assert.That(objects, Is.EquivalentTo(new[] { a, b, c, d, e }));
+        }
+
+        [Test]
+        public void MultipleComponentsWithSameType_IgnoreDuplicated()
+        {
+            var type = StorageType.Create<Foo>();
+            var entity = _archetypes.Spawn();
+            var a = new Foo();
+            _archetypes.AddMultipleObjectComponent(entity.Identity, a);
+            _archetypes.AddMultipleObjectComponent(entity.Identity, a);
+            _archetypes.AddMultipleObjectComponent(entity.Identity, a);
+            _archetypes.RemoveObjectComponent(entity.Identity, a);
+            Assert.That(_archetypes.HasComponent(type, entity.Identity), Is.False);
+            Assert.That(_archetypes.EntityReferenceTypeComponents[entity.Identity].ContainsKey(type), Is.False);
         }
     }
 }

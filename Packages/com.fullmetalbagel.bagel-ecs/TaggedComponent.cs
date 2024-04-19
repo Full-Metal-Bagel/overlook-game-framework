@@ -22,6 +22,13 @@ namespace RelEcs
     {
         public static void AddTaggedComponent<T>(this World world, Entity entity, [DisallowNull] T component, Type tagType) where T : class
         {
+            var tagged = component.CreateTaggedComponent(tagType);
+            // HACK: set tag as value type component?
+            world.AddObjectComponent(entity, tagged);
+        }
+
+        public static object CreateTaggedComponent<T>([DisallowNull] this T component, Type tagType) where T : class
+        {
             // ReSharper disable once SuspiciousTypeConversion.Global
             Debug.Assert(component is not ITaggedComponent, $"{tagType}: tag of tag is not supporting yet");
             Debug.Assert(typeof(ITaggedComponent).IsAssignableFrom(tagType), $"{tagType} must implement {typeof(ITaggedComponent)}<T>");
@@ -30,9 +37,7 @@ namespace RelEcs
             var concreteTagType = tagType.IsGenericType ? tagType.MakeGenericType(component.GetType()) : tagType;
             var ctor = concreteTagType.GetConstructor(new[] { component.GetType() });
             Debug.Assert(ctor != null);
-            var tag = ctor.Invoke(new object[] { component });
-            // HACK: set tag as value type component?
-            world.AddObjectComponent(entity, tag);
+            return ctor.Invoke(new object[] { component });
         }
 
         public static bool TryGetObjectComponent<TComponent, TTag>(this World world, Entity entity, out TComponent? component, TTag _ = default!)
@@ -99,11 +104,11 @@ namespace RelEcs
                 var type = storageType.Type;
                 if (typeof(T).IsAssignableFrom(type))
                 {
-                    archetypes.RemoveComponent(entity.Identity, storageType);
+                    archetypes.RemoveComponent(entity.Identity, type);
                 }
                 else if (typeof(ITaggedComponent).IsAssignableFrom(type) && typeof(T).IsAssignableFrom(type.GetGenericArguments()[0]))
                 {
-                    archetypes.RemoveComponent(entity.Identity, storageType);
+                    archetypes.RemoveComponent(entity.Identity, type);
                 }
             }
         }
