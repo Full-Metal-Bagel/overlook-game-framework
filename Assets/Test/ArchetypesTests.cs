@@ -408,6 +408,15 @@ namespace RelEcs.Tests
         }
 
         [Test]
+        public void StructTag_AddTagObject()
+        {
+            var entity = _archetypes.Spawn().Identity;
+            _archetypes.AddObjectComponent(entity, (object)new ZeroStruct());
+            Assert.That(_archetypes.HasComponent(StorageType.Create<ZeroStruct>(), entity), Is.True);
+            Assert.Catch(() => _archetypes.GetComponent<ZeroStruct>(entity));
+        }
+
+        [Test]
         public void StructTag_ThrowIfAddMoreThanOneTag()
         {
             var entity = _archetypes.Spawn().Identity;

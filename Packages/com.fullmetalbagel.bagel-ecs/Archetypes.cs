@@ -100,6 +100,12 @@ namespace RelEcs
 
         public T AddObjectComponent<T>(Identity identity, T data) where T : class
         {
+            if (data.GetType().IsValueType)
+            {
+                AddUntypedValueComponent(identity, data);
+                return data;
+            }
+
             var components = GetOrCreateComponentsStorage(identity, data);
             if (components.Count == 0) components.Add(data);
             else Debug.LogError($"there's existing type of {data.GetType()}, use `{nameof(AddMultipleObjectComponent)}` to add multiple component with same type onto the entity.", data as UnityEngine.Object);
