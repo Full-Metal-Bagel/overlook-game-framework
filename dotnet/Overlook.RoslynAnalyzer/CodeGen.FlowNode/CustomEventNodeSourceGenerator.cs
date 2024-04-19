@@ -21,6 +21,7 @@ public class CustomEventNodeSourceGenerator : ISourceGenerator
         if (context.SyntaxReceiver is not SyntaxContextReceiver receiver) return;
 
         var builder = new StringBuilder();
+        builder.AppendLine("#nullable enable");
         builder.AppendLine("using System;"); // Add necessary usings at the top
         builder.AppendLine();
         builder.AppendLine("namespace Game");
