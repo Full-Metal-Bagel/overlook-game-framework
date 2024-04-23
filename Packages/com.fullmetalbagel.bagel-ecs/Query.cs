@@ -30,6 +30,11 @@ namespace RelEcs
             return Tables.Contains(table);
         }
 
+        public bool Has(Entity entity, Type type)
+        {
+            return Archetypes.HasComponent(StorageType.Create(type), entity.Identity);
+        }
+
         public bool Has<T>(Entity entity)
         {
             return Archetypes.HasComponent(StorageType.Create<T>(), entity.Identity);
@@ -133,6 +138,11 @@ namespace RelEcs
             public bool Has<T>()
             {
                 return Query.Has<T>(Entity);
+            }
+
+            public bool Has(Type type)
+            {
+                return Query.Has(Entity, type);
             }
 
             public ref T Get<T>() where T : struct
