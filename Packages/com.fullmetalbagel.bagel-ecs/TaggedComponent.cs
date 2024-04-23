@@ -64,7 +64,7 @@ namespace RelEcs
             {
                 if (storageType.Type.IsTagTypeOf<T>(tagGenericDefinition))
                 {
-                    return ((ITaggedComponent<T>)component).Component;
+                    return ((ITaggedComponent<T>)component[0]).Component;
                 }
             }
             return null;
