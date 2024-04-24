@@ -47,12 +47,12 @@ public class DisallowDefaultConstructor : ISourceGenerator
 
     class SyntaxReceiver : ISyntaxReceiver
     {
-        private readonly List<ObjectCreationExpressionSyntax> _creations = [];
-        public IReadOnlyList<ObjectCreationExpressionSyntax> Creations => _creations;
+        private readonly List<BaseObjectCreationExpressionSyntax> _creations = [];
+        public IReadOnlyList<BaseObjectCreationExpressionSyntax> Creations => _creations;
 
         public void OnVisitSyntaxNode(SyntaxNode syntaxNode)
         {
-            if (syntaxNode is ObjectCreationExpressionSyntax creation &&
+            if (syntaxNode is BaseObjectCreationExpressionSyntax creation &&
                 (creation.ArgumentList == null || creation.ArgumentList.Arguments.Count == 0)
             ) _creations.Add(creation);
         }
