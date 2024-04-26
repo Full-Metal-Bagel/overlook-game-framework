@@ -23,7 +23,7 @@ return;
 void FlowNodes()
 {
     // Source generators should be tested using 'GeneratorDriver'.
-    var driver = CSharpGeneratorDriver.Create(new CustomEventNodeSourceGenerator());
+    var driver = CSharpGeneratorDriver.Create(new CustomDataNodeSourceGenerator());
     var files = Directory.GetFiles(inputDirectory, "*.cs", SearchOption.AllDirectories);
 
     // We need to create a compilation with the required source code.
