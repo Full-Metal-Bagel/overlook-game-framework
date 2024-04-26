@@ -24,5 +24,23 @@ namespace RelEcs.Tests
             foreach (var entity in query) result.Add(entity.Get<T>());
             return result;
         }
+
+        public static IEnumerable<Entity> AsEnumerable<TEnumerator>(this IQuery<TEnumerator> query)
+            where TEnumerator : IQueryEnumerator
+        {
+            var result = new List<Entity>();
+            foreach (var entity in query) result.Add(entity);
+            return result;
+        }
+
+        public static IEnumerable<T> AsEnumerable<T, TQuery, TEnumerator>(this TQuery query)
+            where T : class
+            where TQuery : IQuery<TEnumerator>
+            where TEnumerator : struct, IQueryEnumerator
+        {
+            var result = new List<T>();
+            foreach (var entity in query) result.Add(entity.Get<T>());
+            return result;
+        }
     }
 }

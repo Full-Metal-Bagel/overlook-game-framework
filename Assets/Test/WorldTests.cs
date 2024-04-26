@@ -299,5 +299,36 @@ namespace RelEcs.Tests
             var results = _world.Query().Not<Position>().Not<Velocity>().Build().AsEnumerable();
             Assert.That(results, Is.Empty);
         }
+
+        [Test]
+        public void Query_Where()
+        {
+            var entity1 = _world.Spawn().Add(new Position(1, 1)).Add(new Velocity(2, 2)).Id();
+            var entity2 = _world.Spawn().Add(new Position(1, 2)).Id();
+            Assert.That(
+                _world.Query().Has<Position>().Build().Where<Position>(pos => pos.X == 1).AsEnumerable(),
+                Is.EquivalentTo(new [] { entity1, entity2 })
+            );
+            Assert.That(
+                _world.Query().Has<Position>().Build().Where<Position>(pos => pos.Y == 1).AsEnumerable(),
+                Is.EquivalentTo(new [] { entity1 })
+            );
+            Assert.That(
+                _world.Query().Has<Velocity>().Build().Where<Velocity>(velocity => velocity.Y == 2).AsEnumerable(),
+                Is.EquivalentTo(new [] { entity1 })
+            );
+            Assert.That(
+                _world.Query().Build().Where<Position>(pos => pos.X == 1).Where<Position>(pos => pos.Y == 2).AsEnumerable(),
+                Is.EquivalentTo(new [] { entity2 })
+            );
+            Assert.That(
+                _world.Query().Build().Where<Position>(pos => pos.X == 1).Where<Velocity>(vel => vel.Y == 1).AsEnumerable(),
+                Is.Empty
+            );
+            Assert.That(
+                _world.Query().Build().Where<Health>(health => health.Value == 0).AsEnumerable(),
+                Is.Empty
+            );
+        }
     }
 }

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 #if ARCHETYPE_USE_NATIVE_BIT_ARRAY
 using TMask = RelEcs.NativeBitArrayMask;
 #else
@@ -9,7 +8,18 @@ using TMask = RelEcs.Mask;
 
 namespace RelEcs
 {
-    public readonly struct Query : IEquatable<Query>
+    public interface IQuery<out TEnumerator> where TEnumerator : IQueryEnumerator
+    {
+        TEnumerator GetEnumerator();
+    }
+
+    public interface IQueryEnumerator
+    {
+        bool MoveNext();
+        QueryEntity Current { get; }
+    }
+
+    public readonly struct Query : IEquatable<Query>, IQuery<Query.Enumerator>
     {
         internal List<Table> Tables { get; init; }
         internal Archetypes Archetypes { get; init; }
@@ -62,6 +72,16 @@ namespace RelEcs
             return new Enumerator(this);
         }
 
+        public WhereQuery<Query, Enumerator> Where<T>(Func<T, bool> predicate) where T : struct
+        {
+            return new WhereQuery<Query, Enumerator>(this, entity => entity.Has<T>() && predicate(entity.Get<T>()));
+        }
+
+        public WhereQuery<Query, Enumerator> WhereObject<T>(Func<T, bool> predicate) where T : class
+        {
+            return new WhereQuery<Query, Enumerator>(this, entity => entity.Has<T>() && predicate(entity.Get<T>()));
+        }
+
         public QueryEntity Single()
         {
             var enumerator = GetEnumerator();
@@ -87,7 +107,7 @@ namespace RelEcs
             return enumerator.Current;
         }
 
-        public ref struct Enumerator
+        public struct Enumerator : IQueryEnumerator
         {
             private readonly Query _query;
             private int _tableIndex;
@@ -130,94 +150,6 @@ namespace RelEcs
             }
         }
 
-        public readonly ref struct QueryEntity
-        {
-            public Entity Entity { get; init; }
-            public Query Query { get; init; }
-
-            public bool Has<T>()
-            {
-                return Query.Has<T>(Entity);
-            }
-
-            public bool Has(Type type)
-            {
-                return Query.Has(Entity, type);
-            }
-
-            public ref T Get<T>() where T : struct
-            {
-                return ref Query.Get<T>(Entity);
-            }
-
-            public T GetObject<T>() where T : class
-            {
-                return Query.GetObject<T>(Entity);
-            }
-
-            public static implicit operator Entity(QueryEntity self) => self.Entity;
-        }
-
-        public ref struct Builder
-        {
-            private readonly Archetypes _archetypes;
-            [SuppressMessage("Style", "IDE0044:Add readonly modifier")]
-            private TMask _mask;
-
-            public Builder(Archetypes archetypes)
-            {
-                _archetypes = archetypes;
-                _mask = TMask.Create();
-            }
-
-            public Builder Has<T>()
-            {
-                var typeIndex = StorageType.Create<T>();
-                _mask.Has(typeIndex);
-                return this;
-            }
-
-            public Builder Has(Type type)
-            {
-                var typeIndex = StorageType.Create(type);
-                _mask.Has(typeIndex);
-                return this;
-            }
-
-            public Builder Not<T>()
-            {
-                var typeIndex = StorageType.Create<T>();
-                _mask.Not(typeIndex);
-                return this;
-            }
-
-            public Builder Not(Type type)
-            {
-                var typeIndex = StorageType.Create(type);
-                _mask.Not(typeIndex);
-                return this;
-            }
-
-            public Builder Any(Type type)
-            {
-                var typeIndex = StorageType.Create(type);
-                _mask.Any(typeIndex);
-                return this;
-            }
-
-            public Builder Any<T>()
-            {
-                var typeIndex = StorageType.Create<T>();
-                _mask.Any(typeIndex);
-                return this;
-            }
-
-            public Query Build()
-            {
-                return _archetypes.GetQuery(_mask, s_createQuery);
-            }
-        }
-
         public bool Equals(Query other) => ReferenceEquals(Tables, other.Tables) && ReferenceEquals(Archetypes, other.Archetypes) && Mask.Equals(other.Mask);
         public override bool Equals(object? obj)
         {
@@ -235,9 +167,14 @@ namespace RelEcs
             return query.GetObject<T>(entity);
         }
 
-        public static T Get<T>(this in Query.QueryEntity queryEntity) where T : class
+        public static T Get<T>(this in QueryEntity queryEntity) where T : class
         {
             return queryEntity.GetObject<T>();
+        }
+
+        public static WhereQuery<Query, Query.Enumerator> Where<T>(this in Query query, Func<T, bool> predicate) where T : class
+        {
+            return query.WhereObject(predicate);
         }
     }
 

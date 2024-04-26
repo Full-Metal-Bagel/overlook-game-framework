@@ -127,9 +127,9 @@ namespace RelEcs
             Archetypes.RemoveComponent(entity.Identity, type);
         }
 
-        public Query.Builder Query()
+        public QueryBuilder Query()
         {
-            return new Query.Builder(Archetypes);
+            return new QueryBuilder(Archetypes);
         }
 
         public void Dispose() => Archetypes.Dispose();
