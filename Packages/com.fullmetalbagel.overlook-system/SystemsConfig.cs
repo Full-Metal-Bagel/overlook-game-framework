@@ -1,6 +1,7 @@
 ﻿#nullable enable
 
 using System.Collections.Generic;
+using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace Game
@@ -9,6 +10,6 @@ namespace Game
     public class SystemsConfig : ScriptableObject
     {
         public IReadOnlyList<SystemGroup> Systems => _systems;
-        [SerializeField] private SystemGroup[] _systems = default!;
+        [SerializeField, ListDrawerSettings(ShowPaging = false)] private SystemGroup[] _systems = default!;
     }
 }
