@@ -25,8 +25,8 @@ namespace RelEcs.Tests
             return result;
         }
 
-        public static IEnumerable<Entity> AsEnumerable<TEnumerator>(this IQuery<TEnumerator> query)
-            where TEnumerator : IQueryEnumerator
+        public static IEnumerable<Entity> AsEnumerable<TEnumerator>(this IQuery<TEnumerator, QueryEntity> query)
+            where TEnumerator : IQueryEnumerator<QueryEntity>
         {
             var result = new List<Entity>();
             foreach (var entity in query) result.Add(entity);
@@ -35,8 +35,8 @@ namespace RelEcs.Tests
 
         public static IEnumerable<T> AsEnumerable<T, TQuery, TEnumerator>(this TQuery query)
             where T : class
-            where TQuery : IQuery<TEnumerator>
-            where TEnumerator : struct, IQueryEnumerator
+            where TQuery : IQuery<TEnumerator, QueryEntity>
+            where TEnumerator : struct, IQueryEnumerator<QueryEntity>
         {
             var result = new List<T>();
             foreach (var entity in query) result.Add(entity.Get<T>());

@@ -8,18 +8,18 @@ using TMask = RelEcs.Mask;
 
 namespace RelEcs
 {
-    public interface IQuery<out TEnumerator> where TEnumerator : IQueryEnumerator
+    public interface IQuery<out TEnumerator, TQueryEntity> where TEnumerator : IQueryEnumerator<TQueryEntity>
     {
         TEnumerator GetEnumerator();
     }
 
-    public interface IQueryEnumerator
+    public interface IQueryEnumerator<TEntity>
     {
         bool MoveNext();
-        QueryEntity Current { get; }
+        TEntity Current { get; }
     }
 
-    public readonly struct Query : IEquatable<Query>, IQuery<Query.Enumerator>
+    public readonly struct Query : IEquatable<Query>, IQuery<Query.Enumerator, QueryEntity>
     {
         internal List<Table> Tables { get; init; }
         internal Archetypes Archetypes { get; init; }
@@ -72,14 +72,14 @@ namespace RelEcs
             return new Enumerator(this);
         }
 
-        public WhereQuery<Query, Enumerator> Where<T>(Func<T, bool> predicate) where T : struct
+        public WhereQuery<Query, Enumerator, QueryEntity> Where<T>(Func<T, bool> predicate) where T : struct
         {
-            return new WhereQuery<Query, Enumerator>(this, entity => entity.Has<T>() && predicate(entity.Get<T>()));
+            return new WhereQuery<Query, Enumerator, QueryEntity>(this, entity => entity.Has<T>() && predicate(entity.Get<T>()));
         }
 
-        public WhereQuery<Query, Enumerator> WhereObject<T>(Func<T, bool> predicate) where T : class
+        public WhereQuery<Query, Enumerator, QueryEntity> WhereObject<T>(Func<T, bool> predicate) where T : class
         {
-            return new WhereQuery<Query, Enumerator>(this, entity => entity.Has<T>() && predicate(entity.Get<T>()));
+            return new WhereQuery<Query, Enumerator, QueryEntity>(this, entity => entity.Has<T>() && predicate(entity.Get<T>()));
         }
 
         public QueryEntity Single()
@@ -107,7 +107,7 @@ namespace RelEcs
             return enumerator.Current;
         }
 
-        public struct Enumerator : IQueryEnumerator
+        public struct Enumerator : IQueryEnumerator<QueryEntity>
         {
             private readonly Query _query;
             private int _tableIndex;
@@ -172,7 +172,7 @@ namespace RelEcs
             return queryEntity.GetObject<T>();
         }
 
-        public static WhereQuery<Query, Query.Enumerator> Where<T>(this in Query query, Func<T, bool> predicate) where T : class
+        public static WhereQuery<Query, Query.Enumerator, QueryEntity> Where<T>(this in Query query, Func<T, bool> predicate) where T : class
         {
             return query.WhereObject(predicate);
         }

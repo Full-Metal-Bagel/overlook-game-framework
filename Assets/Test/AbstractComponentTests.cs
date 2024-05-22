@@ -21,7 +21,7 @@ namespace RelEcs.Tests
         {
             var instance = new C();
             _world.Spawn().Add(instance);
-            var query = _world.Query().Has<I>().Build();
+            var query = QueryBuilder.Create().Has<I>().Build(_world);
             Assert.That(query.AsEnumerable().Select(e => query.Get<I>(e)), Is.EquivalentTo(new [] { instance }));
         }
 
@@ -29,7 +29,7 @@ namespace RelEcs.Tests
         public void should_get_component_by_generic_interface()
         {
             _world.Spawn().Add<C>();
-            Assert.That(_world.Query().Has<I>().Build().Count(), Is.EqualTo(1));
+            Assert.That(QueryBuilder.Create().Has<I>().Build(_world).Count(), Is.EqualTo(1));
         }
 
         [Test]
@@ -37,14 +37,14 @@ namespace RelEcs.Tests
         {
             var instance = new CC();
             _world.Spawn().Add(instance);
-            Assert.That(_world.Query().Has<C>().Build().AsEnumerable<C>(), Is.EquivalentTo(new [] { instance }));
+            Assert.That(QueryBuilder.Create().Has<C>().Build(_world).AsEnumerable<C>(), Is.EquivalentTo(new [] { instance }));
         }
 
         [Test]
         public void should_get_component_by_generic_base_type()
         {
             _world.Spawn().Add<CC>();
-            Assert.That(_world.Query().Has<C>().Build().Count(), Is.EqualTo(1));
+            Assert.That(QueryBuilder.Create().Has<C>().Build(_world).Count(), Is.EqualTo(1));
         }
 
         [Test]
@@ -53,8 +53,8 @@ namespace RelEcs.Tests
             var c = new C();
             var cc = new CC();
             _world.Spawn().Add(c).Add(cc);
-            Assert.That(_world.Query().Has<C>().Build().AsEnumerable<C>(), Is.EquivalentTo(new [] { c }));
-            Assert.That(_world.Query().Has<CC>().Build().AsEnumerable<CC>(), Is.EquivalentTo(new [] { cc }));
+            Assert.That(QueryBuilder.Create().Has<C>().Build(_world).AsEnumerable<C>(), Is.EquivalentTo(new [] { c }));
+            Assert.That(QueryBuilder.Create().Has<CC>().Build(_world).AsEnumerable<CC>(), Is.EquivalentTo(new [] { cc }));
         }
 
         [Test]
@@ -63,8 +63,8 @@ namespace RelEcs.Tests
             var c = new C();
             var cc = new CC();
             _world.Spawn().Add(cc).Add(c);
-            Assert.That(_world.Query().Has<C>().Build().AsEnumerable<C>(), Is.EquivalentTo(new [] { c }));
-            Assert.That(_world.Query().Has<CC>().Build().AsEnumerable<CC>(), Is.EquivalentTo(new [] { cc }));
+            Assert.That(QueryBuilder.Create().Has<C>().Build(_world).AsEnumerable<C>(), Is.EquivalentTo(new [] { c }));
+            Assert.That(QueryBuilder.Create().Has<CC>().Build(_world).AsEnumerable<CC>(), Is.EquivalentTo(new [] { cc }));
         }
 
         [Test]
@@ -72,8 +72,8 @@ namespace RelEcs.Tests
         {
             var c = new C();
             _world.Spawn().Add(c);
-            Assert.That(_world.Query().Has<C>().Not<CC>().Build().AsEnumerable<C>(), Is.EquivalentTo(new [] { c }));
-            Assert.That(_world.Query().Has<CC>().Not<C>().Build().AsEnumerable<CC>(), Is.Empty);
+            Assert.That(QueryBuilder.Create().Has<C>().Not<CC>().Build(_world).AsEnumerable<C>(), Is.EquivalentTo(new [] { c }));
+            Assert.That(QueryBuilder.Create().Has<CC>().Not<C>().Build(_world).AsEnumerable<CC>(), Is.Empty);
         }
 
         [Test]
@@ -81,8 +81,8 @@ namespace RelEcs.Tests
         {
             var cc = new CC();
             _world.Spawn().Add(cc);
-            Assert.That(_world.Query().Has<C>().Not<CC>().Build().AsEnumerable<C>(), Is.Empty);
-            Assert.That(_world.Query().Has<CC>().Not<C>().Build().AsEnumerable<CC>(), Is.Empty);
+            Assert.That(QueryBuilder.Create().Has<C>().Not<CC>().Build(_world).AsEnumerable<C>(), Is.Empty);
+            Assert.That(QueryBuilder.Create().Has<CC>().Not<C>().Build(_world).AsEnumerable<CC>(), Is.Empty);
         }
 
         [Test]
@@ -93,10 +93,10 @@ namespace RelEcs.Tests
             _world.Spawn().Add(cc);
             _world.Spawn().Add(c);
             _world.Spawn().Add(c).Add(cc);
-            Assert.That(_world.Query().Has<C>().Build().Count(), Is.EqualTo(3));
-            Assert.That(_world.Query().Has<CC>().Build().Count(), Is.EqualTo(2));
-            Assert.That(_world.Query().Has<C>().Not<CC>().Build().Count(), Is.EqualTo(1));
-            Assert.That(_world.Query().Has<CC>().Not<C>().Build().Count(), Is.EqualTo(0));
+            Assert.That(QueryBuilder.Create().Has<C>().Build(_world).Count(), Is.EqualTo(3));
+            Assert.That(QueryBuilder.Create().Has<CC>().Build(_world).Count(), Is.EqualTo(2));
+            Assert.That(QueryBuilder.Create().Has<C>().Not<CC>().Build(_world).Count(), Is.EqualTo(1));
+            Assert.That(QueryBuilder.Create().Has<CC>().Not<C>().Build(_world).Count(), Is.EqualTo(0));
         }
     }
 }

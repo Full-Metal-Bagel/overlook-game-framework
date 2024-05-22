@@ -23,7 +23,7 @@ namespace RelEcs.Tests
             _world.Spawn().Add<Position>();
             _world.Spawn().Add<Position>().Add<Velocity>();
             _world.Spawn().Add<Health>();
-            var query = _world.Query().Has<Position>().Build();
+            var query = QueryBuilder.Create().Has<Position>().Build(_world);
             var count = query.Count();
             Assert.That(count, Is.EqualTo(2));
         }
@@ -34,7 +34,7 @@ namespace RelEcs.Tests
             _world.Spawn().Add<Position>();
             _world.Spawn().Add<Position>().Add<Velocity>();
             _world.Spawn().Add<Health>();
-            var query = _world.Query().Has<Position>().Not<Velocity>().Build();
+            var query = QueryBuilder.Create().Has<Position>().Not<Velocity>().Build(_world);
             var count = query.Count();
             Assert.That(count, Is.EqualTo(1));
         }
@@ -45,7 +45,7 @@ namespace RelEcs.Tests
             _world.Spawn().Add<Position>();
             _world.Spawn().Add<Position>().Add<Velocity>();
             _world.Spawn().Add<Health>();
-            var query = _world.Query().Has<Position>().Has<Velocity>().Build();
+            var query = QueryBuilder.Create().Has<Position>().Has<Velocity>().Build(_world);
             var count = query.Count();
             Assert.That(count, Is.EqualTo(1));
         }
@@ -56,7 +56,7 @@ namespace RelEcs.Tests
             _world.Spawn().Add<Position>();
             _world.Spawn().Add<Position>().Add<Velocity>();
             _world.Spawn().Add<Health>();
-            var query = _world.Query().Has<Position>().Not<Velocity>().Not<Health>().Build();
+            var query = QueryBuilder.Create().Has<Position>().Not<Velocity>().Not<Health>().Build(_world);
             var count = query.Count();
             Assert.That(count, Is.EqualTo(1));
         }
@@ -243,7 +243,7 @@ namespace RelEcs.Tests
         {
             var entity1 = _world.Spawn().Id();
             var entity2 = _world.Spawn().Id();
-            var results = _world.Query().Build().Count();
+            var results = QueryBuilder.Create().Build(_world).Count();
             Assert.That(results, Is.EqualTo(2));
         }
 
@@ -252,7 +252,7 @@ namespace RelEcs.Tests
         {
             var entity1 = _world.Spawn().Add(new Position(1, 1)).Id();
             var entity2 = _world.Spawn().Id();
-            var count = _world.Query().Has<Position>().Build().Count();
+            var count = QueryBuilder.Create().Has<Position>().Build(_world).Count();
             Assert.That(count, Is.EqualTo(1));
         }
 
@@ -261,7 +261,7 @@ namespace RelEcs.Tests
         {
             var entity1 = _world.Spawn().Add(new Position(1, 1)).Add(new Velocity(2, 2)).Id();
             var entity2 = _world.Spawn().Add(new Position(1, 1)).Id();
-            var count = _world.Query().Has<Position>().Has<Velocity>().Build().Count();
+            var count = QueryBuilder.Create().Has<Position>().Has<Velocity>().Build(_world).Count();
             Assert.That(count, Is.EqualTo(1));
         }
 
@@ -269,7 +269,7 @@ namespace RelEcs.Tests
         public void Query_NonExistentComponent_ReturnsEmpty()
         {
             var entity1 = _world.Spawn().Add(new Position(1, 1)).Id();
-            var count = _world.Query().Has<SomeNonExistentComponent>().Build().Count();
+            var count = QueryBuilder.Create().Has<SomeNonExistentComponent>().Build(_world).Count();
             Assert.That(count, Is.Zero);
         }
 
@@ -278,7 +278,7 @@ namespace RelEcs.Tests
         {
             var entity1 = _world.Spawn().Add(new Position(1, 1)).Add(new Velocity(2, 2)).Id();
             var entity2 = _world.Spawn().Add(new Position(1, 1)).Id();
-            var results = _world.Query().Has<Position>().Has<Velocity>().Build().AsEnumerable();
+            var results = QueryBuilder.Create().Has<Position>().Has<Velocity>().Build(_world).AsEnumerable();
             Assert.That(results, Is.EquivalentTo(new [] { entity1 }));
         }
 
@@ -287,7 +287,7 @@ namespace RelEcs.Tests
         {
             var entity1 = _world.Spawn().Add(new Position(1, 1)).Add(new Velocity(2, 2)).Id();
             var entity2 = _world.Spawn().Add(new Position(1, 1)).Id();
-            var results = _world.Query().Has<Position>().Not<Velocity>().Build().AsEnumerable();
+            var results = QueryBuilder.Create().Has<Position>().Not<Velocity>().Build(_world).AsEnumerable();
             Assert.That(results, Is.EquivalentTo(new [] { entity2 }));
         }
 
@@ -296,7 +296,7 @@ namespace RelEcs.Tests
         {
             var entity1 = _world.Spawn().Add(new Position(1, 1)).Id();
             var entity2 = _world.Spawn().Add(new Velocity(2, 2)).Id();
-            var results = _world.Query().Not<Position>().Not<Velocity>().Build().AsEnumerable();
+            var results = QueryBuilder.Create().Not<Position>().Not<Velocity>().Build(_world).AsEnumerable();
             Assert.That(results, Is.Empty);
         }
 
@@ -306,27 +306,27 @@ namespace RelEcs.Tests
             var entity1 = _world.Spawn().Add(new Position(1, 1)).Add(new Velocity(2, 2)).Id();
             var entity2 = _world.Spawn().Add(new Position(1, 2)).Id();
             Assert.That(
-                _world.Query().Has<Position>().Build().Where<Position>(pos => pos.X == 1).AsEnumerable(),
+                QueryBuilder.Create().Has<Position>().Build(_world).Where<Position>(pos => pos.X == 1).AsEnumerable(),
                 Is.EquivalentTo(new [] { entity1, entity2 })
             );
             Assert.That(
-                _world.Query().Has<Position>().Build().Where<Position>(pos => pos.Y == 1).AsEnumerable(),
+                QueryBuilder.Create().Has<Position>().Build(_world).Where<Position>(pos => pos.Y == 1).AsEnumerable(),
                 Is.EquivalentTo(new [] { entity1 })
             );
             Assert.That(
-                _world.Query().Has<Velocity>().Build().Where<Velocity>(velocity => velocity.Y == 2).AsEnumerable(),
+                QueryBuilder.Create().Has<Velocity>().Build(_world).Where<Velocity>(velocity => velocity.Y == 2).AsEnumerable(),
                 Is.EquivalentTo(new [] { entity1 })
             );
             Assert.That(
-                _world.Query().Build().Where<Position>(pos => pos.X == 1).Where<Position>(pos => pos.Y == 2).AsEnumerable(),
+                QueryBuilder.Create().Build(_world).Where<Position>(pos => pos.X == 1).Where<Position>(pos => pos.Y == 2).AsEnumerable(),
                 Is.EquivalentTo(new [] { entity2 })
             );
             Assert.That(
-                _world.Query().Build().Where<Position>(pos => pos.X == 1).Where<Velocity>(vel => vel.Y == 1).AsEnumerable(),
+                QueryBuilder.Create().Build(_world).Where<Position>(pos => pos.X == 1).Where<Velocity>(vel => vel.Y == 1).AsEnumerable(),
                 Is.Empty
             );
             Assert.That(
-                _world.Query().Build().Where<Health>(health => health.Value == 0).AsEnumerable(),
+                QueryBuilder.Create().Build(_world).Where<Health>(health => health.Value == 0).AsEnumerable(),
                 Is.Empty
             );
         }
