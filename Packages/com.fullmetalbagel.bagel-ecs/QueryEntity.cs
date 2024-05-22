@@ -2,7 +2,15 @@
 
 namespace RelEcs
 {
-    public readonly struct QueryEntity
+    public interface IQueryEntity
+    {
+        public bool Has<T>();
+        public bool Has(Type type);
+        public ref T Get<T>() where T : struct;
+        public T GetObject<T>() where T : class;
+    }
+
+    public readonly struct QueryEntity : IQueryEntity
     {
         public Entity Entity { get; init; }
         public Query Query { get; init; }

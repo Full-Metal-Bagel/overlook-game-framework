@@ -35,7 +35,7 @@ namespace RelEcs
 
         public void DespawnAllWith<T>()
         {
-            var query = Query().Has<T>().Build();
+            var query = QueryBuilder.Create().Has<T>().Build(this);
             foreach (var entity in query) Despawn(entity);
         }
 
@@ -125,11 +125,6 @@ namespace RelEcs
         public void RemoveComponent(Entity entity, Type type)
         {
             Archetypes.RemoveComponent(entity.Identity, type);
-        }
-
-        public QueryBuilder Query()
-        {
-            return new QueryBuilder(Archetypes);
         }
 
         public void Dispose() => Archetypes.Dispose();

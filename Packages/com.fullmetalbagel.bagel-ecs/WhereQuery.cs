@@ -3,15 +3,16 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace RelEcs
 {
-    public struct WhereQuery<TEnumerable, TEnumerator> : IQuery<WhereQuery<TEnumerable, TEnumerator>.Enumerator>
-        where TEnumerable : struct, IQuery<TEnumerator>
-        where TEnumerator : struct, IQueryEnumerator
+    public struct WhereQuery<TEnumerable, TEnumerator, TQueryEntity> : IQuery<WhereQuery<TEnumerable, TEnumerator, TQueryEntity>.Enumerator, TQueryEntity>
+        where TEnumerable : struct, IQuery<TEnumerator, TQueryEntity>
+        where TEnumerator : struct, IQueryEnumerator<TQueryEntity>
+        where TQueryEntity : IQueryEntity
     {
         [SuppressMessage("Style", "IDE0044:Add readonly modifier")]
         private TEnumerable _enumerable;
-        private readonly Func<QueryEntity, bool> _predicate;
+        private readonly Func<TQueryEntity, bool> _predicate;
 
-        public WhereQuery(TEnumerable enumerable, Func<QueryEntity, bool> predicate)
+        public WhereQuery(TEnumerable enumerable, Func<TQueryEntity, bool> predicate)
         {
             _predicate = predicate;
             _enumerable = enumerable;
@@ -19,23 +20,23 @@ namespace RelEcs
 
         public Enumerator GetEnumerator() => new(_enumerable.GetEnumerator(), _predicate);
 
-        public WhereQuery<WhereQuery<TEnumerable, TEnumerator>, Enumerator> Where<T>(Func<T, bool> predicate) where T : struct
+        public WhereQuery<WhereQuery<TEnumerable, TEnumerator, TQueryEntity>, Enumerator, TQueryEntity> Where<T>(Func<T, bool> predicate) where T : struct
         {
-            return new WhereQuery<WhereQuery<TEnumerable, TEnumerator>, Enumerator>(this, entity => entity.Has<T>() && predicate(entity.Get<T>()));
+            return new WhereQuery<WhereQuery<TEnumerable, TEnumerator, TQueryEntity>, Enumerator, TQueryEntity>(this, entity => entity.Has<T>() && predicate(entity.Get<T>()));
         }
 
-        public WhereQuery<WhereQuery<TEnumerable, TEnumerator>, Enumerator> WhereObject<T>(Func<T, bool> predicate) where T : class
+        public WhereQuery<WhereQuery<TEnumerable, TEnumerator, TQueryEntity>, Enumerator, TQueryEntity> WhereObject<T>(Func<T, bool> predicate) where T : class
         {
-            return new WhereQuery<WhereQuery<TEnumerable, TEnumerator>, Enumerator>(this, entity => entity.Has<T>() && predicate(entity.Get<T>()));
+            return new WhereQuery<WhereQuery<TEnumerable, TEnumerator, TQueryEntity>, Enumerator, TQueryEntity>(this, entity => entity.Has<T>() && predicate(entity.GetObject<T>()));
         }
 
-        public struct Enumerator : IQueryEnumerator
+        public struct Enumerator : IQueryEnumerator<TQueryEntity>
         {
             [SuppressMessage("Style", "IDE0044:Add readonly modifier")]
             private TEnumerator _enumerator;
-            private readonly Func<QueryEntity, bool> _predicate;
+            private readonly Func<TQueryEntity, bool> _predicate;
 
-            public Enumerator(TEnumerator enumerator, Func<QueryEntity, bool> predicate)
+            public Enumerator(TEnumerator enumerator, Func<TQueryEntity, bool> predicate)
             {
                 _enumerator = enumerator;
                 _predicate = predicate;
@@ -51,16 +52,17 @@ namespace RelEcs
                 return false;
             }
 
-            public QueryEntity Current => _enumerator.Current;
+            public TQueryEntity Current => _enumerator.Current;
         }
     }
 
     public static partial class ObjectComponentExtension
     {
-        public static WhereQuery<WhereQuery<TEnumerable, TEnumerator>, WhereQuery<TEnumerable, TEnumerator>.Enumerator> Where<T, TEnumerable, TEnumerator>(this WhereQuery<TEnumerable, TEnumerator> query, Func<T, bool> predicate)
+        public static WhereQuery<WhereQuery<TEnumerable, TEnumerator, TQueryEntity>, WhereQuery<TEnumerable, TEnumerator, TQueryEntity>.Enumerator, TQueryEntity> Where<T, TEnumerable, TEnumerator, TQueryEntity>(this WhereQuery<TEnumerable, TEnumerator, TQueryEntity> query, Func<T, bool> predicate)
             where T : class
-            where TEnumerable : struct, IQuery<TEnumerator>
-            where TEnumerator : struct, IQueryEnumerator
+            where TEnumerable : struct, IQuery<TEnumerator, TQueryEntity>
+            where TEnumerator : struct, IQueryEnumerator<TQueryEntity>
+            where TQueryEntity : IQueryEntity
         {
             return query.WhereObject(predicate);
         }
