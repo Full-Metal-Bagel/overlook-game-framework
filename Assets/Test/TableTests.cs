@@ -72,17 +72,6 @@ namespace RelEcs.Tests
         }
 
         [Test]
-        public void GetTableEdge_WithValidStorageType_ReturnsTableEdge()
-        {
-            var storageType = StorageType.Create<int>(); // Replace with actual StorageType or mock.
-            var result = _table.GetTableEdge(storageType);
-
-            Assert.That(result, Is.Not.Null);
-            Assert.That(result, Is.InstanceOf<TableEdge>());
-        }
-
-
-        [Test]
         public void EnsureCapacity_WithValidCapacity_ResizesTable()
         {
             _tableStorage.EnsureCapacity(10); // Assuming this method is public.

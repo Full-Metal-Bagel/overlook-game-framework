@@ -4,6 +4,7 @@ namespace RelEcs
     {
         public static readonly Entity None = new(Identity.None);
         public static readonly Entity Any = new(Identity.Any);
+        public static readonly EntityBuilder Builder = default;
 
         public bool IsAny => Identity == Identity.Any;
         public bool IsNone => Identity == Identity.None;
@@ -43,49 +44,6 @@ namespace RelEcs
         public static bool operator !=(in Entity left, in Entity right)
         {
             return !left.Equals(right);
-        }
-    }
-
-    public readonly ref struct EntityBuilder
-    {
-        internal World World { get; }
-        internal Entity Entity { get; }
-
-        public EntityBuilder(World world, Entity entity)
-        {
-            World = world;
-            Entity = entity;
-        }
-
-        public EntityBuilder Add<T>(T data = default) where T : struct
-        {
-            World.AddComponent(Entity, data);
-            return this;
-        }
-
-        public Entity Id()
-        {
-            return Entity;
-        }
-    }
-
-    public static partial class ObjectComponentExtension
-    {
-        public static EntityBuilder Add<T>(this in EntityBuilder builder) where T : class, new()
-        {
-            return builder.Add(new T());
-        }
-
-        public static EntityBuilder Add<T>(this in EntityBuilder builder, T component) where T : class
-        {
-            builder.World.AddComponent(builder.Entity, component);
-            return builder;
-        }
-
-        public static EntityBuilder AddMultiple<T>(this in EntityBuilder builder, T component) where T : class
-        {
-            builder.World.AddMultipleObjectComponent(builder.Entity, component);
-            return builder;
         }
     }
 }

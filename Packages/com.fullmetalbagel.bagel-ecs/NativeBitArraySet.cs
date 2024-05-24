@@ -14,35 +14,35 @@ namespace RelEcs
         [SuppressMessage("Style", "IDE0044:Add readonly modifier")]
         private NativeBitArray _bits;
 
-        public static NativeBitArraySet Create()
+        public static NativeBitArraySet Create(Allocator allocator = Allocator.Persistent)
         {
-            return new NativeBitArraySet(TypeIdAssigner.MaxTypeCapacity);
+            return new NativeBitArraySet(TypeIdAssigner.MaxTypeCapacity, allocator);
         }
 
-        public static NativeBitArraySet Create(StorageType type)
+        public static NativeBitArraySet Create(StorageType type, Allocator allocator = Allocator.Persistent)
         {
-            var result = Create();
+            var result = Create(allocator);
             result.Add(type);
             return result;
         }
 
-        public static NativeBitArraySet Create(NativeBitArraySet set)
+        public static NativeBitArraySet Create(NativeBitArraySet set, Allocator allocator = Allocator.Persistent)
         {
-            var result = Create();
+            var result = Create(allocator);
             result._bits.Copy(0, ref set._bits, 0, result._bits.Length);
             return result;
         }
 
-        public static NativeBitArraySet Create<TEnumerable>(TEnumerable set) where TEnumerable : IEnumerable<StorageType>
+        public static NativeBitArraySet Create<TEnumerable>(TEnumerable set, Allocator allocator = Allocator.Persistent) where TEnumerable : IEnumerable<StorageType>
         {
-            var result = Create();
+            var result = Create(allocator);
             foreach (var type in set) result.Add(type);
             return result;
         }
 
-        private NativeBitArraySet(int capacity)
+        private NativeBitArraySet(int capacity, Allocator allocator)
         {
-            _bits = new NativeBitArray(capacity, allocator: Allocator.Persistent);
+            _bits = new NativeBitArray(capacity, allocator: allocator);
         }
 
         public void Add(StorageType type)

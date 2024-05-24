@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 using Game;
+using Unity.Collections;
 
 namespace RelEcs
 {
@@ -15,18 +16,18 @@ namespace RelEcs
 
         public StorageType FirstType { get; private set; }
 
-        public static NativeBitArrayMask Create()
+        public static NativeBitArrayMask Create(Allocator allocator = Allocator.Persistent)
         {
-            return new NativeBitArrayMask(TypeIdAssigner.MaxTypeCapacity);
+            return new NativeBitArrayMask(TypeIdAssigner.MaxTypeCapacity, allocator);
         }
 
-        private NativeBitArrayMask(int _)
+        private NativeBitArrayMask(int _, Allocator allocator)
         {
             _hasAny = false;
             FirstType = StorageType.Create<Entity>();
-            _hasTypes = NativeBitArraySet.Create();
-            _notTypes = NativeBitArraySet.Create();
-            _anyTypes = NativeBitArraySet.Create();
+            _hasTypes = NativeBitArraySet.Create(allocator);
+            _notTypes = NativeBitArraySet.Create(allocator);
+            _anyTypes = NativeBitArraySet.Create(allocator);
         }
 
         public void Dispose()

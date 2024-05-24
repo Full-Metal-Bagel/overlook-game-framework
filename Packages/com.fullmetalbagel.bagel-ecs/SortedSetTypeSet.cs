@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.Collections;
 
 namespace RelEcs
 {
@@ -12,24 +13,24 @@ namespace RelEcs
 
         private SortedSetTypeSet() { }
 
-        public static SortedSetTypeSet Create()
+        public static SortedSetTypeSet Create(Allocator _ = Allocator.Persistent)
         {
             return new SortedSetTypeSet();
         }
 
-        public static SortedSetTypeSet Create(StorageType type)
+        public static SortedSetTypeSet Create(StorageType type, Allocator _ = Allocator.Persistent)
         {
             var result = new SortedSetTypeSet();
             result.Add(type);
             return result;
         }
 
-        public static SortedSetTypeSet Create(SortedSetTypeSet set)
+        public static SortedSetTypeSet Create(SortedSetTypeSet set, Allocator _ = Allocator.Persistent)
         {
             return Create(set._types);
         }
 
-        public static SortedSetTypeSet Create<TEnumerable>(TEnumerable set) where TEnumerable : IEnumerable<StorageType>
+        public static SortedSetTypeSet Create<TEnumerable>(TEnumerable set, Allocator _ = Allocator.Persistent) where TEnumerable : IEnumerable<StorageType>
         {
             var result = new SortedSetTypeSet();
             foreach (var type in set) result.Add(type);

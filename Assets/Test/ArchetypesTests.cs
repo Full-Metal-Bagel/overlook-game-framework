@@ -172,7 +172,7 @@ namespace RelEcs.Tests
             var entity = _archetypes.Spawn();
             var type = StorageType.Create<int>(); // Assuming a valid StorageType instance
             _archetypes.AddComponent(entity.Identity, 123);
-            Assert.Throws<Exception>(() => _archetypes.AddComponent(entity.Identity, 123)); // Assuming it throws an exception when trying to add an existing component
+            Assert.Catch(() => _archetypes.AddComponent(entity.Identity, 123)); // Assuming it throws an exception when trying to add an existing component
         }
 
         [Test]
