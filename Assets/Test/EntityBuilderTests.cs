@@ -1,5 +1,4 @@
-﻿using System;
-using NUnit.Framework;
+﻿using NUnit.Framework;
 
 namespace RelEcs.Tests
 {
@@ -8,34 +7,26 @@ namespace RelEcs.Tests
     {
         private World _world;
         private Entity _entity;
-        private EntityBuilder _builder => _world.On(_entity);
 
         [SetUp]
         public void Setup()
         {
             _world = new World();
-            _entity = _world.Spawn().Id();
+            _entity = _world.Spawn();
         }
 
         [Test]
         public void Add_Component_AddsComponentToEntity()
         {
-            _builder.Add<object>();
+            EntityBuilder.Create().Add(new object()).Build(_world);
             Assert.That(_world.HasComponent<object>(_entity), Is.True);
         }
 
         [Test]
         public void Add_ComponentWithData_AddsComponentToEntity()
         {
-            _builder.Add(new object());
+            EntityBuilder.Create().Add(new object()).Build(_world);
             Assert.That(_world.HasComponent<object>(_entity), Is.True);
-        }
-
-        [Test]
-        public void Id_ReturnsEntityIdentity()
-        {
-            var id = _builder.Id();
-            Assert.That(id, Is.EqualTo(_entity));
         }
 
         [Test]
@@ -43,9 +34,9 @@ namespace RelEcs.Tests
         {
             var first = new object();
             var second = new object();
-            _builder.Add(first);
-            _builder.Add(second);
-            Assert.That(_world.GetComponent<object>(_entity), Is.EqualTo(first));
+            var entity = EntityBuilder.Create().Add(first).Build(_world);
+            _world.AddComponent(entity, second);
+            Assert.That(_world.GetComponent<object>(entity), Is.EqualTo(first));
         }
     }
 }

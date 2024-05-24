@@ -9,12 +9,6 @@ using TSet = RelEcs.SortedSetTypeSet;
 
 namespace RelEcs
 {
-    public sealed class TableEdge
-    {
-        public Table? Add { get; set; }
-        public Table? Remove { get; set; }
-    }
-
     public sealed class Table : IDisposable
     {
         public int Id { get; }
@@ -30,7 +24,6 @@ namespace RelEcs
 
         internal TableStorage TableStorage { get; }
         private readonly SortedList<int /*row*/, Identity> _sortedIdentities = new(32);
-        private readonly Dictionary<StorageType, TableEdge> _edges = new();
 
         public Table(int id, TSet types, TableStorage tableStorage)
         {
@@ -75,16 +68,6 @@ namespace RelEcs
             Debug.Assert(_sortedIdentities.ContainsKey(row));
             _sortedIdentities.Remove(row);
             TableStorage.ReleaseRow(row);
-        }
-
-        public TableEdge GetTableEdge(StorageType type)
-        {
-            if (_edges.TryGetValue(type, out var edge)) return edge;
-
-            edge = new TableEdge();
-            _edges[type] = edge;
-
-            return edge;
         }
 
         internal T[] GetStorage<T>() where T : struct

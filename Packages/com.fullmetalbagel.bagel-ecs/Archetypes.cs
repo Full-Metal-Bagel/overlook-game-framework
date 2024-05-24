@@ -4,6 +4,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using Game;
+using KG;
+using Unity.Collections;
 using Debug = Game.Debug;
 
 #if ARCHETYPE_USE_NATIVE_BIT_ARRAY
@@ -28,6 +31,7 @@ namespace RelEcs
         internal EntityMeta[] _meta = new EntityMeta[512];
         internal readonly Queue<Identity> _unusedIds = new();
         internal readonly List<Table> _tables = new();
+        private readonly Dictionary<TSet, Table> _typeTableMap = new();
         // TODO: profile
         internal readonly Dictionary<TMask, Query> _queries = new();
         internal int _entityCount;
@@ -75,10 +79,24 @@ namespace RelEcs
             EntityReferenceTypeComponents[identity].Clear();
         }
 
+        public void BuildComponents<TBuilder>(Identity identity, TBuilder builder) where TBuilder : IComponentsBuilder
+        {
+            using var types = new PooledList<StorageType>(32);
+            builder.CollectTypes(types.GetValue());
+            if (types.Count == 0) return;
+            AddComponentTypes(identity, types.GetValue());
+            var referenceInstancesStorage = EntityReferenceTypeComponents[identity];
+            foreach (var type in types)
+            {
+                if (!type.IsValueType) referenceInstancesStorage.TryAdd(type, RentComponents());
+            }
+            builder.Build(new ArchetypesBuilder(this), identity);
+        }
+
         public void AddComponent<T>(Identity identity, T data) where T : struct
         {
             var type = StorageType.Create<T>();
-            var (table, row) = AddComponent(identity, type);
+            var (table, row) = AddComponentType(identity, type);
             if (!type.IsTag)
             {
                 var storage = table.GetStorage<T>();
@@ -90,7 +108,7 @@ namespace RelEcs
         {
             Debug.Assert(data.GetType().IsValueType);
             var type = StorageType.Create(data.GetType());
-            var (table, row) = AddComponent(identity, type);
+            var (table, row) = AddComponentType(identity, type);
             if (!type.IsTag)
             {
                 var storage = table.GetStorage(type);
@@ -126,7 +144,7 @@ namespace RelEcs
             var type = StorageType.Create(data.GetType());
             if (!EntityReferenceTypeComponents[identity].TryGetValue(type, out var components))
             {
-                AddComponent(identity, type);
+                AddComponentType(identity, type);
                 components = RentComponents();
                 EntityReferenceTypeComponents[identity][type] = components;
             }
@@ -145,7 +163,7 @@ namespace RelEcs
 
         public void RemoveObjectComponent<T>(Identity identity) where T : class
         {
-            RemoveComponent(identity, StorageType.Create<T>());
+            RemoveComponentType(identity, StorageType.Create<T>());
             if (EntityReferenceTypeComponents[identity].Remove(StorageType.Create<T>(), out var components))
             {
                 ReturnComponents(components);
@@ -154,13 +172,13 @@ namespace RelEcs
 
         public void RemoveComponent<T>(Identity identity) where T : struct
         {
-            RemoveComponent(identity, StorageType.Create<T>());
+            RemoveComponentType(identity, StorageType.Create<T>());
         }
 
         public void RemoveComponent(Identity identity, Type type)
         {
             var storageType = StorageType.Create(type);
-            RemoveComponent(identity, storageType);
+            RemoveComponentType(identity, storageType);
             if (EntityReferenceTypeComponents[identity].Remove(storageType, out var components))
             {
                 ReturnComponents(components);
@@ -185,30 +203,28 @@ namespace RelEcs
             _objectComponentsPool.Add(components);
         }
 
-        private (Table table, int row) AddComponent(Identity identity, StorageType type)
+        internal (Table table, int row) AddComponentTypes<TCollection>(Identity identity, TCollection types)
+            where TCollection : IReadOnlyList<StorageType>
         {
-            WarningIfCanBeUnmanaged(type.Type);
-
             var meta = _meta[identity.Id];
             var oldTable = _tables[meta.TableId];
 
-            if (oldTable.Types.Contains(type))
+            using var newTypes = TSet.Create(oldTable.Types, Allocator.Temp);
+            var hasNewValueType = false;
+            for (var i = 0; i < types.Count; i++)
             {
-                throw new Exception($"Entity {identity} already has component of type {type.Type.Name}");
+                var type = types[i];
+                WarningIfCanBeUnmanaged(type.Type);
+                Debug.Assert(!oldTable.Types.Contains(type), $"Entity {identity} already has component of type {type.Type.Name}");
+                newTypes.Add(type);
+                hasNewValueType = hasNewValueType || type is { IsValueType: true, IsTag: false };
             }
 
-            var oldEdge = oldTable.GetTableEdge(type);
-            var newTable = oldEdge.Add;
-            if (newTable == null)
+            if (!_typeTableMap.TryGetValue(newTypes, out var newTable))
             {
-                var newTypes = TSet.Create(oldTable.Types);
-                newTypes.Add(type);
-                var storage = type is { IsValueType: true, IsTag: false } ? new TableStorage(newTypes) : oldTable.TableStorage;
-                newTable = AddTable(newTypes, storage);
-                oldEdge.Add = newTable;
-
-                var newEdge = newTable.GetTableEdge(type);
-                newEdge.Remove = oldTable;
+                var persistentNewTypes = TSet.Create(newTypes);
+                var storage = hasNewValueType ? new TableStorage(persistentNewTypes) : oldTable.TableStorage;
+                newTable = AddTable(persistentNewTypes, storage);
             }
 
             var newRow = Table.MoveEntry(identity, meta.Row, oldTable, newTable);
@@ -216,7 +232,12 @@ namespace RelEcs
             return (newTable, newRow);
         }
 
-        private void RemoveComponent(Identity identity, StorageType type)
+        private (Table table, int row) AddComponentType(Identity identity, StorageType type)
+        {
+            return AddComponentTypes(identity, type.YieldStruct());
+        }
+
+        private void RemoveComponentType(Identity identity, StorageType type)
         {
             var meta = _meta[identity.Id];
             var oldTable = _tables[meta.TableId];
@@ -226,20 +247,13 @@ namespace RelEcs
                 throw new Exception($"cannot remove non-existent component {type.Type.Name} from entity {identity}");
             }
 
-            var oldEdge = oldTable.GetTableEdge(type);
+            var newTypes = TSet.Create(oldTable.Types);
+            newTypes.Remove(type);
 
-            var newTable = oldEdge.Remove;
-
-            if (newTable == null)
+            if (!_typeTableMap.TryGetValue(newTypes, out var newTable))
             {
-                var newTypes = TSet.Create(oldTable.Types);
-                newTypes.Remove(type);
                 var storage = type.IsValueType ? new TableStorage(newTypes) : oldTable.TableStorage;
                 newTable = AddTable(newTypes, storage);
-                oldEdge.Remove = newTable;
-
-                var newEdge = newTable.GetTableEdge(type);
-                newEdge.Add = oldTable;
             }
 
             var newRow = Table.MoveEntry(identity, meta.Row, oldTable, newTable);
@@ -390,6 +404,7 @@ namespace RelEcs
         {
             var table = new Table(_tables.Count, types, storage);
             _tables.Add(table);
+            _typeTableMap.Add(types, table);
 
             foreach (var type in table.TypesInHierarchy)
             {

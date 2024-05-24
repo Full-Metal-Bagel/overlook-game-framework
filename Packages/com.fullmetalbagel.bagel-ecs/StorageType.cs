@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Threading;
 using Game;
+using Unity.Collections;
 
 namespace RelEcs
 {
@@ -16,18 +17,18 @@ namespace RelEcs
         public bool IsValueType => Type.IsValueType;
         public static implicit operator ushort(StorageType type) => type.TypeId;
 
-        public static StorageType Create(ushort typeId)
+        public static StorageType Create(ushort typeId, Allocator _ = Allocator.Persistent)
         {
             var type = TypeIdAssigner.GetType(typeId);
             return new StorageType(typeId, IsTagType(type));
         }
 
-        public static StorageType Create(Type type)
+        public static StorageType Create(Type type, Allocator _ = Allocator.Persistent)
         {
             return Create(TypeIdAssigner.GetOrCreate(type));
         }
 
-        public static StorageType Create<T>()
+        public static StorageType Create<T>(Allocator _ = Allocator.Persistent)
         {
             return TypeIdAssigner<T>.StorageType;
         }

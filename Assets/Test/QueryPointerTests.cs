@@ -15,7 +15,7 @@ namespace RelEcs.Tests
         [Test]
         public void AddUnmanagedComponent_SuccessfullyAdded()
         {
-            var entity = _world.Spawn().Id();
+            var entity = _world.Spawn();
             var component = new UnmanagedComponent();
             _world.AddComponent(entity, component);
             Assert.That(_world.HasComponent<UnmanagedComponent>(entity), Is.True);

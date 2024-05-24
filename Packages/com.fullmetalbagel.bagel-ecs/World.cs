@@ -17,15 +17,9 @@ namespace RelEcs
             Id = Interlocked.Increment(ref s_worldCount);
         }
 
-        public EntityBuilder Spawn()
+        public Entity Spawn()
         {
-            var entity = Archetypes.Spawn();
-            return new EntityBuilder(this, entity);
-        }
-
-        public EntityBuilder On(Entity entity)
-        {
-            return new EntityBuilder(this, entity);
+            return Archetypes.Spawn();
         }
 
         public void Despawn(Entity entity)
