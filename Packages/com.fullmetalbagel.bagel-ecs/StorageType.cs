@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Threading;
 using Game;
 using Unity.Collections;
+using Debug = Game.Debug;
 
 namespace RelEcs
 {
@@ -37,6 +38,11 @@ namespace RelEcs
         {
             Value = value;
             IsTag = isTagType;
+        }
+
+        public override string ToString()
+        {
+            return $"{Type}(value={IsValueType} tag={IsTag})";
         }
 
         public static bool IsTagType(Type type)

@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using Game;
 using KG;
 using Unity.Collections;
+using UnityEngine;
 using Debug = Game.Debug;
 
 #if ARCHETYPE_USE_NATIVE_BIT_ARRAY
@@ -465,16 +466,21 @@ namespace RelEcs
         [Conditional("DEVELOPMENT")]
         void WarningIfEmptyObject(Identity entity, List<StorageType> types)
         {
+            EntityReferenceTypeComponents[entity].TryGetValue(StorageType.Create<GameObject>(), out var unityObjects);
+            var unityObject = unityObjects?.FirstOrDefault() as GameObject;
+            var unityObjectName = unityObject == null ? entity.ToString() : unityObject.name;
             foreach (var type in types)
             {
+                if (type.IsValueType) continue;
+
                 if (EntityReferenceTypeComponents[entity].TryGetValue(type, out var objects))
                 {
                     if (objects.Count == 0)
-                        Debug.LogError($"Entity {entity} has empty component {type}");
+                        Debug.LogError($"Entity {unityObjectName} has empty component {type}", unityObject);
                 }
                 else
                 {
-                    Debug.LogError($"Entity {entity} has no list of component {type}");
+                    Debug.LogError($"Entity {unityObjectName} has no list of component {type}", unityObject);
                 }
             }
         }
