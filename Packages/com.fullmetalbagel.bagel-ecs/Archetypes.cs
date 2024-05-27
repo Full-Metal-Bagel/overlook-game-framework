@@ -91,6 +91,7 @@ namespace RelEcs
                 if (!type.IsValueType) referenceInstancesStorage.TryAdd(type, RentComponents());
             }
             builder.Build(new ArchetypesBuilder(this), identity);
+            WarningIfEmptyObject(identity, types);
         }
 
         public void AddComponent<T>(Identity identity, T data) where T : struct
@@ -457,6 +458,25 @@ namespace RelEcs
         {
             if (!type.IsValueType && StorageType.Create(type).IsTag)
                 Game.Debug.LogWarning($"{type} can be changed to `struct` tag");
+        }
+
+        [Conditional("DEBUG")]
+        [Conditional("UNITY_EDITOR")]
+        [Conditional("DEVELOPMENT")]
+        void WarningIfEmptyObject(Identity entity, List<StorageType> types)
+        {
+            foreach (var type in types)
+            {
+                if (EntityReferenceTypeComponents[entity].TryGetValue(type, out var objects))
+                {
+                    if (objects.Count == 0)
+                        Debug.LogError($"Entity {entity} has empty component {type}");
+                }
+                else
+                {
+                    Debug.LogError($"Entity {entity} has no list of component {type}");
+                }
+            }
         }
 
         public void Dispose()
