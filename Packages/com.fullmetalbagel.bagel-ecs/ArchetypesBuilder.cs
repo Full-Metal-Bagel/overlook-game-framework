@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using Game;
+using UnityEngine;
+using Debug = Game.Debug;
 
 namespace RelEcs
 {
@@ -32,6 +34,16 @@ namespace RelEcs
 
         public void SetValue(Identity identity, object? value)
         {
+            SetValue(identity, value, false);
+        }
+
+        public void SetMultipleValue(Identity identity, object? value)
+        {
+            SetValue(identity, value, true);
+        }
+
+        private void SetValue(Identity identity, object? value, bool isDuplicateAllowed)
+        {
             if (value == null) return;
 
             var type = StorageType.Create(value.GetType());
@@ -46,8 +58,13 @@ namespace RelEcs
             }
             else
             {
-                var components = _archetypes.EntityReferenceTypeComponents[identity];
-                components[type].Add(value);
+                var components = _archetypes.EntityReferenceTypeComponents[identity][type];
+                if (components.Count >= 1 && !isDuplicateAllowed)
+                {
+                    Debug.LogError($"there's existing type of {type.Type}, set `{nameof(isDuplicateAllowed)}` = `true` to add multiple component with same type onto the entity.", value as Object);
+                    return;
+                }
+                components.Add(value);
             }
         }
     }
