@@ -220,6 +220,15 @@ namespace RelEcs
                 Debug.Assert(!oldTable.Types.Contains(type), $"Entity {identity} already has component of type {type.Type.Name}");
                 newTypes.Add(type);
                 hasNewValueType = hasNewValueType || type is { IsValueType: true, IsTag: false };
+                if (ComponentGroups.Groups.TryGetValue(type.Type, out var group))
+                {
+                    foreach (var memberType in group)
+                    {
+                        var memberTypeStorageType = StorageType.Create(memberType);
+                        newTypes.Add(memberTypeStorageType);
+                        hasNewValueType = hasNewValueType || type is { IsValueType: true, IsTag: false };
+                    }
+                }
             }
 
             if (!_typeTableMap.TryGetValue(newTypes, out var newTable))
