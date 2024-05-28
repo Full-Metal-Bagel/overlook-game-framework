@@ -20,6 +20,11 @@ public class StringTableSourceGenerator : ISourceGenerator
             return;
         }
 
+        if (receiver.Nodes.Count == 0)
+        {
+            return;
+        }
+
         StringBuilder builder = new StringBuilder();
         builder.AppendLine("#nullable enable");
         builder.AppendLine("using System;");
