@@ -18,6 +18,10 @@ public class CustomMethodNodeSourceGenerator : ISourceGenerator
     {
         // Ensure the receiver is of the expected type
         if (context.SyntaxReceiver is not SyntaxContextReceiver receiver) return;
+        if (receiver.DecoratedMethods.Count == 0)
+        {
+            return;
+        }
 
         var builder = new StringBuilder();
         builder.AppendLine("#nullable enable");
