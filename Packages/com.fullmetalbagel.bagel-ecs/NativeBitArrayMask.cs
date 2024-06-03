@@ -9,10 +9,10 @@ namespace RelEcs
     [SuppressMessage("Style", "IDE0044:Add readonly modifier")]
     public struct NativeBitArrayMask : IDisposable, IEquatable<NativeBitArrayMask>
     {
-        private NativeBitArraySet _hasTypes;
-        private NativeBitArraySet _notTypes;
-        private NativeBitArraySet _anyTypes;
-        private bool _hasAny;
+        public NativeBitArraySet HasTypes { get; }
+        public NativeBitArraySet NotTypes { get; }
+        public NativeBitArraySet AnyTypes { get; }
+        public bool HasAny { get; private set; }
 
         public StorageType FirstType { get; private set; }
 
@@ -23,42 +23,42 @@ namespace RelEcs
 
         private NativeBitArrayMask(int _, Allocator allocator)
         {
-            _hasAny = false;
+            HasAny = false;
             FirstType = StorageType.Create<Entity>();
-            _hasTypes = NativeBitArraySet.Create(allocator);
-            _notTypes = NativeBitArraySet.Create(allocator);
-            _anyTypes = NativeBitArraySet.Create(allocator);
+            HasTypes = NativeBitArraySet.Create(allocator);
+            NotTypes = NativeBitArraySet.Create(allocator);
+            AnyTypes = NativeBitArraySet.Create(allocator);
         }
 
         public void Dispose()
         {
             FirstType = StorageType.Create<Entity>();
-            _hasAny = false;
-            _hasTypes.Dispose();
-            _notTypes.Dispose();
-            _anyTypes.Dispose();
+            HasAny = false;
+            HasTypes.Dispose();
+            NotTypes.Dispose();
+            AnyTypes.Dispose();
         }
 
         public void Has(StorageType type)
         {
             FirstType = type;
-            _hasTypes.Add(type);
+            HasTypes.Add(type);
         }
 
         public void Not(StorageType type)
         {
-            _notTypes.Add(type);
+            NotTypes.Add(type);
         }
 
         public void Any(StorageType type)
         {
-            _hasAny = true;
-            _anyTypes.Add(type);
+            HasAny = true;
+            AnyTypes.Add(type);
         }
 
         public bool HasTypesContainsAny(Func<StorageType, bool> predicate)
         {
-            foreach (var type in _hasTypes)
+            foreach (var type in HasTypes)
             {
                 if (predicate(type))
                 {
@@ -71,31 +71,31 @@ namespace RelEcs
         public void Clear()
         {
             FirstType = StorageType.Create<Entity>();
-            _hasAny = false;
-            _hasTypes.Clear();
-            _notTypes.Clear();
-            _anyTypes.Clear();
+            HasAny = false;
+            HasTypes.Clear();
+            NotTypes.Clear();
+            AnyTypes.Clear();
         }
 
         internal bool IsMaskCompatibleWith(NativeBitArraySet set)
         {
-            var matchesComponents = set.IsSupersetOf(_hasTypes);
-            matchesComponents = matchesComponents && !set.Overlaps(_notTypes);
-            matchesComponents = matchesComponents && (!_hasAny || set.Overlaps(_anyTypes));
+            var matchesComponents = set.IsSupersetOf(HasTypes);
+            matchesComponents = matchesComponents && !set.Overlaps(NotTypes);
+            matchesComponents = matchesComponents && (!HasAny || set.Overlaps(AnyTypes));
             return matchesComponents;
         }
 
         public bool Equals(NativeBitArrayMask other)
         {
-            return _hasAny == other._hasAny &&
+            return HasAny == other.HasAny &&
                    FirstType == other.FirstType &&
-                   _hasTypes.Equals(other._hasTypes) &&
-                   _notTypes.Equals(other._notTypes) &&
-                   _anyTypes.Equals(other._anyTypes);
+                   HasTypes.Equals(other.HasTypes) &&
+                   NotTypes.Equals(other.NotTypes) &&
+                   AnyTypes.Equals(other.AnyTypes);
         }
 
         public override bool Equals(object? obj) => throw new NotSupportedException();
 
-        public override int GetHashCode() => HashCode.Combine(_hasTypes, _notTypes, _anyTypes, _hasAny, FirstType);
+        public override int GetHashCode() => HashCode.Combine(HasTypes, NotTypes, AnyTypes, HasAny, FirstType);
     }
 }
