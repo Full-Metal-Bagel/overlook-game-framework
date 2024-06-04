@@ -10,50 +10,56 @@ namespace RelEcs
 {
     public ref struct QueryBuilder
     {
+        private TMask _mask;
+
         [SuppressMessage("Style", "IDE0044:Add readonly modifier")]
-        public TMask Mask { get; init; }
+        public TMask Mask
+        {
+            get => _mask;
+            private init => _mask = value;
+        }
 
         public static QueryBuilder Create() => new() { Mask = TMask.Create() };
 
         public QueryBuilder Has<T>()
         {
             var typeIndex = StorageType.Create<T>();
-            Mask.Has(typeIndex);
+            _mask.Has(typeIndex);
             return this;
         }
 
         public QueryBuilder Has(Type type)
         {
             var typeIndex = StorageType.Create(type);
-            Mask.Has(typeIndex);
+            _mask.Has(typeIndex);
             return this;
         }
 
         public QueryBuilder Not<T>()
         {
             var typeIndex = StorageType.Create<T>();
-            Mask.Not(typeIndex);
+            _mask.Not(typeIndex);
             return this;
         }
 
         public QueryBuilder Not(Type type)
         {
             var typeIndex = StorageType.Create(type);
-            Mask.Not(typeIndex);
+            _mask.Not(typeIndex);
             return this;
         }
 
         public QueryBuilder Any(Type type)
         {
             var typeIndex = StorageType.Create(type);
-            Mask.Any(typeIndex);
+            _mask.Any(typeIndex);
             return this;
         }
 
         public QueryBuilder Any<T>()
         {
             var typeIndex = StorageType.Create<T>();
-            Mask.Any(typeIndex);
+            _mask.Any(typeIndex);
             return this;
         }
     }
