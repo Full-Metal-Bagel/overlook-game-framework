@@ -258,13 +258,14 @@ namespace RelEcs
                 throw new Exception($"cannot remove non-existent component {type.Type.Name} from entity {identity}");
             }
 
-            var newTypes = TSet.Create(oldTable.Types);
+            using var newTypes = TSet.Create(oldTable.Types, Allocator.Temp);
             newTypes.Remove(type);
 
             if (!_typeTableMap.TryGetValue(newTypes, out var newTable))
             {
-                var storage = type.IsValueType ? new TableStorage(newTypes) : oldTable.TableStorage;
-                newTable = AddTable(newTypes, storage);
+                var persistentNewTypes = TSet.Create(newTypes);
+                var storage = type.IsValueType ? new TableStorage(persistentNewTypes) : oldTable.TableStorage;
+                newTable = AddTable(persistentNewTypes, storage);
             }
 
             var newRow = Table.MoveEntry(identity, meta.Row, oldTable, newTable);
