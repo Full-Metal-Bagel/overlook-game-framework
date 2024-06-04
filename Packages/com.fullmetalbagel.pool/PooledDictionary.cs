@@ -14,6 +14,13 @@ namespace Game
 
         private readonly Dictionary<TKey, TValue> _value;
 
+        public PooledDictionary(Dictionary<TKey, TValue> collection)
+            : this(collection.Count)
+        {
+            foreach (var (key, value) in collection)
+                _value.Add(key, value);
+        }
+
         public PooledDictionary(int capacity)
         {
             _value = DictionaryPool<TKey, TValue>.Get();
