@@ -40,6 +40,16 @@ namespace RelEcs.Tests
         }
 
         [Test]
+        public void Query_Any()
+        {
+            var a = EntityBuilder.Create().Add(new Position()).Build(_world);
+            var b = EntityBuilder.Create().Add(new Position()).Add(new Velocity()).Build(_world);
+            var c = EntityBuilder.Create().Add(new Health()).Build(_world);
+            var query = QueryBuilder.Create().Any<Velocity>().Any<Health>().Build(_world);
+            Assert.That(query.AsEnumerable(), Is.EquivalentTo(new [] { b, c }));
+        }
+
+        [Test]
         public void Query_WithMultipleComponents_ReturnsCorrectEntities()
         {
             EntityBuilder.Create().Add(new Position()).Build(_world);
