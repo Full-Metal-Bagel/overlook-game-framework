@@ -75,7 +75,6 @@ public class AttributesSourceGenerator : ISourceGenerator
             _ => "int"
         };
 
-        var attributeId = 0;
         foreach (var node in validNodes)
         {
             source.AppendLine();
@@ -121,8 +120,6 @@ public class AttributesSourceGenerator : ISourceGenerator
         {
             return $$"""
                          public static System.Guid AttributeTypeGuid { get; } = System.Guid.Parse({{guid}});
-                         public static {{idType}} UnstableShortId => {{attributeId++}};
-                         public {{idType}} AttributeId => {{structName}}.UnstableShortId;
                          public static ushort StorageTypeId { get; } = RelEcs.StorageType.Create<{{structName}}>();
                      """;
         }
