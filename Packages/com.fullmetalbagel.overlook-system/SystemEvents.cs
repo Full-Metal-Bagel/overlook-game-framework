@@ -1,6 +1,7 @@
 ﻿#nullable enable
 
 using System;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
@@ -13,12 +14,27 @@ namespace Game
 
     public sealed class SystemEvents<T> : ISystemEvents
     {
-        private struct EventData
+        // TODO: `record struct`
+        private readonly struct EventData
         {
             public T Event { get; init; }
-            public int StartFrame { get; set; }
+            public int StartFrame { get; init; }
             public int MaxLastingFrames { get; init; }
-            public int SystemIndex { get; set; }
+            public int SystemIndex { get; init; }
+#if DEBUG
+            public StackTrace StackTrace { get; init; }
+#endif
+            public string StackTraceInfo
+            {
+                get
+                {
+#if DEBUG
+                    return StackTrace?.ToString() ?? "";
+#else
+                    return "";
+#endif
+                }
+            }
         }
 
         private readonly CircularBuffer<EventData> _events;
@@ -51,7 +67,7 @@ namespace Game
         {
             Debug.Assert(lastingFrames >= 1);
             Debug.Assert(Environment.CurrentManagedThreadId == _threadId.Value);
-            var data = new EventData { Event = @event, MaxLastingFrames = lastingFrames };
+            var data = new EventData { Event = @event, MaxLastingFrames = lastingFrames, StackTrace = new StackTrace() };
             _events.Push(data);
             PendingCount++;
         }
@@ -64,9 +80,15 @@ namespace Game
             var pendingStart = _events.Count - PendingCount;
             for (var i = pendingStart; i < _events.Count; i++)
             {
-                ref var data = ref _events[i];
-                data.StartFrame = currentFrame;
-                data.SystemIndex = systemIndex;
+                var @event = _events[i];
+                _events[i] = new EventData
+                {
+                    Event = @event.Event,
+                    StartFrame = currentFrame,
+                    MaxLastingFrames = @event.MaxLastingFrames,
+                    SystemIndex = systemIndex,
+                    StackTrace = @event.StackTrace,
+                };
             }
 
             var popCount = 0;
@@ -80,6 +102,22 @@ namespace Game
                 popCount++;
             }
             PendingCount = 0;
+        }
+
+        public void ForEach(Action<T> action)
+        {
+            foreach (var e in _events)
+            {
+                try
+                {
+                    action(e.Event);
+                }
+                catch
+                {
+                    Debug.LogError(e.StackTraceInfo);
+                    throw;
+                }
+            }
         }
 
         public Enumerator GetEnumerator()
