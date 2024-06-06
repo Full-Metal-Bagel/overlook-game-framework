@@ -5,6 +5,7 @@ using CodeGen.Attribute;
 using CodeGen.GlobalSuppressions;
 using CodeGen.DisallowConstructor;
 using CodeGen.FlowNode;
+using CodeGen.OptionalInit;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
@@ -18,6 +19,7 @@ if (generatorType == "sup") GenerateGlobalSuppressions();
 else if (generatorType == "attr") GenerateAttributes();
 else if (generatorType == "cons") DisallowDefaultConstructor();
 else if (generatorType == "nodes") FlowNodes();
+else if (generatorType == "optional") OptionalInit();
 return;
 
 void FlowNodes()
@@ -29,6 +31,22 @@ void FlowNodes()
     // We need to create a compilation with the required source code.
     var compilation = CSharpCompilation.Create(
         nameof(CodeGen.FlowNode),
+        files.Select(File.ReadAllText).Select(text => CSharpSyntaxTree.ParseText(text))
+    );
+
+    // Run generators and retrieve all results.
+    _ = driver.RunGenerators(compilation).GetRunResult();
+}
+
+void OptionalInit()
+{
+    // Source generators should be tested using 'GeneratorDriver'.
+    var driver = CSharpGeneratorDriver.Create(new OptionalInit());
+    var files = Directory.GetFiles(inputDirectory, "*.cs", SearchOption.AllDirectories);
+
+    // We need to create a compilation with the required source code.
+    var compilation = CSharpCompilation.Create(
+        nameof(CodeGen.OptionalInit),
         files.Select(File.ReadAllText).Select(text => CSharpSyntaxTree.ParseText(text))
     );
 
