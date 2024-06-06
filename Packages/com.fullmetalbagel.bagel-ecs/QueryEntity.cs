@@ -1,4 +1,5 @@
 ﻿using System;
+using Game;
 
 namespace RelEcs
 {
@@ -13,7 +14,7 @@ namespace RelEcs
     public readonly struct QueryEntity : IQueryEntity
     {
         public Entity Entity { get; init; }
-        public Query Query { get; init; }
+        [OptionalOnInit] public Query Query { get; init; }
 
         public bool Has<T>()
         {
