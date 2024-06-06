@@ -18,9 +18,9 @@ namespace Game
         private readonly struct EventData
         {
             public T Event { get; init; }
-            public int StartFrame { get; init; }
             public int MaxLastingFrames { get; init; }
-            public int SystemIndex { get; init; }
+            [OptionalOnInit] public int StartFrame { get; init; }
+            [OptionalOnInit] public int SystemIndex { get; init; }
 #if DEBUG
             public StackTrace StackTrace { get; init; }
 #endif
