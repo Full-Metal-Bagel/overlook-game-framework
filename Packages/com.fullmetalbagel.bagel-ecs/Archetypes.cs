@@ -402,6 +402,11 @@ namespace RelEcs
             return _tables[tableId];
         }
 
+        internal TSet GetTableTypes(Identity identity)
+        {
+            return GetTable(GetEntityMeta(identity).TableId).Types;
+        }
+
         internal void GetAllValueComponents(Identity identity, ICollection<UntypedComponent> components)
         {
             var meta = _meta[identity.Id];
