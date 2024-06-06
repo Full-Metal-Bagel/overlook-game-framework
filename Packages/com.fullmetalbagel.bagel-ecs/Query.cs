@@ -94,7 +94,7 @@ namespace RelEcs
         public QueryEntity SingleOrDefault()
         {
             var enumerator = GetEnumerator();
-            if (!enumerator.MoveNext()) return new QueryEntity();
+            if (!enumerator.MoveNext()) return new QueryEntity { Entity = Entity.None };
             var entity = enumerator.Current;
             if (enumerator.MoveNext()) throw new MoreThanOneElementsException();
             return entity;
