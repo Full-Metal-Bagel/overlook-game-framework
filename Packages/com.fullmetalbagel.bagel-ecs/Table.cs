@@ -82,6 +82,11 @@ namespace RelEcs
 
         public static int MoveEntry(Identity identity, int oldRow, Table oldTable, Table newTable)
         {
+            if (ReferenceEquals(oldTable, newTable))
+            {
+                return oldRow;
+            }
+
             if (ReferenceEquals(oldTable.TableStorage, newTable.TableStorage))
             {
                 Debug.Assert(oldTable._sortedIdentities.ContainsKey(oldRow));
