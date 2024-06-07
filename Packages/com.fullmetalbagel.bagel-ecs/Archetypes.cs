@@ -217,7 +217,11 @@ namespace RelEcs
             {
                 var type = types[i];
                 WarningIfCanBeUnmanaged(type.Type);
-                Debug.Assert(!oldTable.Types.Contains(type), $"Entity {identity} already has component of type {type.Type.Name}");
+                if (oldTable.Types.Contains(type))
+                {
+                    Debug.LogWarning($"Entity {identity} already has component of type {type.Type.Name}");
+                    continue;
+                }
                 newTypes.Add(type);
                 hasNewValueType = hasNewValueType || type is { IsValueType: true, IsTag: false };
                 if (ComponentGroups.Groups.TryGetValue(type.Type, out var group))
