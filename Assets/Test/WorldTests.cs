@@ -190,11 +190,13 @@ namespace RelEcs.Tests
         }
 
         [Test]
-        public void AddComponent_MultipleTimes_Throw()
+        public void AddComponent_MultipleTimes_Overwirte()
         {
             var entity = EntityBuilder.Create().Build(_world);
-            _world.AddComponent(entity, new Position());
-            Assert.Catch<Exception>(() => _world.AddComponent(entity, new Position()));
+            _world.AddComponent(entity, new Position(1, 2));
+            Assert.That(_world.GetComponent<Position>(entity), Is.EqualTo(new Position(1, 2)));
+            _world.AddComponent(entity, new Position(3, 4));
+            Assert.That(_world.GetComponent<Position>(entity), Is.EqualTo(new Position(3, 4)));
         }
 
         [Test]
@@ -239,13 +241,15 @@ namespace RelEcs.Tests
         }
 
         [Test]
-        public void AddObjectComponent_MultipleTimes_OverwritesComponent()
+        public void AddUntypedValueComponent_MultipleTimes_OverwritesComponent()
         {
             var entity = EntityBuilder.Create().Build(_world);
-            var position1 = new Position();
-            var position2 = new Position();
+            object position1 = new Position(1, 2);
+            object position2 = new Position(3, 4);
             _world.AddComponent(entity, position1);
-            Assert.Catch<Exception>(() => _world.AddComponent(entity, position2));
+            Assert.That(_world.GetComponent<Position>(entity), Is.EqualTo(new Position(1, 2)));
+            _world.AddComponent(entity, position2);
+            Assert.That(_world.GetComponent<Position>(entity), Is.EqualTo(new Position(3, 4)));
         }
 
         [Test]

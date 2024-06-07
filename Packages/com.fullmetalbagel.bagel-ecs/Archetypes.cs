@@ -98,6 +98,7 @@ namespace RelEcs
         public void AddComponent<T>(Identity identity, T data) where T : struct
         {
             var type = StorageType.Create<T>();
+            WarningIfOverwriteComponent(identity, type);
             var (table, row) = AddComponentType(identity, type);
             if (!type.IsTag)
             {
@@ -110,6 +111,7 @@ namespace RelEcs
         {
             Debug.Assert(data.GetType().IsValueType);
             var type = StorageType.Create(data.GetType());
+            WarningIfOverwriteComponent(identity, type);
             var (table, row) = AddComponentType(identity, type);
             if (!type.IsTag)
             {
@@ -217,11 +219,7 @@ namespace RelEcs
             {
                 var type = types[i];
                 WarningIfCanBeUnmanaged(type.Type);
-                if (oldTable.Types.Contains(type))
-                {
-                    Debug.LogWarning($"Entity {identity} already has component of type {type.Type.Name}");
-                    continue;
-                }
+                if (oldTable.Types.Contains(type)) continue;
                 newTypes.Add(type);
                 hasNewValueType = hasNewValueType || type is { IsValueType: true, IsTag: false };
                 if (ComponentGroups.Groups.TryGetValue(type.Type, out var group))
@@ -341,17 +339,6 @@ namespace RelEcs
             return false;
         }
 
-        [Conditional("UNITY_EDITOR")]
-        [Conditional("DEVELOPMENT")]
-        private static void WarnSystemType(Type type)
-        {
-            // HACK: system interfaces had been skipped
-            if (!string.IsNullOrEmpty(type.Namespace) && type.Namespace.StartsWith("System.", StringComparison.InvariantCulture))
-            {
-                Game.Debug.LogWarning("don't use system interface as component of entity, they had been skipped for performance reason");
-            }
-        }
-
         internal Query GetQuery(TMask mask, Func<Archetypes, TMask, List<Table>, Query> createQuery)
         {
             if (_queries.TryGetValue(mask, out var query))
@@ -455,6 +442,24 @@ namespace RelEcs
             }
         }
 
+        public void Dispose()
+        {
+            foreach (var table in _tables) table.Dispose();
+            foreach (var query in _queries.Values) query.Mask.Dispose();
+        }
+
+        [Conditional("DEBUG")]
+        [Conditional("UNITY_EDITOR")]
+        [Conditional("DEVELOPMENT")]
+        private static void WarnSystemType(Type type)
+        {
+            // HACK: system interfaces had been skipped
+            if (!string.IsNullOrEmpty(type.Namespace) && type.Namespace.StartsWith("System.", StringComparison.Ordinal))
+            {
+                Debug.LogWarning("don't use system interface as component of entity, they had been skipped for performance reason");
+            }
+        }
+
         private static readonly HashSet<Type> s_checkedTypes = new();
 
         [Conditional("DEBUG")]
@@ -504,10 +509,13 @@ namespace RelEcs
             }
         }
 
-        public void Dispose()
+        [Conditional("DEBUG")]
+        [Conditional("UNITY_EDITOR")]
+        [Conditional("DEVELOPMENT")]
+        void WarningIfOverwriteComponent(Identity identity, StorageType type)
         {
-            foreach (var table in _tables) table.Dispose();
-            foreach (var query in _queries.Values) query.Mask.Dispose();
+            if (HasComponent(type, identity))
+                Debug.LogWarning($"overwrite component: {identity}.{type.Type.Name}");
         }
     }
 }

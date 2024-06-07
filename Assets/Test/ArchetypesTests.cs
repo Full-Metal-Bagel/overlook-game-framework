@@ -167,12 +167,14 @@ namespace RelEcs.Tests
         }
 
         [Test]
-        public void AddComponent_ThrowsWhenComponentAlreadyExists()
+        public void AddComponent_OverwriteWhenComponentAlreadyExists()
         {
             var entity = _archetypes.Spawn();
             var type = StorageType.Create<int>(); // Assuming a valid StorageType instance
             _archetypes.AddComponent(entity.Identity, 123);
-            Assert.Catch(() => _archetypes.AddComponent(entity.Identity, 123)); // Assuming it throws an exception when trying to add an existing component
+            Assert.That(_archetypes.GetComponent<int>(entity.Identity), Is.EqualTo(123));
+            _archetypes.AddComponent(entity.Identity, 321);
+            Assert.That(_archetypes.GetComponent<int>(entity.Identity), Is.EqualTo(321));
         }
 
         [Test]
@@ -417,11 +419,11 @@ namespace RelEcs.Tests
         }
 
         [Test]
-        public void StructTag_ThrowIfAddMoreThanOneTag()
+        public void StructTag_DontThrowIfAddMoreThanOneTag()
         {
             var entity = _archetypes.Spawn().Identity;
             _archetypes.AddComponent(entity, new ZeroStruct());
-            Assert.Catch(() => _archetypes.AddComponent(entity, new ZeroStruct()));
+            _archetypes.AddComponent(entity, new ZeroStruct());
         }
 
         [Test]
@@ -476,11 +478,13 @@ namespace RelEcs.Tests
         }
 
         [Test]
-        public void MultipleComponentsWithSameType_StructIsNotSupported()
+        public void MultipleComponentsWithSameType_Overwrite()
         {
             var entity = _archetypes.Spawn();
             _archetypes.AddComponent(entity.Identity, 1);
-            Assert.Catch(() => _archetypes.AddComponent(entity.Identity, 2));
+            Assert.That(_archetypes.GetComponent<int>(entity.Identity), Is.EqualTo(1));
+            _archetypes.AddComponent(entity.Identity, 2);
+            Assert.That(_archetypes.GetComponent<int>(entity.Identity), Is.EqualTo(2));
         }
 
         [Test]
