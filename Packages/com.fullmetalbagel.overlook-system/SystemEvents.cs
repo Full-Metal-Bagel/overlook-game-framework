@@ -67,7 +67,14 @@ namespace Game
         {
             Debug.Assert(lastingFrames >= 1);
             Debug.Assert(Environment.CurrentManagedThreadId == _threadId.Value);
-            var data = new EventData { Event = @event, MaxLastingFrames = lastingFrames, StackTrace = new StackTrace() };
+            var data = new EventData
+            {
+                Event = @event,
+                MaxLastingFrames = lastingFrames,
+#if DEBUG
+                StackTrace = new StackTrace(),
+#endif
+            };
             _events.Push(data);
             PendingCount++;
         }
@@ -87,7 +94,9 @@ namespace Game
                     StartFrame = currentFrame,
                     MaxLastingFrames = @event.MaxLastingFrames,
                     SystemIndex = systemIndex,
+#if DEBUG
                     StackTrace = @event.StackTrace,
+#endif
                 };
             }
 
