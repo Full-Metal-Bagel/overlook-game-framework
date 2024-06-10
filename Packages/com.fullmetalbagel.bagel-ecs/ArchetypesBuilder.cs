@@ -21,6 +21,17 @@ namespace RelEcs
             _archetypes = archetypes;
         }
 
+        public void SetRawData(Identity identity, System.Type type, System.Span<byte> data)
+        {
+            var storageType = StorageType.Create(type);
+            if (storageType.IsTag)
+            {
+                return;
+            }
+
+            _archetypes.SetComponentRawData(identity, storageType, data);
+        }
+
         public void SetValue<T>(Identity identity, T value) where T : struct
         {
             var type = StorageType.Create(value.GetType());
