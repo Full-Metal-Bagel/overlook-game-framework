@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using Game;
 using NUnit.Framework;
+using RelEcs;
 #if ARCHETYPE_USE_NATIVE_BIT_ARRAY
 using TMask = RelEcs.NativeBitArrayMask;
 using TSet = RelEcs.NativeBitArraySet;
@@ -14,6 +15,8 @@ using TSet = RelEcs.SortedSetTypeSet;
 
 #pragma warning disable CS0169 // Field is never used
 #pragma warning disable CA1823 // unused field
+
+[assembly: ComponentGroup(groupType: typeof(object), memberType: typeof(int))]
 
 namespace RelEcs.Tests
 {
@@ -544,6 +547,14 @@ namespace RelEcs.Tests
             _archetypes.RemoveObjectComponent(entity.Identity, a);
             Assert.That(_archetypes.HasComponent(type, entity.Identity), Is.False);
             Assert.That(_archetypes.EntityReferenceTypeComponents[entity.Identity].ContainsKey(type), Is.False);
+        }
+
+        [Test]
+        public void ComponentGroup_AddGroup()
+        {
+            var entity = _archetypes.Spawn();
+            var (table, _) = _archetypes.AddComponentTypes(entity.Identity, new [] { StorageType.Create<object>() });
+            Assert.That(table.Types.Contains(StorageType.Create<int>()), Is.True);
         }
     }
 }
