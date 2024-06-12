@@ -228,7 +228,7 @@ namespace RelEcs
                     {
                         var memberTypeStorageType = StorageType.Create(memberType);
                         newTypes.Add(memberTypeStorageType);
-                        hasNewValueType = hasNewValueType || type is { IsValueType: true, IsTag: false };
+                        hasNewValueType = hasNewValueType || memberTypeStorageType is { IsValueType: true, IsTag: false };
                     }
                 }
             }
