@@ -219,18 +219,7 @@ namespace RelEcs
             {
                 var type = types[i];
                 WarningIfCanBeUnmanaged(type.Type);
-                if (oldTable.Types.Contains(type)) continue;
-                newTypes.Add(type);
-                hasNewValueType = hasNewValueType || type is { IsValueType: true, IsTag: false };
-                if (ComponentGroups.Groups.TryGetValue(type.Type, out var group))
-                {
-                    foreach (var memberType in group)
-                    {
-                        var memberTypeStorageType = StorageType.Create(memberType);
-                        newTypes.Add(memberTypeStorageType);
-                        hasNewValueType = hasNewValueType || memberTypeStorageType is { IsValueType: true, IsTag: false };
-                    }
-                }
+                RecursiveAddTypeAndRelatedGroupTypes(type);
             }
 
             if (!_typeTableMap.TryGetValue(newTypes, out var newTable))
@@ -243,6 +232,15 @@ namespace RelEcs
             var newRow = Table.MoveEntry(identity, meta.Row, oldTable, newTable);
             _meta[identity.Id] = new EntityMeta(identity, tableId: newTable.Id, row: newRow);
             return (newTable, newRow);
+
+            void RecursiveAddTypeAndRelatedGroupTypes(StorageType type)
+            {
+                if (newTypes.Contains(type)) return;
+                newTypes.Add(type);
+                hasNewValueType = hasNewValueType || type is { IsValueType: true, IsTag: false };
+                if (!ComponentGroups.Groups.TryGetValue(type.Type, out var group)) return;
+                foreach (var memberType in group) RecursiveAddTypeAndRelatedGroupTypes(StorageType.Create(memberType));
+            }
         }
 
         private (Table table, int row) AddComponentType(Identity identity, StorageType type)
