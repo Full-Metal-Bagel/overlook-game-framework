@@ -63,7 +63,7 @@ namespace Game
             var groups = new List<SystemGroup>();
             foreach (var (group, system) in Container.ResolveGroupSystems(_groups))
             {
-                _logger.LogInfomation($"create {group.Name}.{system.GetType().Name}");
+                _logger.LogInformation($"create {group.Name}.{system.GetType().Name}");
                 systems.Add(system);
                 groups.Add(group);
             }
