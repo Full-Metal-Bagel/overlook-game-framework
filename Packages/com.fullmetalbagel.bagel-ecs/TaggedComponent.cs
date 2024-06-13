@@ -76,7 +76,7 @@ namespace RelEcs
             // HACK: tricky way to check "covariant" converting on the tag struct
             //       vote for proper covariant of struct here:
             //       https://github.com/dotnet/csharplang/discussions/2498
-            if (concreteType == tagGenericTypeDefinition) return true;
+            if (!concreteType.IsGenericType) return concreteType == tagGenericTypeDefinition;
             return typeof(ITaggedComponent<T>).IsAssignableFrom(concreteType) &&
                    concreteType.GetGenericTypeDefinition() == tagGenericTypeDefinition;
         }
