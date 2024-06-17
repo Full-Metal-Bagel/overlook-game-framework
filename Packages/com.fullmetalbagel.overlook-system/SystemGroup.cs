@@ -32,7 +32,7 @@ namespace Game
             public GuidTypeReference Type { get; private set; } = default!;
 
             [field: SerializeField, HideLabel, HorizontalGroup, ShowIf(nameof(IsGraphSystem)), AssetReferenceUILabelRestriction("system")]
-            public AssetReferenceT<Graph> Graph { get; private set; } = default!;
+            public GameAssetReference<Graph> Graph { get; private set; } = default!;
 
             private bool IsGraphSystem => Type is { Type: not null } && Type.Type.GetCustomAttribute<GraphSystemAttribute>() != null;
 
