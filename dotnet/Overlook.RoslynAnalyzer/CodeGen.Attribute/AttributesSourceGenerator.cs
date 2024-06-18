@@ -42,10 +42,14 @@ public class AttributesSourceGenerator : ISourceGenerator
                                        """);
 
         // TODO: verify node
-        var validNodes = new List<StructDeclarationSyntax>();
+        var validNodes = new List<TypeDeclarationSyntax>();
         foreach (var node in nodes)
         {
-            if (node.Modifiers.All(m => m.ValueText != "partial"))
+            var guid = FindTypeGuid(node);
+            var hasPartial = node.Modifiers.Any(m => m.ValueText == "partial");
+            if (string.IsNullOrEmpty(guid) && !hasPartial) continue;
+
+            if (!hasPartial)
             {
                 var noPartial = Diagnostic.Create(new DiagnosticDescriptor("AR0001", "invalid attribute", $"attribute {node.Identifier.ToString()} must be `partial` for code-gen", "ATTR", DiagnosticSeverity.Error, true), node.GetLocation());
                 context.ReportDiagnostic(noPartial);
@@ -54,12 +58,12 @@ public class AttributesSourceGenerator : ISourceGenerator
 
             if (GetImplementedInterfaceNames(node).Any(interfaceName => interfaceName != "IAttribute`1"))
             {
-                var noPartial = Diagnostic.Create(new DiagnosticDescriptor("AR0003", "invalid attribute", $"attribute {node.Identifier.ToString()} must be implement `IAttribute<T>` for code-gen", "ATTR", DiagnosticSeverity.Error, true), node.GetLocation());
-                context.ReportDiagnostic(noPartial);
+                var invalidInterface = Diagnostic.Create(new DiagnosticDescriptor("AR0003", "invalid attribute", $"attribute {node.Identifier.ToString()} must be implement `IAttribute<T>` for code-gen", "ATTR", DiagnosticSeverity.Error, true), node.GetLocation());
+                context.ReportDiagnostic(invalidInterface);
                 continue;
             }
 
-            if (string.IsNullOrEmpty(FindTypeGuid(node)))
+            if (string.IsNullOrEmpty(guid))
             {
                 var noGuid = Diagnostic.Create(new DiagnosticDescriptor("AR0002", "invalid attribute", $"attribute {node.Identifier.ToString()} must have `TypeGuidAttribute` for code-gen", "ATTR", DiagnosticSeverity.Error, true), node.GetLocation());
                 context.ReportDiagnostic(noGuid);
@@ -87,7 +91,7 @@ public class AttributesSourceGenerator : ISourceGenerator
         context.AddSource("Attributes.g.cs", SourceText.From(source.ToString(), Encoding.UTF8));
         return;
 
-        bool HasConstructor(StructDeclarationSyntax node)
+        bool HasConstructor(TypeDeclarationSyntax node)
         {
             return node.Members.OfType<ConstructorDeclarationSyntax>().Any();
         }
@@ -97,13 +101,14 @@ public class AttributesSourceGenerator : ISourceGenerator
             return member is FieldDeclarationSyntax or PropertyDeclarationSyntax;
         }
 
-        void GenerateNonFieldAttribute(StructDeclarationSyntax node)
+        void GenerateNonFieldAttribute(TypeDeclarationSyntax node)
         {
+            var typeName = node is StructDeclarationSyntax ? "struct" : "class";
             var structName = node.Identifier.ValueText;
             var guid = FindTypeGuid(node);
             using var _ = new NamespaceNameScope(source, node);
             source.AppendLine($$"""
-                              public partial struct {{structName}}
+                              public partial {{typeName}} {{structName}}
                               {
                               {{AttributeBasic(structName: structName, guid: guid)}}
                               }
@@ -149,8 +154,9 @@ public class AttributesSourceGenerator : ISourceGenerator
             _ => ("", "")
         };
 
-        void GenerateSingleFieldAttribute(StructDeclarationSyntax node)
+        void GenerateSingleFieldAttribute(TypeDeclarationSyntax node)
         {
+            var typeName = node is StructDeclarationSyntax ? "struct" : "class";
             var structName = node.Identifier.ValueText;
             var guid = FindTypeGuid(node);
             var (fieldName, fieldType) = node.Members
@@ -162,7 +168,7 @@ public class AttributesSourceGenerator : ISourceGenerator
             using var _ = new NamespaceNameScope(source, node);
             source.AppendLine($$"""
                               [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1066:Implement IEquatable when overriding Object.Equals")]
-                              public partial struct {{structName}}
+                              public partial {{typeName}} {{structName}}
                               {
                               {{AttributeBasic(structName: structName, guid: guid)}}
 
@@ -175,8 +181,9 @@ public class AttributesSourceGenerator : ISourceGenerator
                               """);
         }
 
-        void GenerateMultipleFieldAttribute(StructDeclarationSyntax node)
+        void GenerateMultipleFieldAttribute(TypeDeclarationSyntax node)
         {
+            var typeName = node is StructDeclarationSyntax ? "struct" : "class";
             var structName = node.Identifier.ValueText;
             var guid = FindTypeGuid(node);
             var fieldsNameAndType = node.Members.Where(IsValidMember).Select(GetMemberNameAndType).Where(t => !string.IsNullOrEmpty(t.name)).ToArray();
@@ -191,7 +198,7 @@ public class AttributesSourceGenerator : ISourceGenerator
             using var _ = new NamespaceNameScope(source, node);
             source.AppendLine($$"""
                                 [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1066:Implement IEquatable when overriding Object.Equals")]
-                                public partial struct {{structName}}
+                                public partial {{typeName}} {{structName}}
                                 {
                                 {{AttributeBasic(structName: structName, guid: guid)}}
                                     {{constructor}}
@@ -211,11 +218,11 @@ public class AttributesSourceGenerator : ISourceGenerator
     }
 
     // https://chat.openai.com/share/f70c449a-6956-41cc-a7bc-2cc7799b2d4b
-    private IEnumerable<string> GetImplementedInterfaceNames(StructDeclarationSyntax structDeclaration)
+    private IEnumerable<string> GetImplementedInterfaceNames(TypeDeclarationSyntax typeDeclaration)
     {
-        if (structDeclaration.BaseList != null)
+        if (typeDeclaration.BaseList != null)
         {
-            foreach (var baseType in structDeclaration.BaseList.Types)
+            foreach (var baseType in typeDeclaration.BaseList.Types)
             {
                 // Check if the base type is an interface
                 if (baseType is SimpleBaseTypeSyntax simpleBaseType)
@@ -264,15 +271,17 @@ public class AttributesSourceGenerator : ISourceGenerator
 
     private sealed class SyntaxContextReceiver : ISyntaxReceiver
     {
-        public HashSet<StructDeclarationSyntax> Nodes { get; } = new();
+        public HashSet<TypeDeclarationSyntax> Nodes { get; } = new();
 
         public void OnVisitSyntaxNode(SyntaxNode node)
         {
-            if (node is not StructDeclarationSyntax structNode) return;
-            if (structNode.BaseList == null) return;
-            // TODO: restrict to `Game.IAttribute` or `Game.IAttribute<T>`
-            if (structNode.BaseList.Types.Select(type => type.ToString()).All(type => !type.Contains("IAttribute"))) return;
-            Nodes.Add(structNode);
+            if (node is TypeDeclarationSyntax typeNode)
+            {
+                if (typeNode.BaseList == null) return;
+                // TODO: restrict to `Game.IAttribute` or `Game.IAttribute<T>`
+                if (typeNode.BaseList.Types.Select(type => type.ToString()).All(type => !type.Contains("IAttribute"))) return;
+                Nodes.Add(typeNode);
+            }
         }
     }
 }
