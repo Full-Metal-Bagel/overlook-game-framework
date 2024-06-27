@@ -29,7 +29,7 @@ public class GlobalSuppressionsUnityMethodsSourceGenerator : IIncrementalGenerat
     private static IEnumerable<ClassDeclarationSyntax> GetClassDeclarationForSourceGen(GeneratorSyntaxContext context)
     {
         var classDeclarationSyntax = (ClassDeclarationSyntax)context.Node;
-        if (IsSubClassOf(classDeclarationSyntax, context.SemanticModel, "MonoBehaviour"))
+        if (IsSubClassOf(classDeclarationSyntax, context.SemanticModel, "MonoBehaviour") || IsSubClassOf(classDeclarationSyntax, context.SemanticModel, "ScriptableObject"))
             yield return classDeclarationSyntax;
         yield break;
 
