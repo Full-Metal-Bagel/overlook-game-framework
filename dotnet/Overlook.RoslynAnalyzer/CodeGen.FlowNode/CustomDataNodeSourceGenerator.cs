@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace CodeGen.FlowNode;
@@ -34,7 +35,7 @@ public class CustomDataNodeSourceGenerator : ISourceGenerator
         foreach (var (typeDeclaration, attribute) in receiver.DecoratedTypes)
         {
             var semanticModel = context.Compilation.GetSemanticModel(typeDeclaration.SyntaxTree);
-            var namedTypeSymbol = semanticModel.GetDeclaredSymbol(typeDeclaration) as INamedTypeSymbol;
+            var namedTypeSymbol = ModelExtensions.GetDeclaredSymbol(semanticModel, typeDeclaration) as INamedTypeSymbol;
             if (namedTypeSymbol == null)
             {
                 context.ReportDiagnostic(Diagnostic.Create(new DiagnosticDescriptor(
@@ -47,9 +48,38 @@ public class CustomDataNodeSourceGenerator : ISourceGenerator
                 ), location: typeDeclaration.GetLocation(), messageArgs: null));
                 continue;
             }
+            Generate(namedTypeSymbol, attribute);
+        }
 
+        foreach (var globalAttribute in receiver.GlobalAttributes)
+        {
+            var semanticModel = context.Compilation.GetSemanticModel(globalAttribute.SyntaxTree);
+            var nodeTypeArgumentSyntax = globalAttribute.ArgumentList!.Arguments[0].Expression as TypeOfExpressionSyntax;
+            var type = semanticModel.GetSymbolInfo(nodeTypeArgumentSyntax).Symbol as INamedTypeSymbol;
+            if (type == null) type = semanticModel.GetTypeInfo(nodeTypeArgumentSyntax.Type).Type as INamedTypeSymbol;
+            if (type == null)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(new DiagnosticDescriptor(
+                    id: "FC0001",
+                    title: "invalid type",
+                    messageFormat: $"invalid attribute {globalAttribute.Name}",
+                    category: "NODE",
+                    defaultSeverity: DiagnosticSeverity.Error,
+                    isEnabledByDefault: true
+                ), location: globalAttribute.GetLocation(), messageArgs: null));
+                continue;
+            }
+            Generate(type, globalAttribute);
+        }
+
+        builder.AppendLine("}");
+        context.AddSource("GameDataNodes.g.cs", builder.ToString());
+        return;
+
+        void Generate(INamedTypeSymbol namedTypeSymbol, AttributeSyntax attribute)
+        {
             var typeName = namedTypeSymbol.ToDisplayString();
-            var nodeName = FindArgumentValue(attribute, "Name") ?? typeDeclaration.Identifier.Text;
+            var nodeName = FindArgumentValue(attribute, "Name") ?? namedTypeSymbol.Name;
             var typeId = namedTypeSymbol.GetAttributes()
                 .FirstOrDefault(attr => attr.AttributeClass?.Name == "TypeGuidAttribute")
                 ?.ConstructorArguments.FirstOrDefault().Value?.ToString()?.Replace("-", "")
@@ -69,10 +99,6 @@ public class CustomDataNodeSourceGenerator : ISourceGenerator
                 GenEventSender(nodeName: nodeName, category: category!, typeId: typeId, typeName: typeName);
             }
         }
-
-        builder.AppendLine("}");
-        context.AddSource("GameDataNodes.g.cs", builder.ToString());
-        return;
 
         string? FindArgumentValue(AttributeSyntax attribute, string name)
         {
@@ -96,6 +122,8 @@ public class CustomDataNodeSourceGenerator : ISourceGenerator
                     _ => ("", true, true)
                 };
                 if (string.IsNullOrEmpty(type)) continue;
+
+                if (member.GetAttributes().Any(attr => attr.AttributeClass?.Name is nameof(ObsoleteAttribute))) continue;
 
                 var guid = member.GetAttributes()
                     .FirstOrDefault(attr => attr.AttributeClass?.Name is "PropertyGuidAttribute" or "FieldGuidAttribute")
@@ -235,22 +263,39 @@ public class CustomDataNodeSourceGenerator : ISourceGenerator
     private sealed class SyntaxContextReceiver : ISyntaxReceiver
     {
         public List<(TypeDeclarationSyntax type, AttributeSyntax attribute)> DecoratedTypes { get; } = new();
+        public List<AttributeSyntax> GlobalAttributes { get; } = new();
 
         public void OnVisitSyntaxNode(SyntaxNode syntaxNode)
         {
             // Check for class, struct, or interface declarations
-            if (syntaxNode is not TypeDeclarationSyntax typeDeclaration) return;
-
-            foreach (var attributeList in typeDeclaration.AttributeLists)
+            if (syntaxNode is TypeDeclarationSyntax typeDeclaration)
             {
-                foreach (var attribute in attributeList.Attributes)
+                foreach (var attributeList in typeDeclaration.AttributeLists)
                 {
-                    // Assuming 'SomeAttribute' is the simple name of the attribute
-                    // You might need to adjust the comparison for full names or other scenarios
-                    if (attribute.Name.ToString() == "CustomDataNode")
+                    foreach (var attribute in attributeList.Attributes)
                     {
-                        DecoratedTypes.Add((typeDeclaration, attribute));
-                        break; // Break from the inner loop once we find the attribute
+                        // Assuming 'SomeAttribute' is the simple name of the attribute
+                        // You might need to adjust the comparison for full names or other scenarios
+                        if (attribute.Name.ToString() == "CustomDataNode")
+                        {
+                            DecoratedTypes.Add((typeDeclaration, attribute));
+                            break; // Break from the inner loop once we find the attribute
+                        }
+                    }
+                }
+            }
+            else if (syntaxNode is AttributeListSyntax attributeListSyntax)
+            {
+                if (attributeListSyntax.Target != null && attributeListSyntax.Target.Identifier.IsKind(SyntaxKind.AssemblyKeyword))
+                {
+                    foreach (var attribute in attributeListSyntax.Attributes)
+                    {
+                        // Check if the attribute is GlobalCustomDataNodeAttribute
+                        if (attribute.Name.ToString().EndsWith("GlobalCustomDataNode"))
+                        {
+                            GlobalAttributes.Add(attribute);
+                            break; // Break from the inner loop once we find the attribute
+                        }
                     }
                 }
             }

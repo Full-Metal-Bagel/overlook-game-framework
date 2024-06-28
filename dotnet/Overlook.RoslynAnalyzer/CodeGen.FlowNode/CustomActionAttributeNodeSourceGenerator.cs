@@ -98,9 +98,19 @@ public class CustomActionAttributeNodeSourceGenerator : ISourceGenerator
                                      private FlowCanvas.FlowOutput _on = default!;
 
                                      [UnityEngine.SerializeField, ParadoxNotion.Design.ExposeField]
-                                     private bool _createActionAttribute = false;
+                                     private bool _createActionAttribute = true;
 
                                      private {{delegateType.ToDisplayString()}} _action = default!;
+
+                                     public override void OnGraphStarted()
+                                     {
+                                         AddAction(((Game.IEntityGraphAgent)graphAgent).GameEntity);
+                                     }
+
+                                     public override void OnGraphStoped()
+                                     {
+                                         RemoveAction(((Game.IEntityGraphAgent)graphAgent).GameEntity);
+                                     }
 
                                      public void AddAction(in GameEntity entity)
                                      {
