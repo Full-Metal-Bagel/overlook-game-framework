@@ -308,6 +308,13 @@ namespace RelEcs
             return meta.Identity != Identity.None && _tables[meta.TableId].TypesInHierarchy.Contains(type);
         }
 
+        public object GetObjectComponent(Identity identity, Type type)
+        {
+            TryGetObjectComponent(identity, type, out object? component);
+            Debug.Assert(component != null);
+            return component!;
+        }
+
         public T GetObjectComponent<T>(Identity identity) where T : class
         {
             TryGetObjectComponent(identity, out T? component);
@@ -315,26 +322,33 @@ namespace RelEcs
             return component!;
         }
 
-        public bool TryGetObjectComponent<T>(Identity identity, out T? component) where T : class
+        public bool TryGetObjectComponent(Identity identity, Type type, out object? component)
         {
             var entityComponents = EntityReferenceTypeComponents[identity];
-            var hasComponents = entityComponents.TryGetValue(StorageType.Create<T>(), out List<object>? value);
+            var hasComponents = entityComponents.TryGetValue(StorageType.Create(type), out List<object>? value);
             if (hasComponents)
             {
-                component = (T?)value![^1];
+                component = value![^1];
                 return hasComponents;
             }
             // TODO: cache type hierarchy tree for optimization
-            foreach (var (type, v) in entityComponents)
+            foreach (var (t, v) in entityComponents)
             {
-                if (typeof(T).IsAssignableFrom(type.Type))
+                if (type.IsAssignableFrom(t.Type))
                 {
-                    component = (T)v[^1];
+                    component = v[^1];
                     return true;
                 }
             }
             component = null;
             return false;
+        }
+
+        public bool TryGetObjectComponent<T>(Identity identity, out T? component) where T : class
+        {
+            var has = TryGetObjectComponent(identity, typeof(T), out object? c);
+            component = (T?)c;
+            return has;
         }
 
         internal Query GetQuery(TMask mask, Func<Archetypes, TMask, List<Table>, Query> createQuery)
