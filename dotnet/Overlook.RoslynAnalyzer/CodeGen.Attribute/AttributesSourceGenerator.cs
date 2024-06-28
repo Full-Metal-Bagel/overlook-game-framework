@@ -56,7 +56,7 @@ public class AttributesSourceGenerator : ISourceGenerator
                 continue;
             }
 
-            if (GetImplementedInterfaceNames(node).Any(interfaceName => interfaceName != "IAttribute`1"))
+            if (node.BaseList == null || node.BaseList.Types.All(type => !type.ToString().StartsWith("IAttribute<")))
             {
                 var invalidInterface = Diagnostic.Create(new DiagnosticDescriptor("AR0003", "invalid attribute", $"attribute {node.Identifier.ToString()} must be implement `IAttribute<T>` for code-gen", "ATTR", DiagnosticSeverity.Error, true), node.GetLocation());
                 context.ReportDiagnostic(invalidInterface);
@@ -214,31 +214,6 @@ public class AttributesSourceGenerator : ISourceGenerator
                                 {{Equatable(structName, fieldsName)}}
                                 }
                                 """);
-        }
-    }
-
-    // https://chat.openai.com/share/f70c449a-6956-41cc-a7bc-2cc7799b2d4b
-    private IEnumerable<string> GetImplementedInterfaceNames(TypeDeclarationSyntax typeDeclaration)
-    {
-        if (typeDeclaration.BaseList != null)
-        {
-            foreach (var baseType in typeDeclaration.BaseList.Types)
-            {
-                // Check if the base type is an interface
-                if (baseType is SimpleBaseTypeSyntax simpleBaseType)
-                {
-                    var type = simpleBaseType.Type;
-
-                    if (type is IdentifierNameSyntax identifierName)
-                    {
-                        yield return identifierName.Identifier.Text;
-                    }
-                    else if (type is QualifiedNameSyntax qualifiedName)
-                    {
-                        yield return qualifiedName.Right.Identifier.Text;
-                    }
-                }
-            }
         }
     }
 
