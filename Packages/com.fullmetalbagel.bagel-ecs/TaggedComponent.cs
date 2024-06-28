@@ -60,11 +60,11 @@ namespace RelEcs
         public static T? FindUnwrappedComponent<T>(this World world, Entity entity, Type tagGenericDefinition) where T : class
         {
             Debug.Assert(tagGenericDefinition.IsGenericTypeDefinition);
-            foreach (var (storageType, component) in world.Archetypes.EntityReferenceTypeComponents[entity.Identity])
+            foreach (var (storageType, components) in world.Archetypes.EntityReferenceTypeComponents[entity.Identity])
             {
                 if (storageType.Type.IsTagTypeOf<T>(tagGenericDefinition))
                 {
-                    return ((ITaggedComponent<T>)component[0]).Component;
+                    return ((ITaggedComponent<T>)components[0]).Component;
                 }
             }
             return null;
@@ -81,17 +81,16 @@ namespace RelEcs
                    concreteType.GetGenericTypeDefinition() == tagGenericTypeDefinition;
         }
 
-        public static void FindUnwrappedComponents<T>(this World world, Entity entity, ICollection<T> components) where T : class
+        public static void FindUnwrappedComponents<T>(this World world, Entity entity, ICollection<T> resultComponents, Type tagGenericDefinition) where T : class
         {
-            foreach (var (_, component) in world.Archetypes.EntityReferenceTypeComponents[entity.Identity])
+            foreach (var (storageType, components) in world.Archetypes.EntityReferenceTypeComponents[entity.Identity])
             {
-                if (component is T value)
+                if (storageType.Type.IsTagTypeOf<T>(tagGenericDefinition))
                 {
-                    components.Add(value);
-                }
-                else if (component is ITaggedComponent<T> tagged)
-                {
-                    components.Add(tagged.Component);
+                    foreach (ITaggedComponent<T> component in components)
+                    {
+                        resultComponents.Add(component.Component);
+                    }
                 }
             }
         }
