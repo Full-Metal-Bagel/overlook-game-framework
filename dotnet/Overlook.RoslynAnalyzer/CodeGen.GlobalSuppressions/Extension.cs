@@ -27,7 +27,7 @@ internal static class Extension
     public static string GetNamespaceName(TypeDeclarationSyntax node)
     {
         var namespaceNode = node.Ancestors()
-            .OfType<NamespaceDeclarationSyntax>()
+            .OfType<BaseNamespaceDeclarationSyntax>()
             .FirstOrDefault();
 
         if (namespaceNode == null)
