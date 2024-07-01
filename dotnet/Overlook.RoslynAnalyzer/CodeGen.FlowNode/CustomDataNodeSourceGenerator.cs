@@ -54,7 +54,7 @@ public class CustomDataNodeSourceGenerator : ISourceGenerator
         foreach (var globalAttribute in receiver.GlobalAttributes)
         {
             var semanticModel = context.Compilation.GetSemanticModel(globalAttribute.SyntaxTree);
-            var nodeTypeArgumentSyntax = globalAttribute.ArgumentList!.Arguments[0].Expression as TypeOfExpressionSyntax;
+            var nodeTypeArgumentSyntax = (TypeOfExpressionSyntax)globalAttribute.ArgumentList!.Arguments[0].Expression;
             var type = semanticModel.GetSymbolInfo(nodeTypeArgumentSyntax).Symbol as INamedTypeSymbol;
             if (type == null) type = semanticModel.GetTypeInfo(nodeTypeArgumentSyntax.Type).Type as INamedTypeSymbol;
             if (type == null)
