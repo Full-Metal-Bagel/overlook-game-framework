@@ -301,11 +301,16 @@ namespace RelEcs
             return ref table.GetStorage<T>()[meta.Row];
         }
 
-        public bool HasComponent(StorageType type, Identity identity)
+        public object GetBoxedValueComponent(Identity identity, Type type)
         {
-            WarnSystemType(type.Type);
+            var storageType = StorageType.Create(type);
+            Debug.Assert(storageType.IsValueType);
+            Debug.LogWarning($"boxing value type {type}");
+            if (storageType.IsTag) return Activator.CreateInstance(type);
+
             var meta = _meta[identity.Id];
-            return meta.Identity != Identity.None && _tables[meta.TableId].TypesInHierarchy.Contains(type);
+            var table = _tables[meta.TableId];
+            return table.GetStorage(storageType).GetValue(meta.Row);
         }
 
         public object GetObjectComponent(Identity identity, Type type)
@@ -313,6 +318,13 @@ namespace RelEcs
             TryGetObjectComponent(identity, type, out object? component);
             Debug.Assert(component != null);
             return component!;
+        }
+
+        public bool HasComponent(StorageType type, Identity identity)
+        {
+            WarnSystemType(type.Type);
+            var meta = _meta[identity.Id];
+            return meta.Identity != Identity.None && _tables[meta.TableId].TypesInHierarchy.Contains(type);
         }
 
         public T GetObjectComponent<T>(Identity identity) where T : class
