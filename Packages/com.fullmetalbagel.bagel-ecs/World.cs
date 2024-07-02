@@ -58,9 +58,11 @@ namespace RelEcs
             return Archetypes.GetObjectComponent<T>(entity.Identity);
         }
 
-        public object GetObjectComponent(Entity entity, Type type)
+        public object GetComponent(Entity entity, Type type)
         {
-            return Archetypes.GetObjectComponent(entity.Identity, type);
+            return type.IsValueType
+                ? Archetypes.GetBoxedValueComponent(entity.Identity, type)
+                : Archetypes.GetObjectComponent(entity.Identity, type);
         }
 
         public bool TryGetObjectComponent<T>(Entity entity, out T? component) where T : class
