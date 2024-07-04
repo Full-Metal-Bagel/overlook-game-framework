@@ -113,13 +113,13 @@ namespace Game
             PendingCount = 0;
         }
 
-        public void ForEach(Action<T, StackTrace> action)
+        public void ForEach(Action<T, string/*stack trace info*/> action)
         {
             foreach (var e in _events)
             {
                 try
                 {
-                    action(e.Event, e.StackTrace);
+                    action(e.Event, e.StackTraceInfo);
                 }
                 catch
                 {
