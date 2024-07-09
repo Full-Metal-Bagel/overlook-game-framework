@@ -28,7 +28,7 @@ namespace Game
         [SuppressMessage("Design", "CA1034:Nested types should not be visible")]
         public class SystemData
         {
-            [field: SerializeField, HorizontalGroup, TypeConstraint(BaseType = typeof(IGameSystem))]
+            [field: SerializeField, HideLabel, HorizontalGroup, TypeConstraint(BaseType = typeof(IGameSystem))]
             public GuidTypeReference Type { get; private set; } = default!;
 
             [field: SerializeField, HideLabel, HorizontalGroup, ShowIf(nameof(IsGraphSystem)), AssetReferenceUILabelRestriction("system")]
