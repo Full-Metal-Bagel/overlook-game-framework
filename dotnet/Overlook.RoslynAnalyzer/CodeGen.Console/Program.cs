@@ -2,6 +2,7 @@
 
 using System.Collections.Immutable;
 using CodeGen.Attribute;
+using CodeGen.CustomDerived;
 using CodeGen.GlobalSuppressions;
 using CodeGen.DisallowConstructor;
 using CodeGen.FlowNode;
@@ -20,6 +21,7 @@ else if (generatorType == "attr") GenerateAttributes();
 else if (generatorType == "cons") DisallowDefaultConstructor();
 else if (generatorType == "nodes") FlowNodes();
 else if (generatorType == "optional") OptionalInit();
+else if (generatorType == "derived") Derived();
 return;
 
 void FlowNodes()
@@ -47,6 +49,22 @@ void OptionalInit()
     // We need to create a compilation with the required source code.
     var compilation = CSharpCompilation.Create(
         nameof(CodeGen.OptionalInit),
+        files.Select(File.ReadAllText).Select(text => CSharpSyntaxTree.ParseText(text))
+    );
+
+    // Run generators and retrieve all results.
+    _ = driver.RunGenerators(compilation).GetRunResult();
+}
+
+void Derived()
+{
+    // Source generators should be tested using 'GeneratorDriver'.
+    var driver = CSharpGeneratorDriver.Create(new SystemEventSourceGenerator());
+    var files = Directory.GetFiles(inputDirectory, "*.cs", SearchOption.AllDirectories);
+
+    // We need to create a compilation with the required source code.
+    var compilation = CSharpCompilation.Create(
+        nameof(CodeGen.CustomDerived),
         files.Select(File.ReadAllText).Select(text => CSharpSyntaxTree.ParseText(text))
     );
 
