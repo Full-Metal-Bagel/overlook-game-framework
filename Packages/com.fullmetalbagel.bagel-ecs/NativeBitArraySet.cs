@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using Game;
 using Unity.Collections;
-using Debug = UnityEngine.Debug;
+using Unity.Mathematics;
 
 namespace RelEcs
 {
@@ -83,18 +83,20 @@ namespace RelEcs
         public struct Enumerator : IEnumerator<StorageType>
         {
             private readonly NativeBitArray _bits;
+            private readonly int _length;
             private int _currentIndex;
 
             public Enumerator(NativeBitArray bits)
             {
                 _bits = bits;
                 _currentIndex = -1;
+                _length = math.min(_bits.Length, TypeIdAssigner.Count);
             }
 
             public bool MoveNext()
             {
                 _currentIndex++;
-                while (_currentIndex < _bits.Length)
+                while (_currentIndex < _length)
                 {
                     if (_bits.IsSet(_currentIndex)) return true;
                     _currentIndex++;
@@ -109,9 +111,14 @@ namespace RelEcs
 
             object IEnumerator.Current => Current;
 
-            public StorageType Current => _currentIndex >= 0 && _currentIndex < _bits.Length
-                ? StorageType.Create((ushort)_currentIndex)
-                : throw new InvalidOperationException("Enumeration has ended. Call Reset.");
+            public StorageType Current
+            {
+                get
+                {
+                    Debug.Assert(_currentIndex >= 0 && _currentIndex < math.min(_bits.Length, TypeIdAssigner.Count));
+                    return StorageType.Create((ushort)_currentIndex);
+                }
+            }
 
             public void Dispose() { }
         }

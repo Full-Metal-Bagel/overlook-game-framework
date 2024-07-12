@@ -395,8 +395,8 @@ namespace RelEcs.Tests
         {
             Assert.That(StorageType.Create<ZeroStruct>().IsTag, Is.True);
             Assert.That(StorageType.Create<EmptyStruct>().IsTag, Is.True);
-            Assert.That(StorageType.Create<EmptyClass>().IsTag, Is.True);
-            Assert.That(StorageType.Create<EmptyInheritedClass>().IsTag, Is.True);
+            Assert.That(StorageType.Create<EmptyClass>().IsTag, Is.False);
+            Assert.That(StorageType.Create<EmptyInheritedClass>().IsTag, Is.False);
             Assert.That(StorageType.Create<int>().IsTag, Is.False);
             Assert.That(StorageType.Create<IntStruct>().IsTag, Is.False);
             Assert.That(StorageType.Create<IntClass>().IsTag, Is.False);
