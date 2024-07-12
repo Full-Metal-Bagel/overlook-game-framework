@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Threading;
@@ -18,10 +19,11 @@ namespace RelEcs
         public bool IsValueType => Type.IsValueType;
         public static implicit operator ushort(StorageType type) => type.TypeId;
 
-        public static StorageType Create(ushort typeId, Allocator _ = Allocator.Persistent)
+        internal static StorageType Create(ushort typeId, Allocator _ = Allocator.Persistent)
         {
-            var type = TypeIdAssigner.GetType(typeId);
-            return new StorageType(typeId, IsTagType(type));
+            Debug.Assert(typeId < TypeIdAssigner.Count);
+            var isTag = TypeIdAssigner.IsTag(typeId);
+            return new StorageType(typeId, isTag);
         }
 
         public static StorageType Create(Type type, Allocator _ = Allocator.Persistent)
@@ -43,20 +45,6 @@ namespace RelEcs
         public override string ToString()
         {
             return $"{Type}(value={IsValueType} tag={IsTag})";
-        }
-
-        public static bool IsTagType(Type type)
-        {
-            // Check the current type and all base types for fields
-            while (type != null && type != typeof(object) && type != typeof(ValueType))
-            {
-                if (type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).Length > 0)
-                {
-                    return false; // Fields are found, thus not empty
-                }
-                type = type.BaseType; // Move to the base class
-            }
-            return true; // No fields found in any base class or itself
         }
 
         public void Deconstruct(out Type type, out ushort typeId)
@@ -88,8 +76,11 @@ namespace RelEcs
         private static int s_counter = -1;
         private static readonly Dictionary<Type, ushort> s_typeIdMap = new();
         private static readonly Type[] s_types = new Type[MaxTypeCapacity];
+        private static readonly BitArray s_isTagCache = new(MaxTypeCapacity);
 
         public static Type GetType(int typeId) => s_types[typeId];
+        public static bool IsTag(int typeId) => s_isTagCache[typeId];
+        public static int Count => s_counter + 1;
 
         public static ushort GetOrCreate(Type type)
         {
@@ -102,20 +93,35 @@ namespace RelEcs
                 typeId = (ushort)id;
                 s_typeIdMap.Add(type, typeId);
                 s_types[typeId] = type;
+                s_isTagCache.Set(typeId, IsTagType(type));
             }
             return typeId;
+        }
+
+        private static bool IsTagType(Type type)
+        {
+            if (!type.IsValueType) return false;
+#if UNITY_5_3_OR_NEWER
+            var size = Unity.Collections.LowLevel.Unsafe.UnsafeUtility.SizeOf(type);
+            if (size == 0) return true;
+#else
+            var size = System.Runtime.InteropServices.Marshal.SizeOf(type);
+#endif
+            if (size > 1) return false;
+            // Check the current type for fields
+            return type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).Length <= 0;
         }
     }
 
     internal static class TypeIdAssigner<T>
     {
-        public static ushort Id { get; }
+        public static ushort Id => StorageType.TypeId;
         public static StorageType StorageType { get; }
 
         static TypeIdAssigner()
         {
-            Id = TypeIdAssigner.GetOrCreate(typeof(T));
-            StorageType = StorageType.Create(Id);
+            var id = TypeIdAssigner.GetOrCreate(typeof(T));
+            StorageType = StorageType.Create(id);
         }
     }
 }
