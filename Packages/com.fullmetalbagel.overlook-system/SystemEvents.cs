@@ -21,14 +21,14 @@ namespace Game
             public int MaxLastingFrames { get; init; }
             [OptionalOnInit] public int StartFrame { get; init; }
             [OptionalOnInit] public int SystemIndex { get; init; }
-#if DEBUG
+#if KGP_DEBUG
             public StackTrace StackTrace { get; init; }
 #endif
             public string StackTraceInfo
             {
                 get
                 {
-#if DEBUG
+#if KGP_DEBUG
                     return StackTrace?.ToString() ?? "";
 #else
                     return "";
@@ -71,7 +71,7 @@ namespace Game
             {
                 Event = @event,
                 MaxLastingFrames = lastingFrames,
-#if DEBUG
+#if KGP_DEBUG
                 StackTrace = new StackTrace(),
 #endif
             };
@@ -94,7 +94,7 @@ namespace Game
                     StartFrame = currentFrame,
                     MaxLastingFrames = @event.MaxLastingFrames,
                     SystemIndex = systemIndex,
-#if DEBUG
+#if KGP_DEBUG
                     StackTrace = @event.StackTrace,
 #endif
                 };
