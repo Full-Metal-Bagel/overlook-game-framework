@@ -483,9 +483,7 @@ namespace RelEcs
             foreach (var query in _queries.Values) query.Mask.Dispose();
         }
 
-        [Conditional("DEBUG")]
-        [Conditional("UNITY_EDITOR")]
-        [Conditional("DEVELOPMENT")]
+        [Conditional("KGP_DEBUG")]
         private static void WarnSystemType(Type type)
         {
             // HACK: system interfaces had been skipped
@@ -497,9 +495,7 @@ namespace RelEcs
 
         private static readonly HashSet<Type> s_checkedTypes = new();
 
-        [Conditional("DEBUG")]
-        [Conditional("UNITY_EDITOR")]
-        [Conditional("DEVELOPMENT")]
+        [Conditional("KGP_DEBUG")]
         private static void WarningIfCanBeUnmanaged(Type type)
         {
             if (!s_checkedTypes.Add(type)) return;
@@ -510,18 +506,14 @@ namespace RelEcs
             Game.Debug.LogWarning($"{type} can be changed to `struct` for performance gain");
         }
 
-        [Conditional("DEBUG")]
-        [Conditional("UNITY_EDITOR")]
-        [Conditional("DEVELOPMENT")]
+        [Conditional("KGP_DEBUG")]
         private static void WarningIfTagClass(Type type)
         {
             if (!type.IsValueType && StorageType.Create(type).IsTag)
                 Game.Debug.LogWarning($"{type} can be changed to `struct` tag");
         }
 
-        [Conditional("DEBUG")]
-        [Conditional("UNITY_EDITOR")]
-        [Conditional("DEVELOPMENT")]
+        [Conditional("KGP_DEBUG")]
         void WarningIfEmptyObject(Identity entity, List<StorageType> types)
         {
             EntityReferenceTypeComponents[entity].TryGetValue(StorageType.Create<GameObject>(), out var unityObjects);
@@ -543,9 +535,7 @@ namespace RelEcs
             }
         }
 
-        [Conditional("DEBUG")]
-        [Conditional("UNITY_EDITOR")]
-        [Conditional("DEVELOPMENT")]
+        [Conditional("KGP_DEBUG")]
         void WarningIfOverwriteComponent(Identity identity, StorageType type)
         {
             if (HasComponent(type, identity))
