@@ -11,6 +11,7 @@ namespace RelEcs
     {
         public Type GroupType { get; }
         public Type MemberType { get; }
+        public bool CreateInstance { get; set; } = true;
 
         public ComponentGroupAttribute(Type groupType, Type memberType)
         {
@@ -21,11 +22,11 @@ namespace RelEcs
 
     public static class ComponentGroups
     {
-        public static IReadOnlyDictionary<Type/*group*/, IReadOnlyList<Type>/*members*/> Groups { get; }
+        public static IReadOnlyDictionary<Type/*group*/, IReadOnlyList<(Type memberType, bool createInstance)>/*members*/> Groups { get; }
 
         static ComponentGroups()
         {
-            var groups = new Dictionary<Type, IReadOnlyList<Type>>(64);
+            var groups = new Dictionary<Type, IReadOnlyList<(Type memberType, bool createInstance)>>(64);
             foreach (var grouping in AppDomain.CurrentDomain.GetAssemblies()
                  .SelectMany(assembly =>
                  {
@@ -43,8 +44,7 @@ namespace RelEcs
             )
             {
                 groups[grouping.Key] = grouping
-                    .Select(attribute => attribute.MemberType)
-                    .Where(member => member.IsValueType) // TODO: warning? analyzer?
+                    .Select(attribute => (attribute.MemberType, attribute.CreateInstance))
                     .ToArray()
                 ;
             }

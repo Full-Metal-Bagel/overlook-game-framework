@@ -122,13 +122,14 @@ namespace RelEcs
 
         public T AddObjectComponent<T>(Identity identity, T data) where T : class
         {
+            if (data == null) throw new ArgumentNullException(nameof(data));
             if (data.GetType().IsValueType)
             {
                 AddUntypedValueComponent(identity, data);
                 return data;
             }
 
-            var components = GetOrCreateComponentsStorage(identity, data);
+            var components = GetOrCreateComponentsStorage(identity, data.GetType());
             if (components.Count == 0) components.Add(data);
             else Debug.LogError($"there's existing type of {data.GetType()}, use `{nameof(AddMultipleObjectComponent)}` to add multiple component with same type onto the entity.", data as UnityEngine.Object);
             return data;
@@ -136,16 +137,16 @@ namespace RelEcs
 
         public T AddMultipleObjectComponent<T>(Identity identity, T data) where T : class
         {
-            var storage = GetOrCreateComponentsStorage(identity, data);
+            if (data == null) throw new ArgumentNullException(nameof(data));
+            var storage = GetOrCreateComponentsStorage(identity, data.GetType());
             if (!storage.Contains(data)) storage.Add(data);
             return data;
         }
 
-        private List<object> GetOrCreateComponentsStorage(Identity identity, object data)
+        private List<object> GetOrCreateComponentsStorage(Identity identity, Type dataType)
         {
-            WarningIfTagClass(data.GetType());
-            if (data == null) throw new ArgumentNullException(nameof(data));
-            var type = StorageType.Create(data.GetType());
+            WarningIfTagClass(dataType);
+            var type = StorageType.Create(dataType);
             if (!EntityReferenceTypeComponents[identity].TryGetValue(type, out var components))
             {
                 AddComponentType(identity, type);
@@ -233,13 +234,14 @@ namespace RelEcs
             _meta[identity.Id] = new EntityMeta(identity, tableId: newTable.Id, row: newRow);
             return (newTable, newRow);
 
-            void RecursiveAddTypeAndRelatedGroupTypes(StorageType type)
+            void RecursiveAddTypeAndRelatedGroupTypes(StorageType type, bool newInstance = false)
             {
                 if (newTypes.Contains(type)) return;
                 newTypes.Add(type);
                 hasNewValueType = hasNewValueType || type is { IsValueType: true, IsTag: false };
+                if (type is { IsValueType: false } && newInstance) AddObjectComponent(identity, Activator.CreateInstance(type.Type));
                 if (!ComponentGroups.Groups.TryGetValue(type.Type, out var group)) return;
-                foreach (var memberType in group) RecursiveAddTypeAndRelatedGroupTypes(StorageType.Create(memberType));
+                foreach (var (memberType, createInstance) in group) RecursiveAddTypeAndRelatedGroupTypes(StorageType.Create(memberType), createInstance);
             }
         }
 
@@ -491,8 +493,7 @@ namespace RelEcs
         [Conditional("DEVELOPMENT")]
         private static void WarningIfCanBeUnmanaged(Type type)
         {
-            if (s_checkedTypes.Contains(type)) return;
-            s_checkedTypes.Add(type);
+            if (!s_checkedTypes.Add(type)) return;
             if (!type.IsClass) return;
             if (type.BaseType != typeof(object)) return;
             var fields = type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
