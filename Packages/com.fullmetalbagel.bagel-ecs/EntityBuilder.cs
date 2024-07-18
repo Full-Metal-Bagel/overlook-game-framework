@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
+using Game;
 using JetBrains.Annotations;
+using UnityEngine.Pool;
 
 namespace RelEcs
 {
@@ -9,9 +11,10 @@ namespace RelEcs
         public static DynamicBuilder CreateDynamic() => new();
         public void CollectTypes<TCollection>(TCollection types) where TCollection : ICollection<StorageType> { }
         public void Build(ArchetypesBuilder archetypes, Identity entityIdentity) { }
+        public void Dispose() { }
     }
 
-    public class DynamicBuilder : IComponentsBuilder
+    public sealed class DynamicBuilder : IComponentsBuilder
     {
         private readonly List<IComponentsBuilder> _builders = new();
         public ICollection<IComponentsBuilder> Builders => _builders;
@@ -24,6 +27,116 @@ namespace RelEcs
         public void Build(ArchetypesBuilder archetypes, Identity entityIdentity)
         {
             foreach (var builder in _builders) builder.Build(archetypes, entityIdentity);
+        }
+
+        public void Dispose()
+        {
+            foreach (var builder in _builders) builder.Dispose();
+        }
+
+        public void AddDynamicBuilder(IComponentsBuilder builder)
+        {
+            _builders.Add(builder);
+        }
+
+        public void AddDynamicData<T>(T data) where T : struct
+        {
+            AddDynamicBuilder(DynamicBuilderPool<T>.CreateBuilder(data));
+        }
+
+        public void AddDynamicObject(object data)
+        {
+            AddDynamicBuilder(DynamicBuilderPool.CreateBuilder(data));
+        }
+
+        static class DynamicBuilderPool<T> where T : struct
+        {
+            private static readonly ObjectPool<PooledBuilder> s_pool = new(
+                createFunc: () => new PooledBuilder(s_pool!),
+                actionOnGet: x => x.Value = default!,
+                actionOnRelease: x => x.Value = default!,
+                defaultCapacity: 4
+            );
+
+            public static PooledBuilder CreateBuilder(T value)
+            {
+                var builder = s_pool.Get();
+                builder.Value = value;
+                return builder;
+            }
+
+            public sealed class PooledBuilder : IComponentsBuilder
+            {
+                private ObjectPool<PooledBuilder>? _pool;
+                public T Value { get; set; } = default!;
+
+                public PooledBuilder(ObjectPool<PooledBuilder> pool)
+                {
+                    _pool = pool;
+                }
+
+                public void CollectTypes<TCollection>(TCollection types) where TCollection : ICollection<StorageType>
+                {
+                    types.Add(StorageType.Create<T>());
+                }
+
+                public void Build(ArchetypesBuilder archetypes, Identity entityIdentity)
+                {
+                    archetypes.SetValue(entityIdentity, Value);
+                }
+
+                public void Dispose()
+                {
+                    Debug.Assert(_pool != null);
+                    _pool?.Release(this);
+                    _pool = null;
+                }
+            }
+        }
+
+        static class DynamicBuilderPool
+        {
+            private static readonly ObjectPool<PooledBuilder> s_pool = new(
+                createFunc: () => new PooledBuilder(s_pool!),
+                actionOnGet: x => x.Value = default!,
+                actionOnRelease: x => x.Value = default!,
+                defaultCapacity: 32
+            );
+
+            public static PooledBuilder CreateBuilder(object value)
+            {
+                var builder = s_pool.Get();
+                builder.Value = value;
+                return builder;
+            }
+
+            public sealed class PooledBuilder : IComponentsBuilder
+            {
+                private ObjectPool<PooledBuilder>? _pool;
+                public object Value { get; set; } = default!;
+
+                public PooledBuilder(ObjectPool<PooledBuilder> pool)
+                {
+                    _pool = pool;
+                }
+
+                public void CollectTypes<TCollection>(TCollection types) where TCollection : ICollection<StorageType>
+                {
+                    types.Add(StorageType.Create(Value.GetType()));
+                }
+
+                public void Build(ArchetypesBuilder archetypes, Identity entityIdentity)
+                {
+                    archetypes.SetValue(entityIdentity, Value);
+                }
+
+                public void Dispose()
+                {
+                    Debug.Assert(_pool != null);
+                    _pool?.Release(this);
+                    _pool = null;
+                }
+            }
         }
     }
 
@@ -45,6 +158,11 @@ namespace RelEcs
             archetypes.SetValue(entityIdentity, Value);
             InnerBuilder.Build(archetypes, entityIdentity);
         }
+
+        public void Dispose()
+        {
+            InnerBuilder.Dispose();
+        }
     }
 
     public readonly struct ObjectComponentBuilder<TInnerBuilder> : IComponentsBuilder
@@ -63,6 +181,11 @@ namespace RelEcs
         {
             archetypes.SetValue(entityIdentity, Value);
             InnerBuilder.Build(archetypes, entityIdentity);
+        }
+
+        public void Dispose()
+        {
+            InnerBuilder.Dispose();
         }
     }
 
@@ -83,6 +206,11 @@ namespace RelEcs
         {
             Value.Build(archetypes, entityIdentity);
             InnerBuilder.Build(archetypes, entityIdentity);
+        }
+
+        public void Dispose()
+        {
+            InnerBuilder.Dispose();
         }
     }
 

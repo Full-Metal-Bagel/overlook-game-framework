@@ -1,11 +1,12 @@
+using System;
 using System.Collections.Generic;
 using Game;
-using UnityEngine;
 using Debug = Game.Debug;
+using Object = UnityEngine.Object;
 
 namespace RelEcs
 {
-    public interface IComponentsBuilder
+    public interface IComponentsBuilder : IDisposable
     {
         void CollectTypes<TCollection>(TCollection types) where TCollection : ICollection<StorageType>;
         void Build(ArchetypesBuilder archetypes, Identity entityIdentity);
