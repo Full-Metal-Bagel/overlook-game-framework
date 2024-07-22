@@ -239,7 +239,16 @@ namespace RelEcs
                 if (newTypes.Contains(type)) return;
                 newTypes.Add(type);
                 hasNewValueType = hasNewValueType || type is { IsValueType: true, IsTag: false };
-                if (type is { IsValueType: false } && newInstance) AddObjectComponent(identity, Activator.CreateInstance(type.Type));
+                if (type is { IsValueType: false } && newInstance)
+                {
+                    WarningIfTagClass(type.Type);
+                    if (!EntityReferenceTypeComponents[identity].TryGetValue(type, out var components))
+                    {
+                        components = RentComponents();
+                        EntityReferenceTypeComponents[identity][type] = components;
+                    }
+                    if (components.Count == 0) components.Add(Activator.CreateInstance(type.Type));
+                }
                 if (!ComponentGroups.Groups.TryGetValue(type.Type, out var group)) return;
                 foreach (var (memberType, createInstance) in group) RecursiveAddTypeAndRelatedGroupTypes(StorageType.Create(memberType), createInstance);
             }
