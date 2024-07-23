@@ -225,7 +225,7 @@ public class AttributesSourceGenerator : ISourceGenerator
         public NamespaceNameScope(StringBuilder builder, TypeDeclarationSyntax node)
         {
             var namespaceNode = node.Ancestors()
-                .OfType<NamespaceDeclarationSyntax>()
+                .OfType<BaseNamespaceDeclarationSyntax>()
                 .FirstOrDefault();
 
             _hasNamespace = namespaceNode != null;

@@ -49,7 +49,7 @@ public class SystemEventSourceGenerator : ISourceGenerator
                     fullTypeName = syntaxNode switch
                     {
                         TypeDeclarationSyntax type => $"{type.Identifier.Text}.{fullTypeName}",
-                        NamespaceDeclarationSyntax n => $"{n.Name}.{fullTypeName}",
+                        BaseNamespaceDeclarationSyntax n => $"{n.Name}.{fullTypeName}",
                         _ => fullTypeName
                     };
                     syntaxNode = syntaxNode.Parent;
