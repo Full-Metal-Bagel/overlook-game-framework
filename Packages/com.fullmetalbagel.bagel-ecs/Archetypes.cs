@@ -45,6 +45,8 @@ namespace RelEcs
             EntityReferenceTypeComponents
         { get; } = new();
 
+        private bool _isDisposed = false;
+
         public Archetypes()
         {
             var types = TSet.Create(s_entityType);
@@ -479,6 +481,15 @@ namespace RelEcs
 
         public void Dispose()
         {
+            if (_isDisposed) return;
+            _isDisposed = true;
+
+            foreach (var component in EntityReferenceTypeComponents.Values
+                         .SelectMany(map => map.Values)
+                         .SelectMany(components => components))
+            {
+                if (component is IDisposable disposable) disposable.Dispose();
+            }
             foreach (var table in _tables) table.Dispose();
             foreach (var query in _queries.Values) query.Mask.Dispose();
         }
