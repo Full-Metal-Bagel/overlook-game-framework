@@ -147,7 +147,7 @@ public class CustomDataNodeSourceGenerator : ISourceGenerator
                                      private FlowCanvas.FlowOutput _on = default!;
                                      private {{typeName}} _event = default!;
                                      public Type EventType => typeof({{typeName}});
-                                     private Game.GameData GameData => ((Game.EntityBlackboard)graphAgent).GameData;
+                                     private Game.GameData GameData => ((Game.IEntityGraphAgent)graphAgent).GetGameData();
 
                                      [field: UnityEngine.SerializeField, ParadoxNotion.Design.ExposeField]
                                      public bool SelfUpdate { get; private set; } = true;
@@ -205,7 +205,7 @@ public class CustomDataNodeSourceGenerator : ISourceGenerator
                                      {
                                          var e = AddValueInput<{{typeName}}>("Event");
                                          var data = AddValueInput<Game.GameData>("GameData");
-                                         AddFlowInput("Send", _ => (data.isConnected ? data.value : ((Game.EntityBlackboard)graphAgent).GameData).AppendEvent(e.value));
+                                         AddFlowInput("Send", _ => (data.isConnected ? data.value : ((Game.IEntityGraphAgent)graphAgent).GetGameData()).AppendEvent(e.value));
                                      }
                                  }
                                  """);
