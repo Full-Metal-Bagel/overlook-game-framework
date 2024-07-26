@@ -72,7 +72,7 @@ namespace Game
                 Event = @event,
                 MaxLastingFrames = lastingFrames,
 #if KGP_DEBUG
-                StackTrace = new StackTrace(),
+                StackTrace = new StackTrace(fNeedFileInfo: true),
 #endif
             };
             _events.Push(data);
