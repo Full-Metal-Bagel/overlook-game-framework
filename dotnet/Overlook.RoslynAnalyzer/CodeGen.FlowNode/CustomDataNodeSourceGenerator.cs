@@ -96,6 +96,7 @@ public class CustomDataNodeSourceGenerator : ISourceGenerator
             if (isEvent)
             {
                 GenEventReceiver(namedTypeSymbol: namedTypeSymbol, nodeName: nodeName, category: category!, typeId: typeId, typeName: typeName);
+                GenEventWaitReceiver(namedTypeSymbol: namedTypeSymbol, nodeName: nodeName, category: category!, typeId: typeId, typeName: typeName);
                 GenEventSender(nodeName: nodeName, category: category!, typeId: typeId, typeName: typeName);
             }
         }
@@ -191,6 +192,71 @@ public class CustomDataNodeSourceGenerator : ISourceGenerator
                                  }
                                  """);
         }
+
+        void GenEventWaitReceiver(INamedTypeSymbol namedTypeSymbol, string nodeName, string category, string typeId, string typeName)
+        {
+            builder.AppendLine($$"""
+                                 [ParadoxNotion.Design.Category("{{category}}")]
+                                 [ParadoxNotion.Design.Icon("Icons/NotifyIcon")]
+                                 [ParadoxNotion.Design.Color("ff5c5c")]
+                                 [ParadoxNotion.Design.Name("{{nodeName}}(WaitFor)")]
+                                 public class CustomWaitEventNode_{{typeId}} : FlowCanvas.FlowNode, ICustomEventNode<{{typeName}}>
+                                 {
+                                     private FlowCanvas.FlowOutput _on = default!;
+                                     private FlowCanvas.FlowInput _trigger = default!;
+                                     private {{typeName}} _event = default!;
+                                     public Type EventType => typeof({{typeName}});
+                                     private Game.GameData GameData => ((Game.IEntityGraphAgent)graphAgent).GetGameData();
+
+                                     [field: UnityEngine.SerializeField, ParadoxNotion.Design.ExposeField]
+                                     public bool SelfUpdate { get; private set; } = true;
+
+                                     private bool _startwait = false;
+
+                                     protected override void RegisterPorts()
+                                     {
+                                         _on = AddFlowOutput("On");
+                                         _trigger = AddFlowInput("Trigger", (f) => { _startwait = true; });
+                                         AddValueOutput("Event", () => _event);
+                                 """);
+            // Dynamically generate AddValueOutput calls for each property
+            foreach (var (type, name, guid, isReadOnly, isWriteOnly) in GetMembers(namedTypeSymbol))
+            {
+                if (isWriteOnly) continue;
+                builder!.AppendLine($"        AddValueOutput<{type!}>(name: \"{name!}\", ID: \"{guid!}\", () => _event.{name!});");
+            }
+
+            builder.AppendLine($$$"""
+                                      }
+
+                                      public void Update()
+                                      {
+                                          if ( SelfUpdate) HandleSystemEvents(GameData);
+                                      }
+
+                                      public void ManualTick(Game.GameData? data)
+                                      {
+                                          if (!SelfUpdate) HandleSystemEvents(data ?? GameData);
+                                          else Game.Debug.LogError("do not tick a self updated event node manually {{nodeName}}", graphAgent);
+                                      }
+
+                                      public void ManualInvoke({{{typeName}}} value)
+                                      {
+                                          _event = value;
+                                          _on.Call(new FlowCanvas.Flow());
+                                      }
+
+                                      private void HandleSystemEvents(GameData data)
+                                      {
+                                            if(_startwait)
+                                            {
+                                                foreach (var e in data.GetEvents<{{{typeName}}}>()) ManualInvoke(e);
+                                            }
+                                      }
+                                  }
+                                  """);
+        }
+
 
         void GenEventSender(string nodeName, string category, string typeId, string typeName)
         {
