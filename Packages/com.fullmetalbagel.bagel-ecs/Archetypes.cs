@@ -29,8 +29,7 @@ namespace RelEcs
 
     public sealed class Archetypes : IDisposable
     {
-        internal EntityMeta[] _meta = new EntityMeta[512];
-        internal readonly Queue<Identity> _unusedIds = new();
+        internal readonly Pool<EntityMeta> _meta = new(512, EntityMeta.Invalid);
         internal readonly List<Table> _tables = new();
         private readonly Dictionary<TSet, Table> _typeTableMap = new();
         // TODO: profile
@@ -55,13 +54,12 @@ namespace RelEcs
 
         public Entity Spawn()
         {
-            var identity = _unusedIds.Count > 0 ? _unusedIds.Dequeue() : new Identity(++_entityCount);
+            var identity = _meta.Add(EntityMeta.Invalid);
             var table = _tables[0];
-            var row = table.Add(identity);
-            if (_meta.Length == _entityCount) Array.Resize(ref _meta, _entityCount << 1);
-            _meta[identity.Id] = new EntityMeta(identity, table.Id, row);
+            int row = table.Add(identity);
+            _meta.Set(identity, new EntityMeta(table.Id, row));
             var entity = new Entity(identity);
-            EntityReferenceTypeComponents[identity] = new();
+            EntityReferenceTypeComponents[identity] = new Dictionary<StorageType, List<object>>();
             table.GetStorage<Entity>()[row] = entity;
             return entity;
         }
@@ -70,17 +68,15 @@ namespace RelEcs
         {
             if (!IsAlive(identity)) return;
 
-            var meta = _meta[identity.Id];
+            var meta = _meta.Get(identity);
             var table = _tables[meta.TableId];
             table.Remove(meta.Row);
-            _meta[identity.Id] = EntityMeta.Invalid;
             foreach (var objectComponents in EntityReferenceTypeComponents[identity].Values)
             {
                 ReturnComponents(objectComponents);
             }
             EntityReferenceTypeComponents[identity].Clear();
-
-            _unusedIds.Enqueue(identity with { Generation = identity.Generation + 1 });
+            _meta.Remove(identity);
         }
 
         public void BuildComponents<TBuilder>(Identity identity, TBuilder builder) where TBuilder : IComponentsBuilder
@@ -225,7 +221,7 @@ namespace RelEcs
             where TCollection : IReadOnlyList<StorageType>
         {
             ThrowIfNotAlive(identity);
-            var meta = _meta[identity.Id];
+            var meta = _meta.Get(identity);
             var oldTable = _tables[meta.TableId];
 
             using var newTypes = TSet.Create(oldTable.Types, Allocator.Temp);
@@ -244,8 +240,8 @@ namespace RelEcs
                 newTable = AddTable(persistentNewTypes, storage);
             }
 
-            var newRow = Table.MoveEntry(identity, meta.Row, oldTable, newTable);
-            _meta[identity.Id] = new EntityMeta(identity, TableId: newTable.Id, Row: newRow);
+            int newRow = Table.MoveEntry(identity, meta.Row, oldTable, newTable);
+            _meta.Set(identity, new EntityMeta(newTable.Id, newRow));
             return (newTable, newRow);
 
             void RecursiveAddTypeAndRelatedGroupTypes(StorageType type, bool newInstance = false)
@@ -277,7 +273,7 @@ namespace RelEcs
         private void RemoveComponentType(Identity identity, StorageType type)
         {
             ThrowIfNotAlive(identity);
-            var meta = _meta[identity.Id];
+            var meta = _meta.Get(identity);
             var oldTable = _tables[meta.TableId];
 
             if (!oldTable.Types.Contains(type))
@@ -295,8 +291,8 @@ namespace RelEcs
                 newTable = AddTable(persistentNewTypes, storage);
             }
 
-            var newRow = Table.MoveEntry(identity, meta.Row, oldTable, newTable);
-            _meta[identity.Id] = new EntityMeta(identity, Row: newRow, TableId: newTable.Id);
+            int newRow = Table.MoveEntry(identity, meta.Row, oldTable, newTable);
+            _meta.Set(identity, new EntityMeta(newTable.Id, newRow));
         }
 
         public unsafe Span<byte> GetComponentRawData(Identity identity, StorageType type)
@@ -305,7 +301,7 @@ namespace RelEcs
             Debug.Assert(type.Type.IsUnmanaged());
             if (type.IsTag) return Span<byte>.Empty;
 
-            var meta = _meta[identity.Id];
+            var meta = _meta.Get(identity);
             var table = _tables[meta.TableId];
             var storage = table.GetStorage(type);
             Debug.Assert(storage.GetType().GetElementType() == type.Type);
@@ -326,7 +322,7 @@ namespace RelEcs
         {
             ThrowIfNotAlive(identity);
             Debug.Assert(!StorageType.Create<T>().IsTag);
-            var meta = _meta[identity.Id];
+            var meta = _meta.Get(identity);
             var table = _tables[meta.TableId];
             return ref table.GetStorage<T>()[meta.Row];
         }
@@ -339,7 +335,7 @@ namespace RelEcs
             Debug.LogWarning($"boxing value type {type}");
             if (storageType.IsTag) return Activator.CreateInstance(type);
 
-            var meta = _meta[identity.Id];
+            var meta = _meta.Get(identity);
             var table = _tables[meta.TableId];
             return table.GetStorage(storageType).GetValue(meta.Row);
         }
@@ -356,8 +352,8 @@ namespace RelEcs
         {
             ThrowIfNotAlive(identity);
             WarnSystemType(type.Type);
-            var meta = _meta[identity.Id];
-            return meta.Identity != Identity.None && _tables[meta.TableId].TypesInHierarchy.Contains(type);
+            var meta = _meta.Get(identity);
+            return _tables[meta.TableId].TypesInHierarchy.Contains(type);
         }
 
         public T GetObjectComponent<T>(Identity identity) where T : class
@@ -433,16 +429,9 @@ namespace RelEcs
             return mask.IsMaskCompatibleWith(table.TypesInHierarchy);
         }
 
-        internal bool IsAlive(Identity identity)
-        {
-            var metaIdentity = _meta[identity.Id].Identity;
-            return metaIdentity.Generation == identity.Generation && metaIdentity != Identity.None;
-        }
+        internal bool IsAlive(Identity identity) => _meta.IsAlive(identity);
 
-        internal EntityMeta GetEntityMeta(in Identity identity)
-        {
-            return _meta[identity.Id];
-        }
+        internal EntityMeta GetEntityMeta(in Identity identity) => _meta.Get(identity);
 
         internal Table GetTable(int tableId)
         {
@@ -458,7 +447,7 @@ namespace RelEcs
         internal void GetAllValueComponents(Identity identity, ICollection<UntypedComponent> components)
         {
             ThrowIfNotAlive(identity);
-            var meta = _meta[identity.Id];
+            var meta = _meta.Get(identity);
             var table = _tables[meta.TableId];
             foreach (var (type, storage) in table.TableStorage.Storages)
             {
