@@ -52,9 +52,17 @@ namespace RelEcs
         static class DynamicBuilderPool<T> where T : struct
         {
             private static readonly ObjectPool<PooledBuilder> s_pool = new(
-                createFunc: () => new PooledBuilder(s_pool!),
-                actionOnGet: x => x.Value = default!,
-                actionOnRelease: x => x.Value = default!,
+                createFunc: () => new PooledBuilder { Pool = s_pool },
+                actionOnGet: x =>
+                {
+                    x.Pool = s_pool;
+                    x.Value = default!;
+                },
+                actionOnRelease: x =>
+                {
+                    x.Pool = null;
+                    x.Value = default!;
+                },
                 defaultCapacity: 4
             );
 
@@ -67,13 +75,8 @@ namespace RelEcs
 
             public sealed class PooledBuilder : IComponentsBuilder
             {
-                private ObjectPool<PooledBuilder>? _pool;
+                public ObjectPool<PooledBuilder>? Pool { get; set; }
                 public T Value { get; set; } = default!;
-
-                public PooledBuilder(ObjectPool<PooledBuilder> pool)
-                {
-                    _pool = pool;
-                }
 
                 public void CollectTypes<TCollection>(TCollection types) where TCollection : ICollection<StorageType>
                 {
@@ -87,9 +90,9 @@ namespace RelEcs
 
                 public void Dispose()
                 {
-                    Debug.Assert(_pool != null);
-                    _pool?.Release(this);
-                    _pool = null;
+                    Debug.Assert(Pool != null);
+                    Pool?.Release(this);
+                    Pool = null;
                 }
             }
         }
@@ -97,9 +100,17 @@ namespace RelEcs
         static class DynamicBuilderPool
         {
             private static readonly ObjectPool<PooledBuilder> s_pool = new(
-                createFunc: () => new PooledBuilder(s_pool!),
-                actionOnGet: x => x.Value = default!,
-                actionOnRelease: x => x.Value = default!,
+                createFunc: () => new PooledBuilder { Pool = s_pool },
+                actionOnGet: x =>
+                {
+                    x.Pool = s_pool;
+                    x.Value = default!;
+                },
+                actionOnRelease: x =>
+                {
+                    x.Pool = null;
+                    x.Value = default!;
+                },
                 defaultCapacity: 32
             );
 
@@ -112,13 +123,8 @@ namespace RelEcs
 
             public sealed class PooledBuilder : IComponentsBuilder
             {
-                private ObjectPool<PooledBuilder>? _pool;
+                public ObjectPool<PooledBuilder>? Pool { get; set; }
                 public object Value { get; set; } = default!;
-
-                public PooledBuilder(ObjectPool<PooledBuilder> pool)
-                {
-                    _pool = pool;
-                }
 
                 public void CollectTypes<TCollection>(TCollection types) where TCollection : ICollection<StorageType>
                 {
@@ -132,9 +138,9 @@ namespace RelEcs
 
                 public void Dispose()
                 {
-                    Debug.Assert(_pool != null);
-                    _pool?.Release(this);
-                    _pool = null;
+                    Debug.Assert(Pool != null);
+                    Pool?.Release(this);
+                    Pool = null;
                 }
             }
         }
