@@ -101,7 +101,7 @@ namespace RelEcs.Tests
             // Assuming we have a component called Position
             var entity = EntityBuilder.Create().Add(new Position()).Build(_world);
             _world.Despawn(entity);
-            Assert.That(_world.HasComponent<Position>(entity), Is.False);
+            Assert.Catch<ArgumentException>(() => _world.HasComponent<Position>(entity));
         }
 
         [Test]
