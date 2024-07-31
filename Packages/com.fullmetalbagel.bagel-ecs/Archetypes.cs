@@ -74,16 +74,18 @@ namespace RelEcs
             var table = _tables[meta.TableId];
             table.Remove(meta.Row);
             _meta[identity.Id] = EntityMeta.Invalid;
-            _unusedIds.Enqueue(identity);
             foreach (var objectComponents in EntityReferenceTypeComponents[identity].Values)
             {
                 ReturnComponents(objectComponents);
             }
             EntityReferenceTypeComponents[identity].Clear();
+
+            _unusedIds.Enqueue(identity with { Generation = identity.Generation + 1 });
         }
 
         public void BuildComponents<TBuilder>(Identity identity, TBuilder builder) where TBuilder : IComponentsBuilder
         {
+            ThrowIfNotAlive(identity);
             using var types = new PooledList<StorageType>(32);
             builder.CollectTypes(types.GetValue());
             if (types.Count == 0) return;
@@ -99,6 +101,7 @@ namespace RelEcs
 
         public void AddComponent<T>(Identity identity, T data) where T : struct
         {
+            ThrowIfNotAlive(identity);
             var type = StorageType.Create<T>();
             WarningIfOverwriteComponent(identity, type);
             var (table, row) = AddComponentType(identity, type);
@@ -111,6 +114,7 @@ namespace RelEcs
 
         public void AddUntypedValueComponent(Identity identity, object data)
         {
+            ThrowIfNotAlive(identity);
             Debug.Assert(data.GetType().IsValueType);
             var type = StorageType.Create(data.GetType());
             WarningIfOverwriteComponent(identity, type);
@@ -124,6 +128,7 @@ namespace RelEcs
 
         public T AddObjectComponent<T>(Identity identity, T data) where T : class
         {
+            ThrowIfNotAlive(identity);
             if (data == null) throw new ArgumentNullException(nameof(data));
             if (data.GetType().IsValueType)
             {
@@ -139,6 +144,7 @@ namespace RelEcs
 
         public T AddMultipleObjectComponent<T>(Identity identity, T data) where T : class
         {
+            ThrowIfNotAlive(identity);
             if (data == null) throw new ArgumentNullException(nameof(data));
             var storage = GetOrCreateComponentsStorage(identity, data.GetType());
             if (!storage.Contains(data)) storage.Add(data);
@@ -147,6 +153,7 @@ namespace RelEcs
 
         private List<object> GetOrCreateComponentsStorage(Identity identity, Type dataType)
         {
+            ThrowIfNotAlive(identity);
             WarningIfTagClass(dataType);
             var type = StorageType.Create(dataType);
             if (!EntityReferenceTypeComponents[identity].TryGetValue(type, out var components))
@@ -160,6 +167,7 @@ namespace RelEcs
 
         public void RemoveObjectComponent<T>(Identity identity, T instance) where T : class
         {
+            ThrowIfNotAlive(identity);
             var type = StorageType.Create(instance.GetType());
             if (EntityReferenceTypeComponents[identity].TryGetValue(type, out var components))
             {
@@ -170,6 +178,7 @@ namespace RelEcs
 
         public void RemoveObjectComponent<T>(Identity identity) where T : class
         {
+            ThrowIfNotAlive(identity);
             RemoveComponentType(identity, StorageType.Create<T>());
             if (EntityReferenceTypeComponents[identity].Remove(StorageType.Create<T>(), out var components))
             {
@@ -179,11 +188,13 @@ namespace RelEcs
 
         public void RemoveComponent<T>(Identity identity) where T : struct
         {
+            ThrowIfNotAlive(identity);
             RemoveComponentType(identity, StorageType.Create<T>());
         }
 
         public void RemoveComponent(Identity identity, Type type)
         {
+            ThrowIfNotAlive(identity);
             var storageType = StorageType.Create(type);
             RemoveComponentType(identity, storageType);
             if (EntityReferenceTypeComponents[identity].Remove(storageType, out var components))
@@ -213,6 +224,7 @@ namespace RelEcs
         internal (Table table, int row) AddComponentTypes<TCollection>(Identity identity, TCollection types)
             where TCollection : IReadOnlyList<StorageType>
         {
+            ThrowIfNotAlive(identity);
             var meta = _meta[identity.Id];
             var oldTable = _tables[meta.TableId];
 
@@ -233,7 +245,7 @@ namespace RelEcs
             }
 
             var newRow = Table.MoveEntry(identity, meta.Row, oldTable, newTable);
-            _meta[identity.Id] = new EntityMeta(identity, tableId: newTable.Id, row: newRow);
+            _meta[identity.Id] = new EntityMeta(identity, TableId: newTable.Id, Row: newRow);
             return (newTable, newRow);
 
             void RecursiveAddTypeAndRelatedGroupTypes(StorageType type, bool newInstance = false)
@@ -258,11 +270,13 @@ namespace RelEcs
 
         private (Table table, int row) AddComponentType(Identity identity, StorageType type)
         {
+            ThrowIfNotAlive(identity);
             return AddComponentTypes(identity, type.YieldStruct());
         }
 
         private void RemoveComponentType(Identity identity, StorageType type)
         {
+            ThrowIfNotAlive(identity);
             var meta = _meta[identity.Id];
             var oldTable = _tables[meta.TableId];
 
@@ -282,11 +296,12 @@ namespace RelEcs
             }
 
             var newRow = Table.MoveEntry(identity, meta.Row, oldTable, newTable);
-            _meta[identity.Id] = new EntityMeta(identity, row: newRow, tableId: newTable.Id);
+            _meta[identity.Id] = new EntityMeta(identity, Row: newRow, TableId: newTable.Id);
         }
 
         public unsafe Span<byte> GetComponentRawData(Identity identity, StorageType type)
         {
+            ThrowIfNotAlive(identity);
             Debug.Assert(type.Type.IsUnmanaged());
             if (type.IsTag) return Span<byte>.Empty;
 
@@ -301,6 +316,7 @@ namespace RelEcs
 
         public void SetComponentRawData(Identity identity, StorageType type, Span<byte> data)
         {
+            ThrowIfNotAlive(identity);
             var component = GetComponentRawData(identity, type);
             Debug.Assert(data.Length == component.Length);
             data.CopyTo(component);
@@ -308,6 +324,7 @@ namespace RelEcs
 
         public ref T GetComponent<T>(Identity identity) where T : struct
         {
+            ThrowIfNotAlive(identity);
             Debug.Assert(!StorageType.Create<T>().IsTag);
             var meta = _meta[identity.Id];
             var table = _tables[meta.TableId];
@@ -316,6 +333,7 @@ namespace RelEcs
 
         public object GetBoxedValueComponent(Identity identity, Type type)
         {
+            ThrowIfNotAlive(identity);
             var storageType = StorageType.Create(type);
             Debug.Assert(storageType.IsValueType);
             Debug.LogWarning($"boxing value type {type}");
@@ -328,6 +346,7 @@ namespace RelEcs
 
         public object GetObjectComponent(Identity identity, Type type)
         {
+            ThrowIfNotAlive(identity);
             TryGetObjectComponent(identity, type, out object? component);
             Debug.Assert(component != null);
             return component!;
@@ -335,6 +354,7 @@ namespace RelEcs
 
         public bool HasComponent(StorageType type, Identity identity)
         {
+            ThrowIfNotAlive(identity);
             WarnSystemType(type.Type);
             var meta = _meta[identity.Id];
             return meta.Identity != Identity.None && _tables[meta.TableId].TypesInHierarchy.Contains(type);
@@ -342,6 +362,7 @@ namespace RelEcs
 
         public T GetObjectComponent<T>(Identity identity) where T : class
         {
+            ThrowIfNotAlive(identity);
             TryGetObjectComponent(identity, out T? component);
             Debug.Assert(component != null);
             return component!;
@@ -349,6 +370,7 @@ namespace RelEcs
 
         public bool TryGetObjectComponent(Identity identity, Type type, out object? component)
         {
+            ThrowIfNotAlive(identity);
             var entityComponents = EntityReferenceTypeComponents[identity];
             var hasComponents = entityComponents.TryGetValue(StorageType.Create(type), out List<object>? value);
             if (hasComponents)
@@ -371,6 +393,7 @@ namespace RelEcs
 
         public bool TryGetObjectComponent<T>(Identity identity, out T? component) where T : class
         {
+            ThrowIfNotAlive(identity);
             var has = TryGetObjectComponent(identity, typeof(T), out object? c);
             component = (T?)c;
             return has;
@@ -412,17 +435,13 @@ namespace RelEcs
 
         internal bool IsAlive(Identity identity)
         {
-            return _meta[identity.Id].Identity != Identity.None;
+            var metaIdentity = _meta[identity.Id].Identity;
+            return metaIdentity.Generation == identity.Generation && metaIdentity != Identity.None;
         }
 
         internal EntityMeta GetEntityMeta(in Identity identity)
         {
             return _meta[identity.Id];
-        }
-
-        internal void SetEntityMeta(in Identity identity, in EntityMeta meta)
-        {
-            _meta[identity.Id] = meta;
         }
 
         internal Table GetTable(int tableId)
@@ -432,11 +451,13 @@ namespace RelEcs
 
         internal TSet GetTableTypes(Identity identity)
         {
+            ThrowIfNotAlive(identity);
             return GetTable(GetEntityMeta(identity).TableId).Types;
         }
 
         internal void GetAllValueComponents(Identity identity, ICollection<UntypedComponent> components)
         {
+            ThrowIfNotAlive(identity);
             var meta = _meta[identity.Id];
             var table = _tables[meta.TableId];
             foreach (var (type, storage) in table.TableStorage.Storages)
@@ -472,6 +493,7 @@ namespace RelEcs
 
         internal void FindObjectComponents<T>(Identity identity, ICollection<T> collection) where T : class
         {
+            ThrowIfNotAlive(identity);
             foreach (var (key, value) in EntityReferenceTypeComponents[identity])
             {
                 if (!typeof(T).IsAssignableFrom(key.Type)) continue;
@@ -551,6 +573,14 @@ namespace RelEcs
         {
             if (HasComponent(type, identity))
                 Debug.LogWarning($"overwrite component: {identity}.{type.Type.Name}");
+        }
+
+        void ThrowIfNotAlive(Identity identity)
+        {
+            if (!IsAlive(identity))
+            {
+                throw new ArgumentException($"entity {identity} is already despawned", nameof(identity));
+            }
         }
     }
 }

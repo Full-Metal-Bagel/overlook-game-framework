@@ -39,6 +39,20 @@ namespace RelEcs.Tests
         }
 
         [Test]
+        public void IsAlive_Generation()
+        {
+            var entity = _archetypes.Spawn();
+            Assert.That(_archetypes.IsAlive(entity.Identity), Is.True);
+            _archetypes.Despawn(entity.Identity);
+            Assert.That(_archetypes.IsAlive(entity.Identity), Is.False);
+            var entity2 = _archetypes.Spawn();
+            Assert.That(entity.Identity.Id, Is.EqualTo(entity2.Identity.Id));
+            Assert.That(entity.Identity.Generation + 1, Is.EqualTo(entity2.Identity.Generation));
+            Assert.That(_archetypes.IsAlive(entity.Identity), Is.False);
+            Assert.That(_archetypes.IsAlive(entity2.Identity), Is.True);
+        }
+
+        [Test]
         public void Spawn_ReturnsValidEntity()
         {
             var entity = _archetypes.Spawn();
@@ -85,7 +99,7 @@ namespace RelEcs.Tests
             _archetypes.Despawn(entity.Identity);
 
             // Assert
-            Assert.That(_archetypes.HasComponent(componentType, entity.Identity), Is.False);
+            Assert.Catch<ArgumentException>(() => _archetypes.HasComponent(componentType, entity.Identity));
         }
 
         [Test]
@@ -223,7 +237,7 @@ namespace RelEcs.Tests
         [Test]
         public void GetComponent_ThrowsWhenEntityDoesNotExist()
         {
-            var nonExistentIdentity = new Identity(); // Assuming a valid Identity instance not linked to any entity
+            var nonExistentIdentity = new Identity(1); // Assuming a valid Identity instance not linked to any entity
             var type = StorageType.Create<int>(); // Assuming a valid StorageType instance
             Assert.Catch<Exception>(() => _archetypes.GetComponent<int>(nonExistentIdentity));
         }
