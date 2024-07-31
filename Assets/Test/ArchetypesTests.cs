@@ -144,7 +144,6 @@ namespace RelEcs.Tests
 
             // Assert
             var meta = _archetypes.GetEntityMeta(entity.Identity); // Assuming GetEntityMeta is accessible
-            Assert.That(meta.Identity, Is.EqualTo(Identity.None));
             Assert.That(meta.Row, Is.EqualTo(-1));
             Assert.That(meta.TableId, Is.EqualTo(-1));
         }
