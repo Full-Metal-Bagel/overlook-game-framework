@@ -7,7 +7,7 @@ namespace RelEcs
     {
         public bool Has<T>();
         public bool Has(Type type);
-        public ref T Get<T>() where T : struct;
+        public ref T Get<T>() where T : unmanaged;
         public T GetObject<T>() where T : class;
     }
 
@@ -26,7 +26,7 @@ namespace RelEcs
             return Query.Has(Entity, type);
         }
 
-        public ref T Get<T>() where T : struct
+        public ref T Get<T>() where T : unmanaged
         {
             return ref Query.Get<T>(Entity);
         }

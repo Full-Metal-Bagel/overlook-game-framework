@@ -39,7 +39,7 @@ namespace RelEcs
             _builders.Add(builder);
         }
 
-        public void AddDynamicData<T>(T data) where T : struct
+        public void AddDynamicData<T>(T data) where T : unmanaged
         {
             AddDynamicBuilder(DynamicBuilderPool<T>.CreateBuilder(data));
         }

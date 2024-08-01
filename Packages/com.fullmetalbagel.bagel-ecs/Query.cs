@@ -50,7 +50,7 @@ namespace RelEcs
             return Archetypes.HasComponent(StorageType.Create<T>(), entity.Identity);
         }
 
-        public ref T Get<T>(Entity entity) where T : struct
+        public ref T Get<T>(Entity entity) where T : unmanaged
         {
             // Debug.Assert(Mask.HasTypesContainsAny(type => type == StorageType.Create<T>()));
             return ref Archetypes.GetComponent<T>(entity.Identity);
@@ -72,7 +72,7 @@ namespace RelEcs
             return new Enumerator(this);
         }
 
-        public WhereQuery<Query, Enumerator, QueryEntity> Where<T>(Func<T, bool> predicate) where T : struct
+        public WhereQuery<Query, Enumerator, QueryEntity> Where<T>(Func<T, bool> predicate) where T : unmanaged
         {
             return new WhereQuery<Query, Enumerator, QueryEntity>(this, entity => entity.Has<T>() && predicate(entity.Get<T>()));
         }
