@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Game;
 
@@ -15,7 +16,7 @@ namespace RelEcs
         public override string ToString() => $"{Id}({Generation})";
     }
 
-    public class Pool<T> where T : unmanaged
+    public class Pool<T>
     {
         private readonly List<T> _resources;
         private readonly List<int> _generations;
@@ -77,6 +78,51 @@ namespace RelEcs
         public bool IsAlive(Identity identity)
         {
             return _generations[identity.Id] == identity.Generation;
+        }
+
+        public Enumerator GetEnumerator()
+        {
+            return new Enumerator(this);
+        }
+
+        public ref struct Enumerator
+        {
+            private readonly Pool<T> _pool;
+            private int _currentIndex;
+
+            public Enumerator(Pool<T> pool)
+            {
+                _pool = pool;
+                _currentIndex = -1;
+            }
+
+            public T Current
+            {
+                get
+                {
+                    if (_currentIndex < 0 || _currentIndex >= _pool._resources.Count)
+                    {
+                        throw new InvalidOperationException();
+                    }
+                    return _pool._resources[_currentIndex];
+                }
+            }
+
+            public bool MoveNext()
+            {
+                if (_currentIndex < _pool._resources.Count - 1)
+                {
+                    _currentIndex += 1;
+                    return true;
+                }
+
+                return false;
+            }
+
+            public void Reset()
+            {
+                _currentIndex = -1;
+            }
         }
     }
 }
