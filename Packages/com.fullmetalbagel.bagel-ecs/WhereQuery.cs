@@ -20,7 +20,7 @@ namespace RelEcs
 
         public Enumerator GetEnumerator() => new(_enumerable.GetEnumerator(), _predicate);
 
-        public WhereQuery<WhereQuery<TEnumerable, TEnumerator, TQueryEntity>, Enumerator, TQueryEntity> Where<T>(Func<T, bool> predicate) where T : struct
+        public WhereQuery<WhereQuery<TEnumerable, TEnumerator, TQueryEntity>, Enumerator, TQueryEntity> Where<T>(Func<T, bool> predicate) where T : unmanaged
         {
             return new WhereQuery<WhereQuery<TEnumerable, TEnumerator, TQueryEntity>, Enumerator, TQueryEntity>(this, entity => entity.Has<T>() && predicate(entity.Get<T>()));
         }

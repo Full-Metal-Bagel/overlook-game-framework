@@ -38,7 +38,7 @@ namespace RelEcs
             return Archetypes.IsAlive(entity.Identity);
         }
 
-        public ref T GetComponent<T>(Entity entity) where T : struct
+        public ref T GetComponent<T>(Entity entity) where T : unmanaged
         {
             return ref Archetypes.GetComponent<T>(entity.Identity);
         }
@@ -70,7 +70,7 @@ namespace RelEcs
             return Archetypes.TryGetObjectComponent(entity.Identity, out component);
         }
 
-        public bool TryGetComponent<T>(Entity entity, out T? component) where T : struct
+        public bool TryGetComponent<T>(Entity entity, out T? component) where T : unmanaged
         {
             if (!HasComponent<T>(entity))
             {
@@ -93,7 +93,7 @@ namespace RelEcs
             return Archetypes.HasComponent(type, entity.Identity);
         }
 
-        public void AddComponent<T>(Entity entity, T component = default) where T : struct
+        public void AddComponent<T>(Entity entity, T component = default) where T : unmanaged
         {
             Archetypes.AddComponent(entity.Identity, component);
         }
@@ -113,7 +113,7 @@ namespace RelEcs
             return Archetypes.AddMultipleObjectComponent(entity.Identity, component);
         }
 
-        public void RemoveComponent<T>(Entity entity) where T : struct
+        public void RemoveComponent<T>(Entity entity) where T : unmanaged
         {
             Archetypes.RemoveComponent<T>(entity.Identity);
         }

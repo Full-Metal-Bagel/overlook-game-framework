@@ -95,7 +95,7 @@ namespace RelEcs
             WarningIfEmptyObject(identity, types);
         }
 
-        public void AddComponent<T>(Identity identity, T data) where T : struct
+        public void AddComponent<T>(Identity identity, T data) where T : unmanaged
         {
             ThrowIfNotAlive(identity);
             var type = StorageType.Create<T>();
@@ -182,7 +182,7 @@ namespace RelEcs
             }
         }
 
-        public void RemoveComponent<T>(Identity identity) where T : struct
+        public void RemoveComponent<T>(Identity identity) where T : unmanaged
         {
             ThrowIfNotAlive(identity);
             RemoveComponentType(identity, StorageType.Create<T>());
@@ -318,7 +318,7 @@ namespace RelEcs
             data.CopyTo(component);
         }
 
-        public ref T GetComponent<T>(Identity identity) where T : struct
+        public ref T GetComponent<T>(Identity identity) where T : unmanaged
         {
             ThrowIfNotAlive(identity);
             Debug.Assert(!StorageType.Create<T>().IsTag);
