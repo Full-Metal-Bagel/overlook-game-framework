@@ -18,39 +18,45 @@ namespace RelEcs
 
     public class Pool<T>
     {
-        private readonly List<T> _resources;
-        private readonly List<int> _generations;
+        private T[] _resources;
+        private int[] _generations;
         private readonly Queue<int> _unusedIds = new(32);
         private readonly T _invalidValue;
+        private int _size;
 
-        public Pool(int defaultCapacity, T invalidValue)
+        public Pool(int capacity, T invalidValue)
         {
-            _resources = new List<T>(defaultCapacity);
-            _generations = new List<int>(defaultCapacity);
+            _resources = new T[capacity];
+            _generations = new int[capacity];
             _invalidValue = invalidValue;
         }
 
         public Identity Add(T item)
         {
-            Debug.Assert(_resources.Count == _generations.Count);
+            Debug.Assert(_resources.Length == _generations.Length);
             if (_unusedIds.TryDequeue(out int index))
             {
-                Debug.Assert(index < _resources.Count);
+                Debug.Assert(index < _resources.Length);
                 _resources[index] = item;
             }
             else
             {
-                index = _resources.Count;
-                _resources.Add(item);
-                _generations.Add(1);
+                if (_size == _resources.Length)
+                {
+                    Array.Resize(ref _resources, _resources.Length << 1);
+                    Array.Resize(ref _generations, _generations.Length << 1);
+                }
+                index = _size;
+                _resources[index] = item;
+                _generations[index] = 1;
+                _size += 1;
             }
             return new Identity(index, _generations[index]);
         }
 
         public void Remove(Identity identity)
         {
-            Debug.Assert(_resources.Count == _generations.Count);
-            Debug.Assert(identity.Id < _resources.Count);
+            Debug.Assert(identity.Id < _size);
             Debug.Assert(identity.Generation == _generations[identity.Id]);
             _resources[identity.Id] = _invalidValue;
             // TODO(dan): wrap around
@@ -58,20 +64,38 @@ namespace RelEcs
             _unusedIds.Enqueue(identity.Id);
         }
 
-        public T Get(Identity identity)
+        public T this[Identity identity]
         {
-            Debug.Assert(_resources.Count == _generations.Count);
-            Debug.Assert(identity.Id < _resources.Count);
-            return identity.Generation == _generations[identity.Id] ? _resources[identity.Id] : _invalidValue;
+            get => Get(identity);
+            set => Set(identity, value);
         }
 
-        public void Set(Identity identity, T item)
+        private T Get(Identity identity)
         {
-            Debug.Assert(_resources.Count == _generations.Count);
-            Debug.Assert(identity.Id < _resources.Count);
+            Debug.Assert(identity.Id < _size);
+            // return identity.Generation == _generations[identity.Id] ? _resources[identity.Id] : _invalidValue;
+            if (identity.Generation == _generations[identity.Id])
+            {
+                return _resources[identity.Id];
+            }
+            else
+            {
+                Debug.LogError($"Invalid identity {identity}");
+                // TODO(dan): maybe return null or throw exception instead?
+                return _invalidValue;
+            }
+        }
+
+        private void Set(Identity identity, T item)
+        {
+            Debug.Assert(identity.Id < _size);
             if (identity.Generation == _generations[identity.Id])
             {
                 _resources[identity.Id] = item;
+            }
+            else
+            {
+                Debug.LogError($"Invalid identity {identity}");
             }
         }
 
@@ -100,7 +124,7 @@ namespace RelEcs
             {
                 get
                 {
-                    if (_currentIndex < 0 || _currentIndex >= _pool._resources.Count)
+                    if (_currentIndex < 0 || _currentIndex >= _pool._size)
                     {
                         throw new InvalidOperationException();
                     }
@@ -110,7 +134,7 @@ namespace RelEcs
 
             public bool MoveNext()
             {
-                if (_currentIndex < _pool._resources.Count - 1)
+                if (_currentIndex < _pool._size - 1)
                 {
                     _currentIndex += 1;
                     return true;

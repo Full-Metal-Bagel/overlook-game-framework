@@ -477,7 +477,7 @@ namespace RelEcs.Tests
             _archetypes.AddMultipleObjectComponent(entity.Identity, b);
             _archetypes.AddMultipleObjectComponent(entity.Identity, c);
             Assert.That(_archetypes.HasComponent(type, entity.Identity), Is.True);
-            var refStorage = _archetypes.EntityReferenceTypeComponents.Get(entity.Identity);
+            var refStorage = _archetypes.GetObjectComponentStorage(entity.Identity);
             Assert.That(refStorage[type], Is.EquivalentTo(new [] { a, b, c }));
             _archetypes.RemoveObjectComponent(entity.Identity, b);
             Assert.That(_archetypes.HasComponent(type, entity.Identity), Is.True);
@@ -517,7 +517,7 @@ namespace RelEcs.Tests
             _archetypes.AddMultipleObjectComponent(entity.Identity, c);
             _archetypes.RemoveObjectComponent<Foo>(entity.Identity);
             Assert.That(_archetypes.HasComponent(type, entity.Identity), Is.False);
-            Assert.That(_archetypes.EntityReferenceTypeComponents.Get(entity.Identity).ContainsKey(type), Is.False);
+            Assert.That(_archetypes.GetObjectComponentStorage(entity.Identity).ContainsKey(type), Is.False);
         }
 
         [Test]
@@ -559,7 +559,7 @@ namespace RelEcs.Tests
             _archetypes.AddMultipleObjectComponent(entity.Identity, a);
             _archetypes.RemoveObjectComponent(entity.Identity, a);
             Assert.That(_archetypes.HasComponent(type, entity.Identity), Is.False);
-            Assert.That(_archetypes.EntityReferenceTypeComponents.Get(entity.Identity).ContainsKey(type), Is.False);
+            Assert.That(_archetypes.GetObjectComponentStorage(entity.Identity).ContainsKey(type), Is.False);
         }
 
         [Test]
