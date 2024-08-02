@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using System.Reflection;
 
 namespace RelEcs
 {
@@ -7,11 +10,38 @@ namespace RelEcs
     [SuppressMessage("Design", "CA1812:Internal class that is apparently never instantiated")]
     internal static class UnmanagedTypeExtensions
     {
-        private sealed class U<T> where T : unmanaged { }
-        public static bool IsUnmanaged(this Type t)
+        // https://stackoverflow.com/a/53969223
+        private static readonly ConcurrentDictionary<Type, bool> s_memoized = new();
+        public static bool IsUnmanaged(this Type type)
         {
-            try { typeof(U<>).MakeGenericType(t); return true; }
-            catch (Exception) { return false; }
+            bool answer;
+
+            // check if we already know the answer
+            if (!s_memoized.TryGetValue(type, out answer))
+            {
+
+                if (!type.IsValueType)
+                {
+                    // not a struct -> false
+                    answer = false;
+                }
+                else if (type.IsPrimitive || type.IsPointer || type.IsEnum)
+                {
+                    // primitive, pointer or enum -> true
+                    answer = true;
+                }
+                else
+                {
+                    // otherwise check recursively
+                    answer = type
+                        .GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
+                        .All(f => IsUnmanaged(f.FieldType));
+                }
+
+                s_memoized[type] = answer;
+            }
+
+            return answer;
         }
     }
 }
