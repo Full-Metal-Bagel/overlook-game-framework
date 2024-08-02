@@ -39,8 +39,8 @@ namespace RelEcs
 
         private readonly List<List<object>> _objectComponentsPool = new(512);
         // TODO: concurrent?
-        internal Pool<Dictionary<StorageType /*component type*/, List<object>>> EntityReferenceTypeComponents { get; }
-            = new(512, new Dictionary<StorageType, List<object>>());
+        private Dictionary<StorageType, List<object>>?[] _objectStorages =
+            new Dictionary<StorageType, List<object>>?[512];
 
         private bool _isDisposed = false;
 
@@ -55,10 +55,13 @@ namespace RelEcs
             var identity = _meta.Add(EntityMeta.Invalid);
             var table = _tables[0];
             int row = table.Add(identity);
-            _meta.Set(identity, new EntityMeta(table.Id, row));
+            _meta[identity] = new EntityMeta(table.Id, row);
             var entity = new Entity(identity);
-            var refIdentity = EntityReferenceTypeComponents.Add(new Dictionary<StorageType, List<object>>());
-            Debug.Assert(identity == refIdentity);
+            if (identity.Id >= _objectStorages.Length)
+            {
+                Array.Resize(ref _objectStorages, _objectStorages.Length << 1);
+            }
+            _objectStorages[identity.Id] ??= new Dictionary<StorageType, List<object>>();
             table.GetStorage<Entity>()[row] = entity;
             return entity;
         }
@@ -67,17 +70,16 @@ namespace RelEcs
         {
             if (!IsAlive(identity)) return;
 
-            var meta = _meta.Get(identity);
+            var meta = _meta[identity];
             var table = _tables[meta.TableId];
             table.Remove(meta.Row);
-            var refStorage = EntityReferenceTypeComponents.Get(identity);
+            var refStorage = _objectStorages[identity.Id]!;
             foreach (var objectComponents in refStorage.Values)
             {
                 ReturnComponents(objectComponents);
             }
             refStorage.Clear();
             _meta.Remove(identity);
-            EntityReferenceTypeComponents.Remove(identity);
         }
 
         public void BuildComponents<TBuilder>(Identity identity, TBuilder builder) where TBuilder : IComponentsBuilder
@@ -87,7 +89,7 @@ namespace RelEcs
             builder.CollectTypes(types.GetValue());
             if (types.Count == 0) return;
             AddComponentTypes(identity, types.GetValue());
-            var referenceInstancesStorage = EntityReferenceTypeComponents.Get(identity);
+            var referenceInstancesStorage = _objectStorages[identity.Id]!;
             foreach (var type in types)
             {
                 if (!type.IsValueType) referenceInstancesStorage.TryAdd(type, RentComponents());
@@ -139,6 +141,18 @@ namespace RelEcs
             return data;
         }
 
+        public List<object>? GetObjectComponentStorage(Identity identity, StorageType type)
+        {
+            ThrowIfNotAlive(identity);
+            return _objectStorages[identity.Id]!.GetValueOrDefault(type);
+        }
+
+        public Dictionary<StorageType, List<object>> GetObjectComponentStorage(Identity identity)
+        {
+            ThrowIfNotAlive(identity);
+            return _objectStorages[identity.Id]!;
+        }
+
         public T AddMultipleObjectComponent<T>(Identity identity, T data) where T : class
         {
             ThrowIfNotAlive(identity);
@@ -153,7 +167,7 @@ namespace RelEcs
             ThrowIfNotAlive(identity);
             WarningIfTagClass(dataType);
             var type = StorageType.Create(dataType);
-            var refStorage = EntityReferenceTypeComponents.Get(identity);
+            var refStorage = _objectStorages[identity.Id]!;
             if (!refStorage.TryGetValue(type, out var components))
             {
                 AddComponentType(identity, type);
@@ -167,7 +181,7 @@ namespace RelEcs
         {
             ThrowIfNotAlive(identity);
             var type = StorageType.Create(instance.GetType());
-            var refStorage = EntityReferenceTypeComponents.Get(identity);
+            var refStorage = _objectStorages[identity.Id]!;
             if (refStorage.TryGetValue(type, out var components))
             {
                 components.Remove(instance);
@@ -179,7 +193,7 @@ namespace RelEcs
         {
             ThrowIfNotAlive(identity);
             RemoveComponentType(identity, StorageType.Create<T>());
-            var refStorage = EntityReferenceTypeComponents.Get(identity);
+            var refStorage = _objectStorages[identity.Id]!;
             if (refStorage.Remove(StorageType.Create<T>(), out var components))
             {
                 ReturnComponents(components);
@@ -197,7 +211,7 @@ namespace RelEcs
             ThrowIfNotAlive(identity);
             var storageType = StorageType.Create(type);
             RemoveComponentType(identity, storageType);
-            var refStorage = EntityReferenceTypeComponents.Get(identity);
+            var refStorage = _objectStorages[identity.Id]!;
             if (refStorage.Remove(storageType, out var components))
             {
                 ReturnComponents(components);
@@ -208,7 +222,7 @@ namespace RelEcs
         {
             if (_objectComponentsPool.Count > 0)
             {
-                var index = _objectComponentsPool.Count - 1;
+                int index = _objectComponentsPool.Count - 1;
                 var components = _objectComponentsPool[index];
                 _objectComponentsPool.RemoveAt(index);
                 return components;
@@ -226,12 +240,12 @@ namespace RelEcs
             where TCollection : IReadOnlyList<StorageType>
         {
             ThrowIfNotAlive(identity);
-            var meta = _meta.Get(identity);
+            var meta = _meta[identity];
             var oldTable = _tables[meta.TableId];
 
             using var newTypes = TSet.Create(oldTable.Types, Allocator.Temp);
-            var hasNewValueType = false;
-            for (var i = 0; i < types.Count; i++)
+            bool hasNewValueType = false;
+            for (int i = 0; i < types.Count; i++)
             {
                 var type = types[i];
                 WarningIfCanBeUnmanaged(type.Type);
@@ -246,7 +260,7 @@ namespace RelEcs
             }
 
             int newRow = Table.MoveEntry(identity, meta.Row, oldTable, newTable);
-            _meta.Set(identity, new EntityMeta(newTable.Id, newRow));
+            _meta[identity] = new EntityMeta(newTable.Id, newRow);
             return (newTable, newRow);
 
             void RecursiveAddTypeAndRelatedGroupTypes(StorageType type, bool newInstance = false)
@@ -257,7 +271,7 @@ namespace RelEcs
                 if (type is { IsValueType: false } && newInstance)
                 {
                     WarningIfTagClass(type.Type);
-                    var refStorage = EntityReferenceTypeComponents.Get(identity);
+                    var refStorage = _objectStorages[identity.Id]!;
                     if (!refStorage.TryGetValue(type, out var components))
                     {
                         components = RentComponents();
@@ -279,7 +293,7 @@ namespace RelEcs
         private void RemoveComponentType(Identity identity, StorageType type)
         {
             ThrowIfNotAlive(identity);
-            var meta = _meta.Get(identity);
+            var meta = _meta[identity];
             var oldTable = _tables[meta.TableId];
 
             if (!oldTable.Types.Contains(type))
@@ -298,7 +312,7 @@ namespace RelEcs
             }
 
             int newRow = Table.MoveEntry(identity, meta.Row, oldTable, newTable);
-            _meta.Set(identity, new EntityMeta(newTable.Id, newRow));
+            _meta[identity] = new EntityMeta(newTable.Id, newRow);
         }
 
         public unsafe Span<byte> GetComponentRawData(Identity identity, StorageType type)
@@ -307,7 +321,7 @@ namespace RelEcs
             Debug.Assert(type.Type.IsUnmanaged());
             if (type.IsTag) return Span<byte>.Empty;
 
-            var meta = _meta.Get(identity);
+            var meta = _meta[identity];
             var table = _tables[meta.TableId];
             var storage = table.GetStorage(type);
             Debug.Assert(storage.GetType().GetElementType() == type.Type);
@@ -328,7 +342,7 @@ namespace RelEcs
         {
             ThrowIfNotAlive(identity);
             Debug.Assert(!StorageType.Create<T>().IsTag);
-            var meta = _meta.Get(identity);
+            var meta = _meta[identity];
             var table = _tables[meta.TableId];
             return ref table.GetStorage<T>()[meta.Row];
         }
@@ -341,7 +355,7 @@ namespace RelEcs
             Debug.LogWarning($"boxing value type {type}");
             if (storageType.IsTag) return Activator.CreateInstance(type);
 
-            var meta = _meta.Get(identity);
+            var meta = _meta[identity];
             var table = _tables[meta.TableId];
             return table.GetStorage(storageType).GetValue(meta.Row);
         }
@@ -358,7 +372,7 @@ namespace RelEcs
         {
             ThrowIfNotAlive(identity);
             WarnSystemType(type.Type);
-            var meta = _meta.Get(identity);
+            var meta = _meta[identity];
             return _tables[meta.TableId].TypesInHierarchy.Contains(type);
         }
 
@@ -373,7 +387,7 @@ namespace RelEcs
         public bool TryGetObjectComponent(Identity identity, Type type, out object? component)
         {
             ThrowIfNotAlive(identity);
-            var entityComponents = EntityReferenceTypeComponents.Get(identity);
+            var entityComponents = _objectStorages[identity.Id]!;
             var hasComponents = entityComponents.TryGetValue(StorageType.Create(type), out List<object>? value);
             if (hasComponents)
             {
@@ -437,7 +451,7 @@ namespace RelEcs
 
         internal bool IsAlive(Identity identity) => _meta.IsAlive(identity);
 
-        internal EntityMeta GetEntityMeta(in Identity identity) => _meta.Get(identity);
+        internal EntityMeta GetEntityMeta(in Identity identity) => _meta[identity];
 
         internal Table GetTable(int tableId)
         {
@@ -453,7 +467,7 @@ namespace RelEcs
         internal void GetAllValueComponents(Identity identity, ICollection<UntypedComponent> components)
         {
             ThrowIfNotAlive(identity);
-            var meta = _meta.Get(identity);
+            var meta = _meta[identity];
             var table = _tables[meta.TableId];
             foreach (var (type, storage) in table.TableStorage.Storages)
             {
@@ -489,7 +503,7 @@ namespace RelEcs
         internal void FindObjectComponents<T>(Identity identity, ICollection<T> collection) where T : class
         {
             ThrowIfNotAlive(identity);
-            foreach (var (key, value) in EntityReferenceTypeComponents.Get(identity))
+            foreach (var (key, value) in _objectStorages[identity.Id]!)
             {
                 if (!typeof(T).IsAssignableFrom(key.Type)) continue;
                 foreach (object? obj in value) collection.Add((T)obj);
@@ -501,8 +515,13 @@ namespace RelEcs
             if (_isDisposed) return;
             _isDisposed = true;
 
-            foreach (var refStorage in EntityReferenceTypeComponents)
+            foreach (var refStorage in _objectStorages)
             {
+                if (refStorage == null)
+                {
+                    continue;
+                }
+
                 foreach (List<object> components in refStorage.Values)
                 {
                     foreach (object component in components)
@@ -552,7 +571,7 @@ namespace RelEcs
         [Conditional("KGP_DEBUG")]
         void WarningIfEmptyObject(Identity entity, List<StorageType> types)
         {
-            var refStorage = EntityReferenceTypeComponents.Get(entity);
+            var refStorage = _objectStorages[entity.Id]!;
             refStorage.TryGetValue(StorageType.Create<GameObject>(), out var unityObjects);
             var unityObject = unityObjects?.FirstOrDefault() as GameObject;
             var unityObjectName = unityObject == null ? entity.ToString() : unityObject.name;

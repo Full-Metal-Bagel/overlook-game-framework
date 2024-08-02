@@ -46,7 +46,7 @@ namespace RelEcs
         {
             Debug.Assert(typeof(TTag) is { IsGenericType: true } && typeof(TTag).GetGenericArguments().Length == 1, $"{typeof(TTag)} must be a `struct` with one and only one type parameter");
             component = null;
-            foreach (var (storageType, entityComponent) in world.Archetypes.EntityReferenceTypeComponents.Get(entity.Identity))
+            foreach (var (storageType, entityComponent) in world.Archetypes.GetObjectComponentStorage(entity.Identity))
             {
                 if (storageType.Type.IsTagTypeOf<TComponent>(typeof(TTag).GetGenericTypeDefinition()))
                 {
@@ -60,7 +60,7 @@ namespace RelEcs
         public static T? FindUnwrappedComponent<T>(this World world, Entity entity, Type tagGenericDefinition) where T : class
         {
             Debug.Assert(tagGenericDefinition.IsGenericTypeDefinition);
-            foreach (var (storageType, components) in world.Archetypes.EntityReferenceTypeComponents.Get(entity.Identity))
+            foreach (var (storageType, components) in world.Archetypes.GetObjectComponentStorage(entity.Identity))
             {
                 if (storageType.Type.IsTagTypeOf<T>(tagGenericDefinition))
                 {
@@ -83,7 +83,7 @@ namespace RelEcs
 
         public static void FindUnwrappedComponents<T>(this World world, Entity entity, ICollection<T> resultComponents, Type tagGenericDefinition) where T : class
         {
-            foreach (var (storageType, components) in world.Archetypes.EntityReferenceTypeComponents.Get(entity.Identity))
+            foreach (var (storageType, components) in world.Archetypes.GetObjectComponentStorage(entity.Identity))
             {
                 if (storageType.Type.IsTagTypeOf<T>(tagGenericDefinition))
                 {
@@ -98,7 +98,7 @@ namespace RelEcs
         public static void RemoveComponentsIncludingTagged<T>(this World world, Entity entity) where T : class
         {
             var archetypes = world.Archetypes;
-            foreach (var (storageType, _) in world.Archetypes.EntityReferenceTypeComponents.Get(entity.Identity))
+            foreach (var (storageType, _) in world.Archetypes.GetObjectComponentStorage(entity.Identity))
             {
                 var type = storageType.Type;
                 if (typeof(T).IsAssignableFrom(type))

@@ -45,5 +45,7 @@ namespace RelEcs
         {
             return !left.Equals(right);
         }
+
+        public static implicit operator Identity(Entity entity) => entity.Identity;
     }
 }
