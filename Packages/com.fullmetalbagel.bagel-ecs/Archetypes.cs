@@ -114,7 +114,6 @@ namespace RelEcs
         public void AddUntypedValueComponent(Identity identity, object data)
         {
             ThrowIfNotAlive(identity);
-            Debug.Assert(data.GetType().IsValueType);
             var type = StorageType.Create(data.GetType());
             WarningIfOverwriteComponent(identity, type);
             var (table, row) = AddComponentType(identity, type);
@@ -248,7 +247,6 @@ namespace RelEcs
             for (int i = 0; i < types.Count; i++)
             {
                 var type = types[i];
-                WarningIfCanBeUnmanaged(type.Type);
                 RecursiveAddTypeAndRelatedGroupTypes(type);
             }
 
@@ -267,6 +265,7 @@ namespace RelEcs
             {
                 if (newTypes.Contains(type)) return;
                 newTypes.Add(type);
+                WarningIfCanBeUnmanagedAndThrowIfValueTypeIsNotUnmanaged(type.Type);
                 hasNewValueType = hasNewValueType || type is { IsValueType: true, IsTag: false };
                 if (type is { IsValueType: false } && newInstance)
                 {
@@ -551,14 +550,20 @@ namespace RelEcs
         private static readonly HashSet<Type> s_checkedTypes = new();
 
         [Conditional("KGP_DEBUG")]
-        private static void WarningIfCanBeUnmanaged(Type type)
+        private static void WarningIfCanBeUnmanagedAndThrowIfValueTypeIsNotUnmanaged(Type type)
         {
             if (!s_checkedTypes.Add(type)) return;
-            if (!type.IsClass) return;
-            if (type.BaseType != typeof(object)) return;
-            var fields = type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-            if (fields.Any(fi => !fi.FieldType.IsUnmanaged())) return;
-            Game.Debug.LogWarning($"{type} can be changed to `struct` for performance gain");
+            if (type.IsClass)
+            {
+                if (type.BaseType != typeof(object)) return;
+                var fields = type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                if (fields.Any(fi => !fi.FieldType.IsUnmanaged())) return;
+                Debug.LogWarning($"{type} can be changed to `struct` for performance gain");
+            }
+            if (type.IsValueType && !type.IsUnmanaged())
+            {
+                throw new ArgumentException($"ValueType {type} should be unmanaged", nameof(type));
+            }
         }
 
         [Conditional("KGP_DEBUG")]

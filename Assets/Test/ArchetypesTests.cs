@@ -569,5 +569,17 @@ namespace RelEcs.Tests
             var (table, _) = _archetypes.AddComponentTypes(entity.Identity, new [] { StorageType.Create<object>() });
             Assert.That(table.Types.Contains(StorageType.Create<int>()), Is.True);
         }
+
+        struct ManagedStruct
+        {
+            public object Value { get; }
+        }
+
+        [Test]
+        public void AddUnmanagedValueType_Throw()
+        {
+            var entity = _archetypes.Spawn();
+            Assert.Catch(() => _archetypes.AddUntypedValueComponent(entity.Identity, new ManagedStruct()));
+        }
     }
 }
