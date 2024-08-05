@@ -10,19 +10,17 @@ using Debug = Game.Debug;
 namespace RelEcs
 {
     [DisallowDefaultConstructor]
-    public readonly struct StorageType : IComparable<StorageType>, IEquatable<StorageType>
+    public readonly record struct StorageType(ushort Value, bool IsTag) : IComparable<StorageType>
     {
-        public bool IsTag { get; }
-        public ushort Value { get; }
         public ushort TypeId => Value;
         public Type Type => TypeIdAssigner.GetType(Value);
         public bool IsValueType => Type.IsValueType;
-        public static implicit operator ushort(StorageType type) => type.TypeId;
+        public static implicit operator ushort(StorageType type) => type.Value;
 
         internal static StorageType Create(ushort typeId, Allocator _ = Allocator.Persistent)
         {
             Debug.Assert(typeId < TypeIdAssigner.Count);
-            var isTag = TypeIdAssigner.IsTag(typeId);
+            bool isTag = TypeIdAssigner.IsTag(typeId);
             return new StorageType(typeId, isTag);
         }
 
@@ -36,37 +34,19 @@ namespace RelEcs
             return TypeIdAssigner<T>.StorageType;
         }
 
-        private StorageType(ushort value, bool isTagType)
-        {
-            Value = value;
-            IsTag = isTagType;
-        }
-
         public override string ToString()
         {
-            return $"{Type}(value={IsValueType} tag={IsTag})";
+            return $"{Type}(value={Value} tag={IsTag})";
         }
 
         public void Deconstruct(out Type type, out ushort typeId)
         {
             type = Type;
-            typeId = TypeId;
+            typeId = Value;
         }
 
         public bool Equals(StorageType other) => Value == other.Value;
-        public override bool Equals(object? obj) => throw new NotSupportedException();
         public override int GetHashCode() => Value.GetHashCode();
-
-        public static bool operator ==(StorageType lhs, StorageType rhs)
-        {
-            return lhs.Value == rhs.Value;
-        }
-
-        public static bool operator !=(StorageType lhs, StorageType rhs)
-        {
-            return !(lhs == rhs);
-        }
-
         public int CompareTo(StorageType other) => Value.CompareTo(other.Value);
     }
 
@@ -115,7 +95,7 @@ namespace RelEcs
 
     internal static class TypeIdAssigner<T>
     {
-        public static ushort Id => StorageType.TypeId;
+        public static ushort Id => StorageType.Value;
         public static StorageType StorageType { get; }
 
         static TypeIdAssigner()
