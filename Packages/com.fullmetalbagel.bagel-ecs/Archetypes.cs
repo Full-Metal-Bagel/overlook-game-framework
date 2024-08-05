@@ -352,7 +352,7 @@ namespace RelEcs
             var storageType = StorageType.Create(type);
             Debug.Assert(storageType.IsValueType);
             Debug.LogWarning($"boxing value type {type}");
-            if (storageType.IsTag) return Activator.CreateInstance(type);
+            if (storageType.IsTag) return null!;
 
             var meta = _meta[identity];
             var table = _tables[meta.TableId];

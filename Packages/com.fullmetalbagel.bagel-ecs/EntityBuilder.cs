@@ -174,18 +174,18 @@ namespace RelEcs
     public readonly struct ObjectComponentBuilder<TInnerBuilder> : IComponentsBuilder
         where TInnerBuilder : IComponentsBuilder
     {
-        public object Value { get; init; }
+        public object? Value { get; init; }
         public TInnerBuilder InnerBuilder { get; init; }
 
         public void CollectTypes<TCollection>(TCollection types) where TCollection : ICollection<StorageType>
         {
-            types.Add(StorageType.Create(Value.GetType()));
+            if (Value != null) types.Add(StorageType.Create(Value.GetType()));
             InnerBuilder.CollectTypes(types);
         }
 
         public void Build(ArchetypesBuilder archetypes, Identity entityIdentity)
         {
-            archetypes.SetValue(entityIdentity, Value);
+            if (Value != null) archetypes.SetValue(entityIdentity, Value);
             InnerBuilder.Build(archetypes, entityIdentity);
         }
 
@@ -259,7 +259,7 @@ namespace RelEcs
     public static class DynamicEntityBuilderExtension
     {
         [Pure, MustUseReturnValue]
-        public static ObjectComponentBuilder<TInnerBuilder> Add<TInnerBuilder>(this TInnerBuilder builder, object component)
+        public static ObjectComponentBuilder<TInnerBuilder> Add<TInnerBuilder>(this TInnerBuilder builder, object? component)
             where TInnerBuilder : IComponentsBuilder
         {
             return new ObjectComponentBuilder<TInnerBuilder> { Value = component, InnerBuilder = builder };
