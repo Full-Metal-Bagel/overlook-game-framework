@@ -10,18 +10,18 @@ using Debug = Game.Debug;
 namespace RelEcs
 {
     [DisallowDefaultConstructor]
-    public readonly record struct StorageType(ushort Value, bool IsTag) : IComparable<StorageType>
+    public readonly record struct StorageType(ushort Value) : IComparable<StorageType>
     {
         public ushort TypeId => Value;
         public Type Type => TypeIdAssigner.GetType(Value);
         public bool IsValueType => Type.IsValueType;
+        public bool IsTag => TypeIdAssigner.IsTag(Value);
         public static implicit operator ushort(StorageType type) => type.Value;
 
         internal static StorageType Create(ushort typeId, Allocator _ = Allocator.Persistent)
         {
             Debug.Assert(typeId < TypeIdAssigner.Count);
-            bool isTag = TypeIdAssigner.IsTag(typeId);
-            return new StorageType(typeId, isTag);
+            return new StorageType(typeId);
         }
 
         public static StorageType Create(Type type, Allocator _ = Allocator.Persistent)
