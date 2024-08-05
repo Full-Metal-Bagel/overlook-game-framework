@@ -25,19 +25,9 @@ namespace RelEcs
         }
 
         public static StorageType Create(Type type, Allocator _ = Allocator.Persistent)
-        {
-            return Create(TypeIdAssigner.GetOrCreate(type));
-        }
-
-        public static StorageType Create<T>(Allocator _ = Allocator.Persistent)
-        {
-            return TypeIdAssigner<T>.StorageType;
-        }
-
-        public override string ToString()
-        {
-            return $"{Type}(value={Value} tag={IsTag})";
-        }
+            => Create(TypeIdAssigner.GetOrCreate(type));
+        public static StorageType Create<T>(Allocator _ = Allocator.Persistent) => TypeIdAssigner<T>.StorageType;
+        public override string ToString() => $"{Type}(value={Value} tag={IsTag})";
 
         public void Deconstruct(out Type type, out ushort typeId)
         {
@@ -45,8 +35,6 @@ namespace RelEcs
             typeId = Value;
         }
 
-        public bool Equals(StorageType other) => Value == other.Value;
-        public override int GetHashCode() => Value.GetHashCode();
         public int CompareTo(StorageType other) => Value.CompareTo(other.Value);
     }
 
