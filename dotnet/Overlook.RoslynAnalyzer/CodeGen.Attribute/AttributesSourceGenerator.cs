@@ -82,10 +82,7 @@ public class AttributesSourceGenerator : ISourceGenerator
         foreach (var node in validNodes)
         {
             source.AppendLine();
-            var fieldCount = node.Members.Count(IsValidMember);
-            if (fieldCount == 0) GenerateNonFieldAttribute(node);
-            else if (fieldCount == 1) GenerateSingleFieldAttribute(node);
-            else GenerateMultipleFieldAttribute(node);
+            GenerateSingleFieldAttribute(node);
         }
 
         context.AddSource("Attributes.g.cs", SourceText.From(source.ToString(), Encoding.UTF8));
@@ -94,25 +91,6 @@ public class AttributesSourceGenerator : ISourceGenerator
         bool HasConstructor(TypeDeclarationSyntax node)
         {
             return node.Members.OfType<ConstructorDeclarationSyntax>().Any();
-        }
-
-        bool IsValidMember(MemberDeclarationSyntax member)
-        {
-            return member is FieldDeclarationSyntax or PropertyDeclarationSyntax;
-        }
-
-        void GenerateNonFieldAttribute(TypeDeclarationSyntax node)
-        {
-            var typeName = node is StructDeclarationSyntax ? "struct" : "class";
-            var structName = node.Identifier.ValueText;
-            var guid = FindTypeGuid(node);
-            using var _ = new NamespaceNameScope(source, node);
-            source.AppendLine($$"""
-                              public partial {{typeName}} {{structName}}
-                              {
-                              {{AttributeBasic(structName: structName, guid: guid)}}
-                              }
-                              """);
         }
 
         string FindTypeGuid(TypeDeclarationSyntax node)
@@ -147,23 +125,13 @@ public class AttributesSourceGenerator : ISourceGenerator
                      """;
         }
 
-        (string name, string type) GetMemberNameAndType(MemberDeclarationSyntax member) => member switch
-        {
-            FieldDeclarationSyntax field => (field.Declaration.Variables.First().Identifier.Text, field.Declaration.Type.ToString()),
-            PropertyDeclarationSyntax property => (property.Identifier.ToString(), property.Type.ToString()),
-            _ => ("", "")
-        };
-
         void GenerateSingleFieldAttribute(TypeDeclarationSyntax node)
         {
             var typeName = node is StructDeclarationSyntax ? "struct" : "class";
             var structName = node.Identifier.ValueText;
             var guid = FindTypeGuid(node);
-            var (fieldName, fieldType) = node.Members
-                .Where(IsValidMember)
-                .Select(GetMemberNameAndType)
-                .Single(t => !string.IsNullOrEmpty(t.name))
-            ;
+            var property = node.Members.OfType<PropertyDeclarationSyntax>().Single(property => property.Identifier.ToString() == "Value");
+            var (fieldName, fieldType) = (property.Identifier.ToString(), property.Type.ToString());
             var constructor = HasConstructor(node) ? "" : $"public {structName}({fieldType} value) => {fieldName} = value;";
             using var _ = new NamespaceNameScope(source, node);
             source.AppendLine($$"""
@@ -179,41 +147,6 @@ public class AttributesSourceGenerator : ISourceGenerator
                               {{Equatable(structName, fieldName)}}
                               }
                               """);
-        }
-
-        void GenerateMultipleFieldAttribute(TypeDeclarationSyntax node)
-        {
-            var typeName = node is StructDeclarationSyntax ? "struct" : "class";
-            var structName = node.Identifier.ValueText;
-            var guid = FindTypeGuid(node);
-            var fieldsNameAndType = node.Members.Where(IsValidMember).Select(GetMemberNameAndType).Where(t => !string.IsNullOrEmpty(t.name)).ToArray();
-            var fieldsName = fieldsNameAndType.Select(t => t.name).ToArray();
-            var fieldsPublicName = fieldsName.Select(name => name.TrimStart('_')).Select(name => char.ToLower(name[0]) + name.Substring(1)).ToArray();
-            var fieldsType = fieldsNameAndType.Select(t => t.type).ToArray();
-            var fieldsTuple = string.Join(", ", fieldsPublicName.Zip(fieldsType, (name, type) => $"{type} {name}"));
-            var fieldsAssignment = string.Join("; ", fieldsName.Zip(fieldsPublicName, (name, publicName) => (name, publicName)).Select(t => $"{t.name} = {t.publicName}"));
-            var deconstructParameters = string.Join(",", fieldsPublicName.Zip(fieldsType, (name, type) => $"out {type} {name}"));
-            var deconstructBody = fieldsName.Zip(fieldsPublicName, (name, publicName) => $"        {publicName} = {name};");
-            var constructor = HasConstructor(node) ? "" : $"public {structName}({fieldsTuple}) {{ {fieldsAssignment}; }}";
-            using var _ = new NamespaceNameScope(source, node);
-            source.AppendLine($$"""
-                                [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1066:Implement IEquatable when overriding Object.Equals")]
-                                public partial {{typeName}} {{structName}}
-                                {
-                                {{AttributeBasic(structName: structName, guid: guid)}}
-                                    {{constructor}}
-                                    public void Deconstruct({{deconstructParameters}})
-                                    {
-                                """);
-
-            foreach (var body in deconstructBody) source.AppendLine(body);
-
-            source.AppendLine($$"""
-                                    }
-
-                                {{Equatable(structName, fieldsName)}}
-                                }
-                                """);
         }
     }
 
@@ -254,7 +187,7 @@ public class AttributesSourceGenerator : ISourceGenerator
             {
                 if (typeNode.BaseList == null) return;
                 // TODO: restrict to `Game.IAttribute` or `Game.IAttribute<T>`
-                if (typeNode.BaseList.Types.Select(type => type.ToString()).All(type => !type.Contains("IAttribute"))) return;
+                if (typeNode.BaseList.Types.Select(type => type.ToString()).All(type => !type.StartsWith("IAttribute"))) return;
                 Nodes.Add(typeNode);
             }
         }
