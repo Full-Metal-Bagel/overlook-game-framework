@@ -61,7 +61,9 @@ public class CustomMethodNodeSourceGenerator : ISourceGenerator
 
             var declaringType = methodSymbol.ContainingType.ToDisplayString();
             var methodName = methodSymbol.ToDisplayString().Substring(0, methodSymbol.ToDisplayString().IndexOf('('));
-            var methodId = methodSymbol.GetAttributes()
+            var methodAttributes = methodSymbol.GetAttributes();
+            var isPure = methodAttributes.Any(attr => attr.AttributeClass?.Name == "PureAttribute");
+            var methodId = methodAttributes
                 .FirstOrDefault(attr => attr.AttributeClass?.Name == "MethodGuidAttribute")
                 ?.ConstructorArguments.FirstOrDefault().Value?.ToString();
             var nodeName = FindArgumentValue(attribute, "Name") ?? methodDeclaration.Identifier.Text;
@@ -106,6 +108,13 @@ public class CustomMethodNodeSourceGenerator : ISourceGenerator
             {
                 builder.AppendLine($$"""
                                              AddFlowInput("Call", flow => {{callString}});
+                                         }
+                                     """);
+            }
+            else if (isPure)
+            {
+                builder.AppendLine($$"""
+                                             AddValueOutput<{{methodSymbol.ReturnType.ToDisplayString()}}>(name: "{{returnName}}", ID: "{{methodId}}", () => {{callString}});
                                          }
                                      """);
             }
