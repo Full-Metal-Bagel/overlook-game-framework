@@ -40,7 +40,7 @@ namespace RelEcs
 
     internal static class TypeIdAssigner
     {
-        public const int MaxTypeCapacity = 512;
+        public const int MaxTypeCapacity = 1024;
         private static int s_counter = -1;
         private static readonly Dictionary<Type, ushort> s_typeIdMap = new();
         private static readonly Type[] s_types = new Type[MaxTypeCapacity];
@@ -57,7 +57,7 @@ namespace RelEcs
             if (!s_typeIdMap.TryGetValue(type, out ushort typeId))
             {
                 var id = Interlocked.Increment(ref s_counter);
-                if (id is >= MaxTypeCapacity or < 0) throw new IndexOutOfRangeException();
+                if (id is >= MaxTypeCapacity or < 0) throw new IndexOutOfRangeException($"please expand the {nameof(MaxTypeCapacity)}");
                 typeId = (ushort)id;
                 s_typeIdMap.Add(type, typeId);
                 s_types[typeId] = type;
