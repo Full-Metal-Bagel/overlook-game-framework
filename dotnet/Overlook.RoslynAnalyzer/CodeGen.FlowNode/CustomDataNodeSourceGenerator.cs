@@ -243,6 +243,7 @@ public class CustomDataNodeSourceGenerator : ISourceGenerator
                                       public void ManualInvoke({{{typeName}}} value)
                                       {
                                           _event = value;
+                                          _startwait = false;
                                           _on.Call(new FlowCanvas.Flow());
                                       }
 
