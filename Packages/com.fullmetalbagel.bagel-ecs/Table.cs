@@ -43,8 +43,9 @@ namespace RelEcs
                 var type = storageType.Type;
                 foreach (var interfaceType in type.GetInterfaces())
                 {
+                    var @namespace = interfaceType.Namespace;
                     // HACK: skip system interfaces
-                    if (!interfaceType.Namespace!.StartsWith("System.", StringComparison.InvariantCultureIgnoreCase))
+                    if (string.IsNullOrEmpty(@namespace) || !@namespace.Equals(nameof(System), StringComparison.Ordinal))
                         set.Add(StorageType.Create(interfaceType));
                 }
 
