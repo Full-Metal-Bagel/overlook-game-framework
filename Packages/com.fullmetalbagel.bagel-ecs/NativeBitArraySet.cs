@@ -1,4 +1,6 @@
-﻿using System;
+﻿#if ARCHETYPE_USE_NATIVE_BIT_ARRAY
+
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -200,3 +202,5 @@ namespace RelEcs
         }
     }
 }
+
+#endif
