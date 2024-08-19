@@ -1,4 +1,6 @@
-﻿using System;
+﻿#if ARCHETYPE_USE_NATIVE_BIT_ARRAY
+
+using System;
 using System.Diagnostics.CodeAnalysis;
 using Game;
 using Unity.Collections;
@@ -99,3 +101,5 @@ namespace RelEcs
         public override int GetHashCode() => HashCode.Combine(HasTypes, NotTypes, AnyTypes, HasAny, FirstType);
     }
 }
+
+#endif
