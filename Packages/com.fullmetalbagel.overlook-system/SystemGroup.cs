@@ -65,6 +65,7 @@ namespace Game
         }
 
         [Pure, MustUseReturnValue]
+        [SuppressMessage("Design", "CA1031:Do not catch general exception types")]
         public static IEnumerable<(SystemGroup group, object system)> ResolveGroupSystems(this Container container, IReadOnlyList<SystemGroup> groups)
         {
             var systemGroupAndTypes =
@@ -78,7 +79,19 @@ namespace Game
                 Debug.Assert(systemType.GetCustomAttribute<GraphSystemAttribute>() == null || graph != null);
                 var systemContainer = container.CreateChildContainer();
                 systemContainer.Register(systemType).With(graph).AsSelf();
-                yield return (group, systemContainer.Resolve(systemType));
+                (SystemGroup group, object system) ret;
+                try
+                {
+                    ret = (group, systemContainer.Resolve(systemType));
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"Skip adding system {systemType.Name} to {nameof(SystemManager)}" +
+                                   $" because an exception was thrown during its initialization");
+                    Debug.LogException(e);
+                    continue;
+                }
+                yield return ret;
             }
         }
     }
