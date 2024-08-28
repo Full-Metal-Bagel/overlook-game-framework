@@ -129,6 +129,22 @@ namespace Game
             }
         }
 
+        public void ForEach<TData>(TData data, Action<TData, T> action)
+        {
+            foreach (var e in _events)
+            {
+                try
+                {
+                    action(data, e.Event);
+                }
+                catch
+                {
+                    Debug.LogError(e.StackTraceInfo);
+                    throw;
+                }
+            }
+        }
+
         public void ForEach(Action<T> action)
         {
             foreach (var e in _events)
