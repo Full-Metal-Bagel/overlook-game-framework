@@ -76,6 +76,12 @@ namespace Game
 
             foreach (var (group, systemType, graph) in systemGroupAndTypes)
             {
+                if (systemType == null)
+                {
+                    Debug.LogError($"Skip processing null system in group {group.Name}");
+                    continue;
+                }
+
                 Debug.Assert(systemType.GetCustomAttribute<GraphSystemAttribute>() == null || graph != null);
                 var systemContainer = container.CreateChildContainer();
                 systemContainer.Register(systemType).With(graph).AsSelf();
