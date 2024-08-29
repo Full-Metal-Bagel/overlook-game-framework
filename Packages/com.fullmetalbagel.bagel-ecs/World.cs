@@ -98,6 +98,11 @@ namespace RelEcs
             Archetypes.AddComponent(entity.Identity, component);
         }
 
+        public void AddDefaultComponent(Entity entity, Type componentType)
+        {
+            Archetypes.AddDefaultComponent(entity.Identity, componentType);
+        }
+
         public T AddObjectComponent<T>(Entity entity) where T : class, new()
         {
             return AddObjectComponent(entity, new T());
