@@ -111,6 +111,13 @@ namespace RelEcs
             }
         }
 
+        public void AddDefaultComponent(Identity identity, Type componentType)
+        {
+            ThrowIfNotAlive(identity);
+            var type = StorageType.Create(componentType);
+            AddComponentType(identity, type);
+        }
+
         public void AddUntypedValueComponent(Identity identity, object data)
         {
             ThrowIfNotAlive(identity);
