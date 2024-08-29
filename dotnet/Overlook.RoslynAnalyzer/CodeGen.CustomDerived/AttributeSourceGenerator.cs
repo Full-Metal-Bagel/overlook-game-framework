@@ -76,6 +76,7 @@ public class AttributeSourceGenerator : ISourceGenerator
                 if (typeNode.BaseList == null) return;
                 var interfaceType = typeNode.BaseList.Types.FirstOrDefault(type => type.ToString().StartsWith("IAttribute<"))?.Type as GenericNameSyntax;
                 if (interfaceType == null) return;
+                if (typeNode.AttributeLists.SelectMany(a => a.Attributes).All(attribute => attribute.Name.ToString() != "TypeGuid")) return;
                 var valueType = interfaceType.TypeArgumentList.Arguments[0];
                 AttributeTypes.Add((typeNode, valueType));
             }
