@@ -93,7 +93,7 @@ namespace Game
                 catch (Exception e)
                 {
                     Debug.LogError($"Skip adding system {systemType.Name} to {nameof(SystemManager)}" +
-                                   $" because an exception was thrown during its initialization");
+                                   " because an exception was thrown during its initialization\n" + e);
                     Debug.LogException(e);
                     continue;
                 }
