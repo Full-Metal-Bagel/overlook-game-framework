@@ -45,7 +45,7 @@ namespace RelEcs.Tests
             _archetypes.Despawn(entity.Identity);
             Assert.That(_archetypes.IsAlive(entity.Identity), Is.False);
             var entity2 = _archetypes.Spawn();
-            Assert.That(entity.Identity.Id, Is.EqualTo(entity2.Identity.Id));
+            Assert.That(entity.Identity.Index, Is.EqualTo(entity2.Identity.Index));
             Assert.That(entity.Identity.Generation + 1, Is.EqualTo(entity2.Identity.Generation));
             Assert.That(_archetypes.IsAlive(entity.Identity), Is.False);
             Assert.That(_archetypes.IsAlive(entity2.Identity), Is.True);

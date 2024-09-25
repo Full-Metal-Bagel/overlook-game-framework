@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using Game;
 
 namespace RelEcs
@@ -9,11 +10,15 @@ namespace RelEcs
         public static EntityMeta Invalid => new(-1, -1);
     }
 
-    public readonly record struct Identity(int Id, int Generation = 1)
+    [StructLayout(LayoutKind.Explicit)]
+    public readonly record struct Identity(
+        [field: FieldOffset(sizeof(int))] int Index,
+        [field: FieldOffset(0)] int Generation = 1)
     {
+        [field: FieldOffset(0)] public ulong Id { get; } = unchecked((ulong)Index) << 32 | unchecked((uint)Generation);
         public static Identity None = new(0, 0);
         public static Identity Any = new(int.MaxValue, 0);
-        public override string ToString() => $"{Id}({Generation})";
+        public override string ToString() => $"{Index}({Generation})";
     }
 
     public class Pool<T>
@@ -56,12 +61,12 @@ namespace RelEcs
 
         public void Remove(Identity identity)
         {
-            Debug.Assert(identity.Id < _size);
-            Debug.Assert(identity.Generation == _generations[identity.Id]);
-            _resources[identity.Id] = _invalidValue;
+            Debug.Assert(identity.Index < _size);
+            Debug.Assert(identity.Generation == _generations[identity.Index]);
+            _resources[identity.Index] = _invalidValue;
             // TODO(dan): wrap around
-            _generations[identity.Id] += 1;
-            _unusedIds.Enqueue(identity.Id);
+            _generations[identity.Index] += 1;
+            _unusedIds.Enqueue(identity.Index);
         }
 
         public T this[Identity identity]
@@ -72,11 +77,11 @@ namespace RelEcs
 
         private T Get(Identity identity)
         {
-            Debug.Assert(identity.Id < _size);
+            Debug.Assert(identity.Index < _size);
             // return identity.Generation == _generations[identity.Id] ? _resources[identity.Id] : _invalidValue;
-            if (identity.Generation == _generations[identity.Id])
+            if (identity.Generation == _generations[identity.Index])
             {
-                return _resources[identity.Id];
+                return _resources[identity.Index];
             }
             else
             {
@@ -88,10 +93,10 @@ namespace RelEcs
 
         private void Set(Identity identity, T item)
         {
-            Debug.Assert(identity.Id < _size);
-            if (identity.Generation == _generations[identity.Id])
+            Debug.Assert(identity.Index < _size);
+            if (identity.Generation == _generations[identity.Index])
             {
-                _resources[identity.Id] = item;
+                _resources[identity.Index] = item;
             }
             else
             {
@@ -101,7 +106,7 @@ namespace RelEcs
 
         public bool IsAlive(Identity identity)
         {
-            return _generations[identity.Id] == identity.Generation;
+            return _generations[identity.Index] == identity.Generation;
         }
 
         public Enumerator GetEnumerator()

@@ -57,11 +57,11 @@ namespace RelEcs
             int row = table.Add(identity);
             _meta[identity] = new EntityMeta(table.Id, row);
             var entity = new Entity(identity);
-            if (identity.Id >= _objectStorages.Length)
+            if (identity.Index >= _objectStorages.Length)
             {
                 Array.Resize(ref _objectStorages, _objectStorages.Length << 1);
             }
-            _objectStorages[identity.Id] ??= new Dictionary<StorageType, List<object>>();
+            _objectStorages[identity.Index] ??= new Dictionary<StorageType, List<object>>();
             table.GetStorage<Entity>()[row] = entity;
             return entity;
         }
@@ -73,7 +73,7 @@ namespace RelEcs
             var meta = _meta[identity];
             var table = _tables[meta.TableId];
             table.Remove(meta.Row);
-            var refStorage = _objectStorages[identity.Id]!;
+            var refStorage = _objectStorages[identity.Index]!;
             foreach (var objectComponents in refStorage.Values)
             {
                 ReturnComponents(objectComponents);
@@ -89,7 +89,7 @@ namespace RelEcs
             builder.CollectTypes(types.GetValue());
             if (types.Count == 0) return;
             AddComponentTypes(identity, types.GetValue());
-            var referenceInstancesStorage = _objectStorages[identity.Id]!;
+            var referenceInstancesStorage = _objectStorages[identity.Index]!;
             foreach (var type in types)
             {
                 if (!type.IsValueType) referenceInstancesStorage.TryAdd(type, RentComponents());
@@ -150,13 +150,13 @@ namespace RelEcs
         public List<object>? GetObjectComponentStorage(Identity identity, StorageType type)
         {
             ThrowIfNotAlive(identity);
-            return _objectStorages[identity.Id]!.GetValueOrDefault(type);
+            return _objectStorages[identity.Index]!.GetValueOrDefault(type);
         }
 
         public Dictionary<StorageType, List<object>> GetObjectComponentStorage(Identity identity)
         {
             ThrowIfNotAlive(identity);
-            return _objectStorages[identity.Id]!;
+            return _objectStorages[identity.Index]!;
         }
 
         public T AddMultipleObjectComponent<T>(Identity identity, T data) where T : class
@@ -173,7 +173,7 @@ namespace RelEcs
             ThrowIfNotAlive(identity);
             WarningIfTagClass(dataType);
             var type = StorageType.Create(dataType);
-            var refStorage = _objectStorages[identity.Id]!;
+            var refStorage = _objectStorages[identity.Index]!;
             if (!refStorage.TryGetValue(type, out var components))
             {
                 AddComponentType(identity, type);
@@ -187,7 +187,7 @@ namespace RelEcs
         {
             ThrowIfNotAlive(identity);
             var type = StorageType.Create(instance.GetType());
-            var refStorage = _objectStorages[identity.Id]!;
+            var refStorage = _objectStorages[identity.Index]!;
             if (refStorage.TryGetValue(type, out var components))
             {
                 components.Remove(instance);
@@ -199,7 +199,7 @@ namespace RelEcs
         {
             ThrowIfNotAlive(identity);
             RemoveComponentType(identity, StorageType.Create<T>());
-            var refStorage = _objectStorages[identity.Id]!;
+            var refStorage = _objectStorages[identity.Index]!;
             if (refStorage.Remove(StorageType.Create<T>(), out var components))
             {
                 ReturnComponents(components);
@@ -217,7 +217,7 @@ namespace RelEcs
             ThrowIfNotAlive(identity);
             var storageType = StorageType.Create(type);
             RemoveComponentType(identity, storageType);
-            var refStorage = _objectStorages[identity.Id]!;
+            var refStorage = _objectStorages[identity.Index]!;
             if (refStorage.Remove(storageType, out var components))
             {
                 ReturnComponents(components);
@@ -277,7 +277,7 @@ namespace RelEcs
                 if (type is { IsValueType: false } && newInstance)
                 {
                     WarningIfTagClass(type.Type);
-                    var refStorage = _objectStorages[identity.Id]!;
+                    var refStorage = _objectStorages[identity.Index]!;
                     if (!refStorage.TryGetValue(type, out var components))
                     {
                         components = RentComponents();
@@ -393,7 +393,7 @@ namespace RelEcs
         public bool TryGetObjectComponent(Identity identity, Type type, out object? component)
         {
             ThrowIfNotAlive(identity);
-            var entityComponents = _objectStorages[identity.Id]!;
+            var entityComponents = _objectStorages[identity.Index]!;
             var hasComponents = entityComponents.TryGetValue(StorageType.Create(type), out List<object>? value);
             if (hasComponents)
             {
@@ -509,7 +509,7 @@ namespace RelEcs
         internal void FindObjectComponents<T>(Identity identity, ICollection<T> collection) where T : class
         {
             ThrowIfNotAlive(identity);
-            foreach (var (key, value) in _objectStorages[identity.Id]!)
+            foreach (var (key, value) in _objectStorages[identity.Index]!)
             {
                 if (!typeof(T).IsAssignableFrom(key.Type)) continue;
                 foreach (object? obj in value) collection.Add((T)obj);
@@ -583,7 +583,7 @@ namespace RelEcs
         [Conditional("KGP_DEBUG")]
         void WarningIfEmptyObject(Identity entity, List<StorageType> types)
         {
-            var refStorage = _objectStorages[entity.Id]!;
+            var refStorage = _objectStorages[entity.Index]!;
             refStorage.TryGetValue(StorageType.Create<GameObject>(), out var unityObjects);
             var unityObject = unityObjects?.FirstOrDefault() as GameObject;
             var unityObjectName = unityObject == null ? entity.ToString() : unityObject.name;
