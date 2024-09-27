@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 
@@ -24,8 +25,7 @@ public class AttributesSourceGenerator : ISourceGenerator
         }
         catch (Exception ex)
         {
-            var exception = Diagnostic.Create(new DiagnosticDescriptor("AR0000", "invalid attribute", $"exception: {ex}", "ATTR", DiagnosticSeverity.Error, true), null);
-            context.ReportDiagnostic(exception);
+            ReportDiagnostic(context, DiagnosticDescriptors.ExceptionDescriptor, null, ex.ToString());
         }
     }
 
@@ -49,35 +49,33 @@ public class AttributesSourceGenerator : ISourceGenerator
             var hasPartial = node.Modifiers.Any(m => m.ValueText == "partial");
             if (string.IsNullOrEmpty(guid) && !hasPartial) continue;
 
+            var attributeName = node.Identifier.ToString();
             if (!hasPartial)
             {
-                var noPartial = Diagnostic.Create(new DiagnosticDescriptor("AR0001", "invalid attribute", $"attribute {node.Identifier.ToString()} must be `partial` for code-gen", "ATTR", DiagnosticSeverity.Error, true), node.GetLocation());
-                context.ReportDiagnostic(noPartial);
+                ReportDiagnostic(context, DiagnosticDescriptors.NoPartialDescriptor, node, attributeName);
                 continue;
             }
 
-            if (node.BaseList == null || node.BaseList.Types.All(type => !type.ToString().StartsWith("IAttribute<")))
+            if (GetAttributeValueType(node) == null)
             {
-                var invalidInterface = Diagnostic.Create(new DiagnosticDescriptor("AR0003", "invalid attribute", $"attribute {node.Identifier.ToString()} must be implement `IAttribute<T>` for code-gen", "ATTR", DiagnosticSeverity.Error, true), node.GetLocation());
-                context.ReportDiagnostic(invalidInterface);
+                ReportDiagnostic(context, DiagnosticDescriptors.InvalidInterfaceDescriptor, node, attributeName);
                 continue;
             }
 
             if (string.IsNullOrEmpty(guid))
             {
-                var noGuid = Diagnostic.Create(new DiagnosticDescriptor("AR0002", "invalid attribute", $"attribute {node.Identifier.ToString()} must have `TypeGuidAttribute` for code-gen", "ATTR", DiagnosticSeverity.Error, true), node.GetLocation());
-                context.ReportDiagnostic(noGuid);
+                ReportDiagnostic(context, DiagnosticDescriptors.NoGuidDescriptor, node, attributeName);
+                continue;
+            }
+
+            var nodeKind = node.Kind();
+            if (nodeKind is not SyntaxKind.RecordDeclaration and not SyntaxKind.RecordStructDeclaration)
+            {
+                ReportDiagnostic(context, DiagnosticDescriptors.NotRecordTypeDescriptor, node, attributeName);
                 continue;
             }
             validNodes.Add(node);
         }
-
-        var idType = validNodes.Count switch
-        {
-            <= byte.MaxValue => "byte",
-            <= ushort.MaxValue => "ushort",
-            _ => "int"
-        };
 
         foreach (var node in validNodes)
         {
@@ -88,15 +86,96 @@ public class AttributesSourceGenerator : ISourceGenerator
         context.AddSource("Attributes.g.cs", SourceText.From(source.ToString(), Encoding.UTF8));
         return;
 
-        bool HasConstructor(TypeDeclarationSyntax node)
+        static TypeSyntax? GetAttributeValueType(TypeDeclarationSyntax node)
         {
-            return node.Members.OfType<ConstructorDeclarationSyntax>().Any();
+            if (node.BaseList == null)
+                return null;
+
+            foreach (BaseTypeSyntax baseType in node.BaseList.Types)
+            {
+                if (baseType is SimpleBaseTypeSyntax { Type: GenericNameSyntax { Identifier.Text: "IAttribute" } genericName })
+                {
+                    return genericName.TypeArgumentList.Arguments.FirstOrDefault();
+                }
+            }
+            return null;
+        }
+
+        void GenerateSingleFieldAttribute(TypeDeclarationSyntax node)
+        {
+            var kind = node.Kind();
+            var typeName = kind switch
+            {
+                SyntaxKind.RecordDeclaration => "record class",
+                SyntaxKind.RecordStructDeclaration => "record struct",
+                SyntaxKind.StructDeclaration => "struct",
+                SyntaxKind.ClassDeclaration => "class",
+                _ => throw new InvalidOperationException()
+            };
+            var structName = node.Identifier.ValueText;
+            var guid = FindTypeGuid(node);
+            var attributeValueType = GetAttributeValueType(node)!;
+            using var _ = new NamespaceNameScope(source, node);
+            source.AppendLine($$"""
+                              {{string.Join(" ", node.Modifiers)}} {{typeName}} {{structName}}
+                              {
+                              {{AttributeBasic(structName: structName, guid: guid)}}
+                              """);
+            if (kind is SyntaxKind.RecordDeclaration or SyntaxKind.ClassDeclaration && !HasDefaultConstructor(node))
+            {
+                source.AppendLine($"    public {structName}() {{ }}");
+            }
+
+            if (!HasValueConstructor(node, attributeValueType))
+            {
+                source.AppendLine($"    public {structName}({attributeValueType} value) : this() => Value = value;");
+            }
+
+            if (kind is SyntaxKind.StructDeclaration or SyntaxKind.ClassDeclaration)
+            {
+                source.AppendLine(Equatable(structName));
+            }
+
+            source.AppendLine($$"""
+                                  public static implicit operator {{attributeValueType}}({{structName}} data) => data.Value;
+                                  public static explicit operator {{structName}}({{attributeValueType}} value) => new {{structName}}(value);
+                              }
+                              """);
+        }
+
+        static bool HasDefaultConstructor(TypeDeclarationSyntax node)
+        {
+            return node.Members.OfType<ConstructorDeclarationSyntax>().Any(ctor => !ctor.ParameterList.Parameters.Any());
+        }
+
+        static bool HasValueConstructor(TypeDeclarationSyntax node, TypeSyntax valueType)
+        {
+            return node.Members.OfType<ConstructorDeclarationSyntax>()
+                .Any(ctor => ctor.ParameterList.Parameters.Any(param => param.Type!.ToString() == valueType.ToString()))
+            ;
         }
 
         string FindTypeGuid(TypeDeclarationSyntax node)
         {
             var guidAttribute = node.AttributeLists.SelectMany(a => a.Attributes).SingleOrDefault(attribute => attribute.Name.ToString() == "TypeGuid");
             return guidAttribute == null ? "" : guidAttribute.ArgumentList!.Arguments[0].ToString();
+        }
+
+        static string Equatable(string structName)
+        {
+            return $$"""
+                         public bool Equals({{structName}} other) => Value.Equals(other.Value);
+                         public override bool Equals(object obj) => obj is {{structName}} other && Equals(other);
+                         public override int GetHashCode() => Value.GetHashCode();
+                         public static bool operator ==({{structName}} left, {{structName}} right)
+                         {
+                             return left.Equals(right);
+                         }
+                         public static bool operator !=({{structName}} left, {{structName}} right)
+                         {
+                             return !(left == right);
+                         }
+                     """;
         }
 
         string AttributeBasic(string structName, string guid)
@@ -106,48 +185,13 @@ public class AttributesSourceGenerator : ISourceGenerator
                          public static ushort StorageTypeId { get; } = RelEcs.StorageType.Create<{{structName}}>();
                      """;
         }
+    }
 
-        string Equatable(string structName, params string[] fields)
-        {
-            var equals = string.Join(" && ", fields.Select(name => $"{name}.Equals(other.{name})"));
-            return $$"""
-                        public bool Equals({{structName}} other) => {{equals}};
-                        public override bool Equals(object obj) => obj is {{structName}} other && Equals(other);
-                        public override int GetHashCode() => System.HashCode.Combine({{string.Join(", ", fields)}});
-                        public static bool operator ==({{structName}} left, {{structName}} right)
-                        {
-                            return left.Equals(right);
-                        }
-                        public static bool operator !=({{structName}} left, {{structName}} right)
-                        {
-                            return !(left == right);
-                        }
-                     """;
-        }
-
-        void GenerateSingleFieldAttribute(TypeDeclarationSyntax node)
-        {
-            var typeName = node is StructDeclarationSyntax ? "struct" : "class";
-            var structName = node.Identifier.ValueText;
-            var guid = FindTypeGuid(node);
-            var property = node.Members.OfType<PropertyDeclarationSyntax>().Single(property => property.Identifier.ToString() == "Value");
-            var (fieldName, fieldType) = (property.Identifier.ToString(), property.Type.ToString());
-            var constructor = HasConstructor(node) ? "" : $"public {structName}({fieldType} value) => {fieldName} = value;";
-            using var _ = new NamespaceNameScope(source, node);
-            source.AppendLine($$"""
-                              [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1066:Implement IEquatable when overriding Object.Equals")]
-                              public partial {{typeName}} {{structName}}
-                              {
-                              {{AttributeBasic(structName: structName, guid: guid)}}
-
-                                  {{constructor}}
-                                  public static implicit operator {{fieldType}}({{structName}} data) => data.{{fieldName}};
-                                  public static explicit operator {{structName}}({{fieldType}} value) => new(value);
-
-                              {{Equatable(structName, fieldName)}}
-                              }
-                              """);
-        }
+    static void ReportDiagnostic(GeneratorExecutionContext context, DiagnosticDescriptor descriptor, TypeDeclarationSyntax? node, params object[] messageArgs)
+    {
+        node ??= ((SyntaxContextReceiver)context.SyntaxReceiver!).Nodes.First();
+        var diagnostic = Diagnostic.Create(descriptor, node.GetLocation(), messageArgs);
+        context.ReportDiagnostic(diagnostic);
     }
 
     struct NamespaceNameScope : IDisposable
@@ -192,4 +236,47 @@ public class AttributesSourceGenerator : ISourceGenerator
             }
         }
     }
+}
+
+public static class DiagnosticDescriptors
+{
+    public static readonly DiagnosticDescriptor ExceptionDescriptor = new(
+        id: "AR0000",
+        title: "Invalid attribute",
+        messageFormat: "Exception: {0}",
+        category: "ATTR",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor NoPartialDescriptor = new(
+        id: "AR0001",
+        title: "Invalid attribute",
+        messageFormat: "Attribute {0} must be `partial` for code-gen",
+        category: "ATTR",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor NoGuidDescriptor = new(
+        id: "AR0002",
+        title: "Invalid attribute",
+        messageFormat: "Attribute {0} must have `TypeGuidAttribute` for code-gen",
+        category: "ATTR",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor InvalidInterfaceDescriptor = new(
+        id: "AR0003",
+        title: "Invalid attribute",
+        messageFormat: "Attribute {0} must implement `IAttribute<T>` for code-gen",
+        category: "ATTR",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor NotRecordTypeDescriptor = new(
+        id: "AR0004",
+        title: "Invalid attribute",
+        messageFormat: "Attribute {0} must be a `record` type",
+        category: "ATTR",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
 }
