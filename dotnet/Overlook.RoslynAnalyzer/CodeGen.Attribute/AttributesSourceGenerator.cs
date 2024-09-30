@@ -136,11 +136,17 @@ public class AttributesSourceGenerator : ISourceGenerator
                 source.AppendLine(Equatable(structName));
             }
 
-            source.AppendLine($$"""
-                                  public static implicit operator {{attributeValueType}}({{structName}} data) => data.Value;
-                                  public static explicit operator {{structName}}({{attributeValueType}} value) => new {{structName}}(value);
-                              }
-                              """);
+            var property = node.Members.OfType<PropertyDeclarationSyntax>().Single(property => property.Identifier.ToString() == "Value");
+            var semanticModel = context.Compilation.GetSemanticModel(node.SyntaxTree);
+            var isInterfaceField = semanticModel.GetTypeInfo(property.Type).Type?.TypeKind == TypeKind.Interface;
+            if (!isInterfaceField)
+            {
+                source.AppendLine($$"""
+                                      public static implicit operator {{attributeValueType}}({{structName}} data) => data.Value;
+                                      public static explicit operator {{structName}}({{attributeValueType}} value) => new {{structName}}(value);
+                                  """);
+            }
+            source.AppendLine("}");
         }
 
         static bool HasDefaultConstructor(TypeDeclarationSyntax node)
