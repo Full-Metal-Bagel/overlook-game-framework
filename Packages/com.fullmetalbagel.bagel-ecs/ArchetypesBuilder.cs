@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Game;
-using Debug = Game.Debug;
-using Object = UnityEngine.Object;
 
 namespace RelEcs
 {
@@ -70,13 +68,7 @@ namespace RelEcs
             }
             else
             {
-                var components = _archetypes.GetObjectComponentStorage(identity, type)!;
-                if (components.Count >= 1 && !isDuplicateAllowed)
-                {
-                    Debug.LogError($"there's existing type of {type.Type}, set `{nameof(isDuplicateAllowed)}` = `true` to add multiple component with same type onto the entity.", value as Object);
-                    return;
-                }
-                components.Add(value);
+                _archetypes.AddObjectComponentWithoutTableChanges(identity, value, isDuplicateAllowed);
             }
         }
     }

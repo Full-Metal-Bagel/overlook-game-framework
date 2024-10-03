@@ -1,9 +1,12 @@
 using System;
+using System.Collections;
 using System.Linq;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using Cathei.LinqGen;
 using Game;
 using KG;
 using Unity.Collections;
@@ -37,7 +40,9 @@ namespace RelEcs
         internal readonly Dictionary<StorageType, List<Table>> _tablesByType = new();
         private static readonly StorageType s_entityType = StorageType.Create<Entity>();
 
-        private readonly List<List<object>> _objectComponentsPool = new(512);
+        private readonly PoolAttributePools _pools = new();
+        private readonly HashSet<object> _pooledInstances = new(1024, ReferenceEqualityComparer<object>.Default);
+        private readonly IObjectPool<List<object>> _objectComponentsPool;
         // TODO: concurrent?
         private Dictionary<StorageType, List<object>>?[] _objectStorages =
             new Dictionary<StorageType, List<object>>?[512];
@@ -46,6 +51,7 @@ namespace RelEcs
 
         public Archetypes()
         {
+            _objectComponentsPool = _pools.Get(createFunc: () => new List<object>(1), initCount: 512, maxCount: 1024 * 10, expandFunc: n => n * 2, onRecycleAction: list => list.Clear());
             var types = TSet.Create(s_entityType);
             AddTable(types, new TableStorage(types));
         }
@@ -92,7 +98,10 @@ namespace RelEcs
             var referenceInstancesStorage = _objectStorages[identity.Index]!;
             foreach (var type in types)
             {
-                if (!type.IsValueType) referenceInstancesStorage.TryAdd(type, RentComponents());
+                if (!type.IsValueType && !referenceInstancesStorage.ContainsKey(type))
+                {
+                    referenceInstancesStorage.Add(type, RentComponents());
+                }
             }
             builder.Build(new ArchetypesBuilder(this), identity);
             WarningIfEmptyObject(identity, types);
@@ -131,6 +140,14 @@ namespace RelEcs
             }
         }
 
+        public T AddObjectComponent<T>(Identity identity) where T : class, new()
+        {
+            var instance = _pools.Get<T>().Rent();
+            AddObjectComponent(identity, instance);
+            _pooledInstances.Add(instance);
+            return instance;
+        }
+
         public T AddObjectComponent<T>(Identity identity, T data) where T : class
         {
             ThrowIfNotAlive(identity);
@@ -147,16 +164,36 @@ namespace RelEcs
             return data;
         }
 
-        public List<object>? GetObjectComponentStorage(Identity identity, StorageType type)
+        internal void AddObjectComponentWithoutTableChanges<T>(Identity identity, T instance, bool allowDuplicated = false) where T : class
         {
             ThrowIfNotAlive(identity);
-            return _objectStorages[identity.Index]!.GetValueOrDefault(type);
+            var type = StorageType.Create(instance.GetType());
+            var components = _objectStorages[identity.Index]!.GetValueOrDefault(type);
+            if (components.Count >= 1 && !allowDuplicated)
+            {
+                Debug.LogError($"there's existing type of {type.Type}, set `{nameof(allowDuplicated)}` = `true` to add multiple component with same type onto the entity.", instance as UnityEngine.Object);
+                return;
+            }
+            components.Add(instance);
         }
 
-        public Dictionary<StorageType, List<object>> GetObjectComponentStorage(Identity identity)
+        public IReadOnlyList<object> GetObjectComponents(Identity identity, StorageType type)
+        {
+            return _objectStorages[identity.Index]![type];
+        }
+
+        public EntityObjectComponents GetObjectComponents(Identity identity)
         {
             ThrowIfNotAlive(identity);
-            return _objectStorages[identity.Index]!;
+            return new EntityObjectComponents(_objectStorages[identity.Index]!);
+        }
+
+        public T AddMultipleObjectComponent<T>(Identity identity) where T : class, new()
+        {
+            var instance = _pools.Get<T>().Rent();
+            AddMultipleObjectComponent(identity, instance);
+            _pooledInstances.Add(instance);
+            return instance;
         }
 
         public T AddMultipleObjectComponent<T>(Identity identity, T data) where T : class
@@ -226,20 +263,19 @@ namespace RelEcs
 
         private List<object> RentComponents()
         {
-            if (_objectComponentsPool.Count > 0)
-            {
-                int index = _objectComponentsPool.Count - 1;
-                var components = _objectComponentsPool[index];
-                _objectComponentsPool.RemoveAt(index);
-                return components;
-            }
-            return new List<object>(1);
+            return _objectComponentsPool.Rent();
         }
 
         private void ReturnComponents(List<object> components)
         {
-            components.Clear();
-            _objectComponentsPool.Add(components);
+            foreach (var obj in components)
+            {
+                if (_pooledInstances.Remove(obj))
+                {
+                    _pools.Get(obj.GetType()).Recycle(obj);
+                }
+            }
+            _objectComponentsPool.Recycle(components);
         }
 
         internal (Table table, int row) AddComponentTypes<TCollection>(Identity identity, TCollection types)
@@ -283,7 +319,13 @@ namespace RelEcs
                         components = RentComponents();
                         refStorage[type] = components;
                     }
-                    if (components.Count == 0) components.Add(Activator.CreateInstance(type.Type));
+
+                    if (components.Count == 0)
+                    {
+                        var instance = _pools.Get(type.Type).Rent();
+                        _pooledInstances.Add(instance);
+                        components.Add(instance);
+                    }
                 }
                 if (!ComponentGroups.Groups.TryGetValue(type.Type, out var group)) return;
                 foreach (var (memberType, createInstance) in group) RecursiveAddTypeAndRelatedGroupTypes(StorageType.Create(memberType), createInstance);
@@ -521,8 +563,9 @@ namespace RelEcs
             if (_isDisposed) return;
             _isDisposed = true;
 
-            foreach (var refStorage in _objectStorages)
+            for (int index = 0; index < _objectStorages.Length; index++)
             {
+                var refStorage = _objectStorages[index];
                 if (refStorage == null)
                 {
                     continue;
@@ -530,21 +573,25 @@ namespace RelEcs
 
                 foreach (List<object> components in refStorage.Values)
                 {
-                    foreach (object component in components)
-                    {
-                        if (component is IDisposable disposable)
-                        {
-                            disposable.Dispose();
-                        }
-                    }
+                    _objectComponentsPool.Recycle(components);
                 }
+
+                _objectStorages[index] = null;
             }
+
+            foreach (var instance in _pooledInstances)
+            {
+                _pools.Get(instance.GetType()).Recycle(instance);
+            }
+            _pooledInstances.Clear();
+            _pools.Dispose();
 
             foreach (var table in _tables) table.Dispose();
             foreach (var query in _queries.Values) query.Mask.Dispose();
         }
 
         [Conditional("KGP_DEBUG")]
+        [SuppressMessage("ReSharper", "Unity.PerformanceCriticalCodeInvocation")]
         private static void WarnSystemType(Type type)
         {
             // HACK: system interfaces had been skipped
@@ -557,6 +604,7 @@ namespace RelEcs
         private static readonly HashSet<Type> s_checkedTypes = new();
 
         [Conditional("KGP_DEBUG")]
+        [SuppressMessage("ReSharper", "Unity.PerformanceCriticalCodeInvocation")]
         private static void WarningIfCanBeUnmanagedAndThrowIfValueTypeIsNotUnmanaged(Type type)
         {
             if (!s_checkedTypes.Add(type)) return;
@@ -574,6 +622,7 @@ namespace RelEcs
         }
 
         [Conditional("KGP_DEBUG")]
+        [SuppressMessage("ReSharper", "Unity.PerformanceCriticalCodeInvocation")]
         private static void WarningIfTagClass(Type type)
         {
             if (!type.IsValueType && StorageType.Create(type).IsTag)
@@ -581,6 +630,7 @@ namespace RelEcs
         }
 
         [Conditional("KGP_DEBUG")]
+        [SuppressMessage("ReSharper", "Unity.PerformanceCriticalCodeInvocation")]
         void WarningIfEmptyObject(Identity entity, List<StorageType> types)
         {
             var refStorage = _objectStorages[entity.Index]!;
@@ -604,6 +654,7 @@ namespace RelEcs
         }
 
         [Conditional("KGP_DEBUG")]
+        [SuppressMessage("ReSharper", "Unity.PerformanceCriticalCodeInvocation")]
         void WarningIfOverwriteComponent(Identity identity, StorageType type)
         {
             if (HasComponent(type, identity))
@@ -615,6 +666,33 @@ namespace RelEcs
             if (!IsAlive(identity))
             {
                 throw new ArgumentException($"entity {identity} is already despawned", nameof(identity));
+            }
+        }
+
+        public readonly struct EntityObjectComponents : IStructEnumerable<(StorageType type, IReadOnlyList<object> components), EntityObjectComponents.Enumerator>
+        {
+            private readonly Dictionary<StorageType, List<object>> _components;
+            public Enumerator GetEnumerator() => new(_components);
+
+            public EntityObjectComponents(Dictionary<StorageType, List<object>> components)
+            {
+                _components = components;
+            }
+
+            public struct Enumerator : IEnumerator<(StorageType type, IReadOnlyList<object> components)>
+            {
+                private Dictionary<StorageType, List<object>>.Enumerator _enumerator;
+
+                public Enumerator(Dictionary<StorageType, List<object>> components)
+                {
+                    _enumerator = components.GetEnumerator();
+                }
+
+                public bool MoveNext() => _enumerator.MoveNext();
+                public void Reset() => ((IEnumerator)_enumerator).Reset();
+                public (StorageType type, IReadOnlyList<object> components) Current => (_enumerator.Current.Key, _enumerator.Current.Value);
+                object IEnumerator.Current => Current;
+                public void Dispose() => _enumerator.Dispose();
             }
         }
     }
