@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using UnityEngine.Pool;
 
 namespace Game
 {
@@ -23,7 +22,7 @@ namespace Game
 
         public PooledDictionary(int capacity)
         {
-            _value = DictionaryPool<TKey, TValue>.Get();
+            _value = UnityEngine.Pool.DictionaryPool<TKey, TValue>.Get();
             _value.EnsureCapacity(capacity);
 #if !DISABLE_POOLED_COLLECTIONS_CHECKS
             if (!s_usingCollections.Add(_value))
@@ -49,7 +48,7 @@ namespace Game
             if (!s_usingCollections.Remove(_value))
                 throw new PooledCollectionException("the collection had been disposed already");
 #endif
-            DictionaryPool<TKey, TValue>.Release(_value);
+            UnityEngine.Pool.DictionaryPool<TKey, TValue>.Release(_value);
         }
 
         public Dictionary<TKey, TValue>.Enumerator GetEnumerator() => GetValue().GetEnumerator();

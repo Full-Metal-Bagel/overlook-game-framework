@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using UnityEngine.Pool;
 
 namespace Game
 {
@@ -12,7 +11,7 @@ namespace Game
         private static readonly HashSet<object> s_usingCollections = new();
 #endif
 
-        private static readonly ObjectPool<StringBuilder> s_pool = new(createFunc: () => new StringBuilder(), actionOnRelease: s => s.Clear());
+        private static readonly UnityEngine.Pool.ObjectPool<StringBuilder> s_pool = new(createFunc: () => new StringBuilder(), actionOnRelease: s => s.Clear());
         private readonly StringBuilder _value;
 
         public PooledStringBuilder(int capacity)

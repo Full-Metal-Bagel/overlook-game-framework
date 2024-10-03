@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using UnityEngine.Pool;
 
 namespace Game
 {
@@ -17,7 +16,7 @@ namespace Game
 
         public PooledList(int capacity)
         {
-            _value = ListPool<T>.Get();
+            _value = UnityEngine.Pool.ListPool<T>.Get();
             _value.Capacity = Math.Max(_value.Capacity, capacity);
 #if !DISABLE_POOLED_COLLECTIONS_CHECKS
             if (!s_usingCollections.Add(_value))
@@ -43,7 +42,7 @@ namespace Game
             if (!s_usingCollections.Remove(_value))
                 throw new PooledCollectionException("the collection had been disposed already");
 #endif
-            ListPool<T>.Release(_value);
+            UnityEngine.Pool.ListPool<T>.Release(_value);
         }
 
         public List<T>.Enumerator GetEnumerator() => GetValue().GetEnumerator();

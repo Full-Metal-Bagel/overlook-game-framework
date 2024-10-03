@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using UnityEngine.Pool;
 
 namespace Game
 {
@@ -14,7 +13,7 @@ namespace Game
 
         public PooledHashSet(int capacity)
         {
-            _value = HashSetPool<T>.Get();
+            _value = UnityEngine.Pool.HashSetPool<T>.Get();
             _value.EnsureCapacity(capacity);
 #if !DISABLE_POOLED_COLLECTIONS_CHECKS
             if (!s_usingCollections.Add(_value))
@@ -37,7 +36,7 @@ namespace Game
             if (!s_usingCollections.Remove(_value))
                 throw new PooledCollectionException("the collection had been disposed already");
 #endif
-            HashSetPool<T>.Release(_value);
+            UnityEngine.Pool.HashSetPool<T>.Release(_value);
         }
 
         public HashSet<T>.Enumerator GetEnumerator() => GetValue().GetEnumerator();
