@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using Game;
 using JetBrains.Annotations;
-using UnityEngine.Pool;
 
 namespace RelEcs
 {
@@ -51,7 +50,7 @@ namespace RelEcs
 
         static class DynamicBuilderPool<T> where T : struct
         {
-            private static readonly ObjectPool<PooledBuilder> s_pool = new(
+            private static readonly UnityEngine.Pool.ObjectPool<PooledBuilder> s_pool = new(
                 createFunc: () => new PooledBuilder { Pool = s_pool },
                 actionOnGet: x =>
                 {
@@ -75,7 +74,7 @@ namespace RelEcs
 
             public sealed class PooledBuilder : IComponentsBuilder
             {
-                public ObjectPool<PooledBuilder>? Pool { get; set; }
+                public UnityEngine.Pool.ObjectPool<PooledBuilder>? Pool { get; set; }
                 public T Value { get; set; } = default!;
 
                 public void CollectTypes<TCollection>(TCollection types) where TCollection : ICollection<StorageType>
@@ -99,7 +98,7 @@ namespace RelEcs
 
         static class DynamicBuilderPool
         {
-            private static readonly ObjectPool<PooledBuilder> s_pool = new(
+            private static readonly UnityEngine.Pool.ObjectPool<PooledBuilder> s_pool = new(
                 createFunc: () => new PooledBuilder { Pool = s_pool },
                 actionOnGet: x =>
                 {
@@ -123,7 +122,7 @@ namespace RelEcs
 
             public sealed class PooledBuilder : IComponentsBuilder
             {
-                public ObjectPool<PooledBuilder>? Pool { get; set; }
+                public UnityEngine.Pool.ObjectPool<PooledBuilder>? Pool { get; set; }
                 public object Value { get; set; } = default!;
 
                 public void CollectTypes<TCollection>(TCollection types) where TCollection : ICollection<StorageType>

@@ -105,12 +105,17 @@ namespace RelEcs
 
         public T AddObjectComponent<T>(Entity entity) where T : class, new()
         {
-            return AddObjectComponent(entity, new T());
+            return Archetypes.AddObjectComponent<T>(entity);
         }
 
         public T AddObjectComponent<T>(Entity entity, [DisallowNull] T component) where T : class
         {
             return Archetypes.AddObjectComponent(entity.Identity, component);
+        }
+
+        public T AddMultipleObjectComponent<T>(Entity entity) where T : class, new()
+        {
+            return Archetypes.AddMultipleObjectComponent<T>(entity.Identity);
         }
 
         public T AddMultipleObjectComponent<T>(Entity entity, [DisallowNull] T component) where T : class
@@ -140,12 +145,12 @@ namespace RelEcs
     {
         public static T AddObjectComponent<T>(this World world, Entity entity) where T : class, new()
         {
-            return world.AddObjectComponent(entity, new T());
+            return world.AddObjectComponent<T>(entity);
         }
 
         public static T AddComponent<T>(this World world, Entity entity) where T : class, new()
         {
-            return world.AddObjectComponent(entity, new T());
+            return world.AddObjectComponent<T>(entity);
         }
 
         public static T AddComponent<T>(this World world, Entity entity, [DisallowNull] T component) where T : class
