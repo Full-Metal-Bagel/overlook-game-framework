@@ -40,7 +40,7 @@ namespace RelEcs
         internal readonly Dictionary<StorageType, List<Table>> _tablesByType = new();
         private static readonly StorageType s_entityType = StorageType.Create<Entity>();
 
-        private readonly PoolAttributePools _pools = new();
+        private readonly PoolAttributeTypePoolsCache _pools = new();
         private readonly HashSet<object> _pooledInstances = new(1024, ReferenceEqualityComparer<object>.Default);
         private readonly IObjectPool<List<object>> _objectComponentsPool;
         // TODO: concurrent?
@@ -51,7 +51,7 @@ namespace RelEcs
 
         public Archetypes()
         {
-            _objectComponentsPool = _pools.Get(createFunc: () => new List<object>(1), initCount: 512, maxCount: 1024 * 10, expandFunc: n => n * 2, onRecycleAction: list => list.Clear());
+            _objectComponentsPool = _pools.GetOrCreate(createFunc: () => new List<object>(1), initCount: 512, maxCount: 1024 * 10, expandFunc: n => n * 2, onRecycleAction: list => list.Clear());
             var types = TSet.Create(s_entityType);
             AddTable(types, new TableStorage(types));
         }
@@ -142,7 +142,7 @@ namespace RelEcs
 
         public T AddObjectComponent<T>(Identity identity) where T : class, new()
         {
-            var instance = _pools.Get<T>().Rent();
+            var instance = _pools.GetOrCreate<T>().Rent();
             AddObjectComponent(identity, instance);
             _pooledInstances.Add(instance);
             return instance;
@@ -190,7 +190,7 @@ namespace RelEcs
 
         public T AddMultipleObjectComponent<T>(Identity identity) where T : class, new()
         {
-            var instance = _pools.Get<T>().Rent();
+            var instance = _pools.GetOrCreate<T>().Rent();
             AddMultipleObjectComponent(identity, instance);
             _pooledInstances.Add(instance);
             return instance;
@@ -272,7 +272,7 @@ namespace RelEcs
             {
                 if (_pooledInstances.Remove(obj))
                 {
-                    _pools.Get(obj.GetType()).Recycle(obj);
+                    _pools.GetOrCreate(obj.GetType()).Recycle(obj);
                 }
             }
             _objectComponentsPool.Recycle(components);
@@ -322,7 +322,7 @@ namespace RelEcs
 
                     if (components.Count == 0)
                     {
-                        var instance = _pools.Get(type.Type).Rent();
+                        var instance = _pools.GetOrCreate(type.Type).Rent();
                         _pooledInstances.Add(instance);
                         components.Add(instance);
                     }
@@ -581,7 +581,7 @@ namespace RelEcs
 
             foreach (var instance in _pooledInstances)
             {
-                _pools.Get(instance.GetType()).Recycle(instance);
+                _pools.GetOrCreate(instance.GetType()).Recycle(instance);
             }
             _pooledInstances.Clear();
             _pools.Dispose();
