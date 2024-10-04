@@ -15,34 +15,34 @@ public class TestPools
     [Test]
     public void Get_ReturnsSamePool_ForSameType()
     {
-        var pools = new Game.Pools();
-        var pool1 = pools.Get<TestObject>();
-        var pool2 = pools.Get<TestObject>();
+        var pools = new Game.TypePoolsCache();
+        var pool1 = pools.GetOrCreate<TestObject>();
+        var pool2 = pools.GetOrCreate<TestObject>();
         Assert.That(pool2, Is.SameAs(pool1));
     }
 
     [Test]
     public void Get_ReturnsCorrectPoolType()
     {
-        var pools = new Game.Pools();
-        var pool = pools.Get<TestObject>();
+        var pools = new Game.TypePoolsCache();
+        var pool = pools.GetOrCreate<TestObject>();
         Assert.IsInstanceOf<IObjectPool<TestObject>>(pool);
     }
 
     [Test]
     public void Get_WithType_ReturnsCorrectPool()
     {
-        var pools = new Game.Pools();
-        var pool = pools.Get(typeof(TestObject));
+        var pools = new Game.TypePoolsCache();
+        var pool = pools.GetOrCreate(typeof(TestObject));
         Assert.IsInstanceOf<IObjectPool>(pool);
     }
 
     [Test]
     public void Get_WithCustomCreateFunc_UsesProvidedFunc()
     {
-        var pools = new Game.Pools();
+        var pools = new Game.TypePoolsCache();
         var customObject = new TestObject();
-        var pool = pools.Get(() => customObject);
+        var pool = pools.GetOrCreate(() => customObject);
         var rentedObject = pool.Rent();
         Assert.That(rentedObject, Is.SameAs(customObject));
     }
@@ -50,9 +50,9 @@ public class TestPools
     [Test]
     public void Dispose_DisposesAllPools()
     {
-        var pools = new Game.Pools();
-        var pool1 = pools.Get<TestObject>();
-        var pool2 = pools.Get<TestObject2>();
+        var pools = new Game.TypePoolsCache();
+        var pool1 = pools.GetOrCreate<TestObject>();
+        var pool2 = pools.GetOrCreate<TestObject2>();
 
         pools.Dispose();
 
@@ -63,12 +63,12 @@ public class TestPools
     [Test]
     public void Get_WithCustomParameters_CreatesPoolCorrectly()
     {
-        var pools = new Game.Pools();
+        var pools = new Game.TypePoolsCache();
         int initCount = 0;
         int maxCount = 10;
         Func<int, int> expandFunc = count => count + 1;
 
-        var pool = pools.Get<TestObject>(
+        var pool = pools.GetOrCreate<TestObject>(
             onRentAction: _ => { },
             onRecycleAction: _ => { },
             initCount: initCount,
@@ -84,11 +84,11 @@ public class TestPools
     [Test]
     public void Get_WithTypeWithoutParameterlessConstructor_ThrowsArgumentException()
     {
-        var pools = new Pools();
+        var pools = new TypePoolsCache();
 
         var exception = Assert.Throws<ArgumentException>(() =>
         {
-            pools.Get(typeof(TestObjectWithoutDefaultConstructor));
+            pools.GetOrCreate(typeof(TestObjectWithoutDefaultConstructor));
         });
 
         Assert.That(exception.Message, Does.Contain("must have a parameterless constructor"));

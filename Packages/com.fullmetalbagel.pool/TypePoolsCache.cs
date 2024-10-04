@@ -7,16 +7,16 @@ using System.Reflection;
 namespace Game;
 
 [SuppressMessage("Naming", "CA1724:The type name Pools conflicts in whole or in part with the namespace name 'FluffyUnderware.Curvy.Pools'")]
-public sealed class Pools : IDisposable
+public sealed class TypePoolsCache : IDisposable
 {
     private readonly ConcurrentDictionary<Type, IObjectPool> _pools = new();
 
-    public IObjectPool Get(Type type, int initCount = 0, int maxCount = int.MaxValue, Func<int, int>? expandFunc = null)
+    public IObjectPool GetOrCreate(Type type, int initCount = 0, int maxCount = int.MaxValue, Func<int, int>? expandFunc = null)
     {
         return _pools.GetOrAdd(type, static (type, t) => CreatePool(type: type, initCount: t.initCount, maxCount: t.maxCount, expandFunc: t.expandFunc), (initCount, maxCount, expandFunc));
     }
 
-    public IObjectPool<T> Get<T>(Func<T> createFunc, Action<T>? onRentAction = null, Action<T>? onRecycleAction = null, int initCount = 0, int maxCount = int.MaxValue, Func<int, int>? expandFunc = null) where T : class
+    public IObjectPool<T> GetOrCreate<T>(Func<T> createFunc, Action<T>? onRentAction = null, Action<T>? onRecycleAction = null, int initCount = 0, int maxCount = int.MaxValue, Func<int, int>? expandFunc = null) where T : class
     {
         return (IObjectPool<T>)_pools.GetOrAdd
         (
@@ -26,9 +26,9 @@ public sealed class Pools : IDisposable
         );
     }
 
-    public IObjectPool<T> Get<T>(Action<T>? onRentAction = null, Action<T>? onRecycleAction = null, int initCount = 0, int maxCount = int.MaxValue, Func<int, int>? expandFunc = null) where T : class, new()
+    public IObjectPool<T> GetOrCreate<T>(Action<T>? onRentAction = null, Action<T>? onRecycleAction = null, int initCount = 0, int maxCount = int.MaxValue, Func<int, int>? expandFunc = null) where T : class, new()
     {
-        return Get(createFunc: static () => new T(), onRentAction: onRentAction, onRecycleAction: onRecycleAction, initCount: initCount, maxCount: maxCount, expandFunc: expandFunc);
+        return GetOrCreate(createFunc: static () => new T(), onRentAction: onRentAction, onRecycleAction: onRecycleAction, initCount: initCount, maxCount: maxCount, expandFunc: expandFunc);
     }
 
     public void Dispose()
@@ -43,7 +43,7 @@ public sealed class Pools : IDisposable
     private static IObjectPool CreatePool(Type type, int initCount, int maxCount, Func<int, int>? expandFunc)
     {
         // TODO: optimize reflection?
-        var createMethod = typeof(Pools).GetMethod(nameof(CreateTypedPoolWithNewInstance), BindingFlags.NonPublic | BindingFlags.Static);
+        var createMethod = typeof(TypePoolsCache).GetMethod(nameof(CreateTypedPoolWithNewInstance), BindingFlags.NonPublic | BindingFlags.Static);
         try
         {
             var genericMethod = createMethod.MakeGenericMethod(type);

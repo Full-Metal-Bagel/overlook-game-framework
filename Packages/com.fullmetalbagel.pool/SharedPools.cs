@@ -6,30 +6,30 @@ namespace Game;
 
 public static class SharedPools
 {
-    private static readonly PoolAttributePools s_pools = new();
+    private static readonly PoolAttributeTypePoolsCache s_pools = new();
 
     public static IObjectPool Get(Type type, int? initCount = null, int? maxCount = null, Func<int, int>? expandFunc = null)
     {
         WarnIfNoPoolAttributeAndMaxCountLessThan0(type, maxCount);
-        return s_pools.Get(type: type, initCount: initCount, maxCount: maxCount, expandFunc: expandFunc);
+        return s_pools.GetOrCreate(type: type, initCount: initCount, maxCount: maxCount, expandFunc: expandFunc);
     }
 
     public static IObjectPool<T> Get<T>(Action<T>? onRentAction = null, Action<T>? onRecycleAction = null, int? initCount = null, int? maxCount = null, Func<int, int>? expandFunc = null) where T : class, new()
     {
         WarnIfNoPoolAttributeAndMaxCountLessThan0(typeof(T), maxCount);
-        return s_pools.Get(initCount: initCount, onRentAction: onRentAction, onRecycleAction: onRecycleAction, maxCount: maxCount, expandFunc: expandFunc);
+        return s_pools.GetOrCreate(initCount: initCount, onRentAction: onRentAction, onRecycleAction: onRecycleAction, maxCount: maxCount, expandFunc: expandFunc);
     }
 
     public static IObjectPool<T> Get<T>(Func<T> createFunc, Action<T>? onRentAction = null, Action<T>? onRecycleAction = null, int? initCount = null, int? maxCount = null, Func<int, int>? expandFunc = null) where T : class
     {
         WarnIfNoPoolAttributeAndMaxCountLessThan0(typeof(T), maxCount);
-        return s_pools.Get(createFunc: createFunc, onRentAction: onRentAction, onRecycleAction: onRecycleAction, initCount: initCount, maxCount: maxCount, expandFunc: expandFunc);
+        return s_pools.GetOrCreate(createFunc: createFunc, onRentAction: onRentAction, onRecycleAction: onRecycleAction, initCount: initCount, maxCount: maxCount, expandFunc: expandFunc);
     }
 
     [Conditional("KG_DEBUG")]
     private static void WarnIfNoPoolAttributeAndMaxCountLessThan0(Type type, int? maxCount)
     {
-        if (maxCount is null or <= 0 && !PoolAttributePools.HasPoolAttribute(type))
+        if (maxCount is null or <= 0 && !PoolAttributeTypePoolsCache.HasPoolAttribute(type))
             Debug.LogWarning($"No pool attribute found for type {type.FullName}");
     }
 }
