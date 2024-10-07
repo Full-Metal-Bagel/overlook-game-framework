@@ -14,16 +14,16 @@ namespace Game
 
     public sealed class SystemEvents<T> : ISystemEvents
     {
-        // TODO: `record struct`
-        private readonly struct EventData
-        {
-            public T Event { get; init; }
-            public int MaxLastingFrames { get; init; }
-            [OptionalOnInit] public int StartFrame { get; init; }
-            [OptionalOnInit] public int SystemIndex { get; init; }
+        private readonly record struct EventData(
+            T Event
+            , int MaxLastingFrames
+            , int StartFrame = 0
+            , int SystemIndex = 0
 #if KGP_DEBUG
-            public StackTrace StackTrace { get; init; }
+            , StackTrace StackTrace = default!
 #endif
+        )
+        {
             public string StackTraceInfo
             {
                 get
@@ -68,13 +68,13 @@ namespace Game
             Debug.Assert(lastingFrames >= 1);
             Debug.Assert(Environment.CurrentManagedThreadId == _threadId.Value);
             var data = new EventData
-            {
-                Event = @event,
-                MaxLastingFrames = lastingFrames,
+            (
+                Event: @event
+                , MaxLastingFrames: lastingFrames
 #if KGP_DEBUG
-                StackTrace = new StackTrace(fNeedFileInfo: true),
+                , StackTrace: new StackTrace(fNeedFileInfo: true)
 #endif
-            };
+            );
             _events.Push(data);
             PendingCount++;
         }
@@ -87,17 +87,7 @@ namespace Game
             var pendingStart = _events.Count - PendingCount;
             for (var i = pendingStart; i < _events.Count; i++)
             {
-                var @event = _events[i];
-                _events[i] = new EventData
-                {
-                    Event = @event.Event,
-                    StartFrame = currentFrame,
-                    MaxLastingFrames = @event.MaxLastingFrames,
-                    SystemIndex = systemIndex,
-#if KGP_DEBUG
-                    StackTrace = @event.StackTrace,
-#endif
-                };
+                _events[i] = _events[i] with { StartFrame = currentFrame, SystemIndex = systemIndex };
             }
 
             var popCount = 0;
