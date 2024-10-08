@@ -1,9 +1,12 @@
 ﻿#nullable enable
 
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using Cathei.LinqGen;
 
 namespace Game
 {
@@ -12,7 +15,7 @@ namespace Game
         void Tick(int systemIndex, int currentFrame);
     }
 
-    public sealed class SystemEvents<T> : ISystemEvents
+    public sealed class SystemEvents<T> : ISystemEvents, IStructEnumerable<T, SystemEvents<T>.Enumerator>
     {
         private readonly record struct EventData(
             T Event
@@ -158,7 +161,7 @@ namespace Game
         }
 
         [SuppressMessage("Design", "CA1034:Nested types should not be visible")]
-        public ref struct Enumerator
+        public struct Enumerator : IEnumerator<T>
         {
             private readonly SystemEvents<T> _systemEvents;
             private int _currentIndex;
@@ -196,6 +199,9 @@ namespace Game
                 Debug.Assert(Environment.CurrentManagedThreadId == _systemEvents._threadId.Value);
                 _currentIndex = -1;
             }
+
+            object IEnumerator.Current => throw new NotSupportedException();
+            public void Dispose() { }
         }
     }
 }
