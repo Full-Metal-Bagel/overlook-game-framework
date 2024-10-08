@@ -1,4 +1,5 @@
-﻿using System.Collections.Immutable;
+﻿using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 
@@ -19,20 +20,20 @@ public sealed class DuplicatedGuidAnalyzer : DiagnosticAnalyzer
 
     private static void OnCompilationStart(CompilationStartAnalysisContext context)
     {
-        var typeGuidMap = new Dictionary<Guid, INamedTypeSymbol>();
-        var methodGuidMap = new Dictionary<Guid, IMethodSymbol>();
+        var typeGuidMap = new ConcurrentDictionary<Guid, INamedTypeSymbol>();
+        var methodGuidMap = new ConcurrentDictionary<Guid, IMethodSymbol>();
         context.RegisterSymbolAction(ctx => AnalyzeNamedType(ctx, typeGuidMap), SymbolKind.NamedType);
         context.RegisterSymbolAction(ctx => AnalyzeMethod(ctx, methodGuidMap), SymbolKind.Method);
     }
 
-    private static void AnalyzeNamedType(SymbolAnalysisContext context, Dictionary<Guid, INamedTypeSymbol> guidMap)
+    private static void AnalyzeNamedType(SymbolAnalysisContext context, ConcurrentDictionary<Guid, INamedTypeSymbol> guidMap)
     {
         var namedTypeSymbol = (INamedTypeSymbol)context.Symbol;
         AnalyzeGuidAttribute(context, guidMap, namedTypeSymbol, "TypeGuidAttribute",
             DiagnosticDescriptors.DuplicateTypeGuid);
     }
 
-    private static void AnalyzeMethod(SymbolAnalysisContext context, Dictionary<Guid, IMethodSymbol> guidMap)
+    private static void AnalyzeMethod(SymbolAnalysisContext context, ConcurrentDictionary<Guid, IMethodSymbol> guidMap)
     {
         var methodSymbol = (IMethodSymbol)context.Symbol;
         AnalyzeGuidAttribute(context, guidMap, methodSymbol, "MethodGuidAttribute",
@@ -41,7 +42,7 @@ public sealed class DuplicatedGuidAnalyzer : DiagnosticAnalyzer
 
     private static void AnalyzeGuidAttribute<T>(
         SymbolAnalysisContext context,
-        Dictionary<Guid, T> guidMap,
+        ConcurrentDictionary<Guid, T> guidMap,
         T symbol,
         string attributeName,
         DiagnosticDescriptor descriptor) where T : ISymbol
@@ -59,20 +60,16 @@ public sealed class DuplicatedGuidAnalyzer : DiagnosticAnalyzer
         if (!Guid.TryParse(guidString, out var guid))
             return;
 
-        if (guidMap.TryGetValue(guid, out var existingSymbol))
+        if (!guidMap.TryAdd(guid, symbol))
         {
             var diagnostic = Diagnostic.Create(
                 descriptor,
                 symbol.Locations[0],
                 symbol.Name,
-                existingSymbol.Name,
+                guidMap[guid].Name,
                 guid);
 
             context.ReportDiagnostic(diagnostic);
-        }
-        else
-        {
-            guidMap[guid] = symbol;
         }
     }
 }
