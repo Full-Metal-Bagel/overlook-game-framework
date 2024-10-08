@@ -12,7 +12,7 @@ using UnityEngine.TestTools;
 [TestFixture]
 public class ObjectPoolTests
 {
-    private class TestObject : IDisposable, IObjectPoolCallback
+    private sealed class TestObject : IDisposable, IObjectPoolCallback
     {
         public bool IsDisposed { get; private set; }
         public bool OnRentCalled { get; private set; }

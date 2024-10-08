@@ -5,9 +5,9 @@ using NUnit.Framework;
 [TestFixture]
 public class TestPools
 {
-    private class TestObject { }
-    private class TestObject2 { }
-    private class TestObjectWithoutDefaultConstructor
+    private sealed class TestObject { }
+    private sealed class TestObject2 { }
+    private sealed class TestObjectWithoutDefaultConstructor
     {
         public TestObjectWithoutDefaultConstructor(int _) { }
     }
