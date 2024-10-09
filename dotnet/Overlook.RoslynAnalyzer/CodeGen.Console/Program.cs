@@ -59,7 +59,7 @@ void OptionalInit()
 void Derived()
 {
     // Source generators should be tested using 'GeneratorDriver'.
-    var driver = CSharpGeneratorDriver.Create(new SystemEventSourceGenerator());
+    var driver = CSharpGeneratorDriver.Create(new AttributeSourceGenerator());
     var files = Directory.GetFiles(inputDirectory, "*.cs", SearchOption.AllDirectories);
 
     // We need to create a compilation with the required source code.

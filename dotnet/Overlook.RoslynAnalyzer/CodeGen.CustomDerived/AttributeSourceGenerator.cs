@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace CodeGen.CustomDerived;
@@ -50,7 +51,7 @@ public class AttributeSourceGenerator : ISourceGenerator
                     syntaxNode = syntaxNode.Parent;
                 }
 
-                var isValueType = typeDeclarationSyntax is StructDeclarationSyntax;
+                var isValueType = typeDeclarationSyntax.Kind() is SyntaxKind.StructDeclaration or SyntaxKind.RecordStructDeclaration;
                 if (valueTypeTemplate != null && isValueType)
                 {
                     builder.AppendLine(string.Format(valueTypeTemplate, typeName, fullTypeName, valueType.ToString()));
