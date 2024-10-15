@@ -42,6 +42,11 @@ namespace RelEcs
             storage[meta.Row] = value;
         }
 
+        public void CreateObject<T>(Identity identity, bool isDuplicateAllowed) where T : class, new()
+        {
+            _archetypes.CreateObjectComponentWithoutTableChanges<T>(identity, isDuplicateAllowed);
+        }
+
         public void SetValue(Identity identity, object? value)
         {
             SetValue(identity, value, false);

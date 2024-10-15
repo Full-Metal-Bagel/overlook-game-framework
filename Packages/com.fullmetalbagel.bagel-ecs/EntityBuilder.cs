@@ -170,6 +170,30 @@ namespace RelEcs
         }
     }
 
+    public readonly struct NewObjectComponentBuilder<TInnerBuilder, TValue> : IComponentsBuilder
+        where TInnerBuilder : IComponentsBuilder
+        where TValue : class, new()
+    {
+        public TInnerBuilder InnerBuilder { get; init; }
+
+        public void CollectTypes<TCollection>(TCollection types) where TCollection : ICollection<StorageType>
+        {
+            types.Add(StorageType.Create<TValue>());
+            InnerBuilder.CollectTypes(types);
+        }
+
+        public void Build(ArchetypesBuilder archetypes, Identity entityIdentity)
+        {
+            archetypes.CreateObject<TValue>(entityIdentity, isDuplicateAllowed: false);
+            InnerBuilder.Build(archetypes, entityIdentity);
+        }
+
+        public void Dispose()
+        {
+            InnerBuilder.Dispose();
+        }
+    }
+
     public readonly struct ObjectComponentBuilder<TInnerBuilder> : IComponentsBuilder
         where TInnerBuilder : IComponentsBuilder
     {
@@ -257,6 +281,14 @@ namespace RelEcs
 
     public static class DynamicEntityBuilderExtension
     {
+        [Pure, MustUseReturnValue]
+        public static NewObjectComponentBuilder<TInnerBuilder, TValue> Create<TInnerBuilder, TValue>(this TInnerBuilder builder, TValue? component)
+            where TInnerBuilder : IComponentsBuilder
+            where TValue : class, new()
+        {
+            return new NewObjectComponentBuilder<TInnerBuilder, TValue> { InnerBuilder = builder };
+        }
+
         [Pure, MustUseReturnValue]
         public static ObjectComponentBuilder<TInnerBuilder> Add<TInnerBuilder>(this TInnerBuilder builder, object? component)
             where TInnerBuilder : IComponentsBuilder
