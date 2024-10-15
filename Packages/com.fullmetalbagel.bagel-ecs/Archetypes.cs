@@ -164,6 +164,12 @@ namespace RelEcs
             return data;
         }
 
+        internal void CreateObjectComponentWithoutTableChanges<T>(Identity identity, bool allowDuplicated = false) where T : class, new()
+        {
+            var instance = _pools.GetOrCreate<T>().Rent();
+            AddObjectComponentWithoutTableChanges(identity, instance, allowDuplicated);
+        }
+
         internal void AddObjectComponentWithoutTableChanges<T>(Identity identity, T instance, bool allowDuplicated = false) where T : class
         {
             ThrowIfNotAlive(identity);
@@ -201,7 +207,7 @@ namespace RelEcs
             ThrowIfNotAlive(identity);
             if (data == null) throw new ArgumentNullException(nameof(data));
             var storage = GetOrCreateComponentsStorage(identity, data.GetType());
-            if (!storage.Contains(data)) storage.Add(data);
+            if (!storage.Contains(data, ReferenceEqualityComparer.Default)) storage.Add(data);
             return data;
         }
 
@@ -428,7 +434,7 @@ namespace RelEcs
         {
             ThrowIfNotAlive(identity);
             TryGetObjectComponent(identity, out T? component);
-            Debug.Assert(component != null);
+            Debug.Assert(component != null, $"{identity}.{typeof(T).Name} == null");
             return component!;
         }
 

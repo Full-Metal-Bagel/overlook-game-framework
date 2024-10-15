@@ -1,10 +1,10 @@
 ﻿#pragma warning disable CS0618 // Type or member is obsolete
 
 using System;
-using System.Diagnostics;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
+using Game;
 
 namespace RelEcs
 {
@@ -37,7 +37,7 @@ namespace RelEcs
             var concreteTagType = tagType.IsGenericType ? tagType.MakeGenericType(component.GetType()) : tagType;
             var ctor = concreteTagType.GetConstructor(new[] { component.GetType() });
             Debug.Assert(ctor != null);
-            return ctor.Invoke(new object[] { component });
+            return ctor!.Invoke(new object[] { component });
         }
 
         public static bool TryGetObjectComponent<TComponent, TTag>(this World world, Entity entity, out TComponent? component, TTag _ = default!)
@@ -98,9 +98,14 @@ namespace RelEcs
         public static void RemoveComponentsIncludingTagged<T>(this World world, Entity entity) where T : class
         {
             var archetypes = world.Archetypes;
+            using var types = new PooledList<Type>(32);
             foreach (var (storageType, _) in world.Archetypes.GetObjectComponents(entity.Identity))
             {
                 var type = storageType.Type;
+                types.Add(type);
+            }
+            foreach (var type in types)
+            {
                 if (typeof(T).IsAssignableFrom(type))
                 {
                     archetypes.RemoveComponent(entity.Identity, type);
