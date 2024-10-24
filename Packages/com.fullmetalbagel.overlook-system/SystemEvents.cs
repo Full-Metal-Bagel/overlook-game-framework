@@ -108,43 +108,27 @@ namespace Game
 
         public void ForEach(Action<T, string/*stack trace info*/> action)
         {
-            foreach (var e in _events)
-            {
-                try
-                {
-                    action(e.Event, e.StackTraceInfo);
-                }
-                catch
-                {
-                    Debug.LogError(e.StackTraceInfo);
-                    throw;
-                }
-            }
+            ForEachEvents(action, static (action, e) => action(e.Event, e.StackTraceInfo));
         }
 
         public void ForEach<TData>(TData data, Action<TData, T> action)
         {
-            foreach (var e in _events)
-            {
-                try
-                {
-                    action(data, e.Event);
-                }
-                catch
-                {
-                    Debug.LogError(e.StackTraceInfo);
-                    throw;
-                }
-            }
+            ForEachEvents((action, data), static (t, e) => t.action(t.data, e.Event));
         }
 
         public void ForEach(Action<T> action)
         {
-            foreach (var e in _events)
+            ForEachEvents(action, static (action, e) => action(e.Event));
+        }
+
+        private void ForEachEvents<TData>(TData data, Action<TData, EventData> action)
+        {
+            for (var i = 0; i < Count; i++)
             {
+                var e = _events[i];
                 try
                 {
-                    action(e.Event);
+                    action(data, e);
                 }
                 catch
                 {
