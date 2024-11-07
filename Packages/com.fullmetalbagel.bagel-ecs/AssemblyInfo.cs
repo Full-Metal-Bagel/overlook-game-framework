@@ -6,3 +6,4 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("KGP.Game")]
 [assembly: InternalsVisibleTo("KG.Benchmarks")]
 [assembly: InternalsVisibleTo("KGP.Game.Editor")]
+[assembly: InternalsVisibleTo("KGP.Tests.Editor")]

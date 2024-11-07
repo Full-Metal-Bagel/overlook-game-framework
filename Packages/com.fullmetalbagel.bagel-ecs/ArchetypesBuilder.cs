@@ -20,7 +20,7 @@ namespace RelEcs
             _archetypes = archetypes;
         }
 
-        public void SetRawData(Identity identity, System.Type type, System.Span<byte> data)
+        public void SetRawData(Identity identity, System.Type type, ReadOnlySpan<byte> data)
         {
             var storageType = StorageType.Create(type);
             if (storageType.IsTag)

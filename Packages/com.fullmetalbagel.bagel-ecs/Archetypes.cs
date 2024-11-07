@@ -384,7 +384,7 @@ namespace RelEcs
             return new Span<byte>(ptr.ToPointer(), size);
         }
 
-        public void SetComponentRawData(Identity identity, StorageType type, Span<byte> data)
+        public void SetComponentRawData(Identity identity, StorageType type, ReadOnlySpan<byte> data)
         {
             ThrowIfNotAlive(identity);
             var component = GetComponentRawData(identity, type);
