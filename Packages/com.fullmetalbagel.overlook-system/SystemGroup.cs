@@ -92,7 +92,12 @@ namespace Game
                 }
                 catch (Exception e)
                 {
-                    Debug.LogError($"Skip adding system {systemType.Name} to {nameof(SystemManager)}" +
+                    var graphName = "";
+#if UNITY_EDITOR
+                    graphName = graph?.editorAsset?.name;
+                    graphName = string.IsNullOrEmpty(graphName) ? "" : $" ({graphName})";
+#endif
+                    Debug.LogError($"Skip adding system {group.Name}.{systemType.Name}{graphName} to {nameof(SystemManager)}" +
                                    " because an exception was thrown during its initialization\n" + e);
                     Debug.LogException(e);
                     continue;
