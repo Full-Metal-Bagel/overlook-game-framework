@@ -59,7 +59,6 @@ namespace RelEcs
 
         public static T? FindUnwrappedComponent<T>(this World world, Entity entity, Type tagGenericDefinition) where T : class
         {
-            Debug.Assert(tagGenericDefinition.IsGenericTypeDefinition);
             foreach (var (storageType, components) in world.Archetypes.GetObjectComponents(entity.Identity))
             {
                 if (storageType.Type.IsTagTypeOf<T>(tagGenericDefinition))
