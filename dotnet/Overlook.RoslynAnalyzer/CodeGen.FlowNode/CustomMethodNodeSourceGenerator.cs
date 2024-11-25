@@ -69,6 +69,7 @@ public class CustomMethodNodeSourceGenerator : ISourceGenerator
             var nodeName = FindArgumentValue(attribute, "Name") ?? methodDeclaration.Identifier.Text;
             var category = FindArgumentValue(attribute, "Category");
             var returnName = FindArgumentValue(attribute, "ReturnName") ?? "Result";
+            var description = FindArgumentValue(attribute, "Description");
             if (string.IsNullOrEmpty(category))
             {
                 var index = methodName.LastIndexOf('.');
@@ -77,6 +78,7 @@ public class CustomMethodNodeSourceGenerator : ISourceGenerator
             builder.AppendLine($$"""
                                  [ParadoxNotion.Design.Category("{{category}}")]
                                  [ParadoxNotion.Design.Name("{{nodeName}}")]
+                                 [ParadoxNotion.Design.Description("{{description}}")]
                                  public class CustomFunctionNode_{{(string.IsNullOrEmpty(methodId) ? nodeName : methodId!.Replace("-", ""))}} : FlowCanvas.FlowNode
                                  {
                                      protected override void RegisterPorts()

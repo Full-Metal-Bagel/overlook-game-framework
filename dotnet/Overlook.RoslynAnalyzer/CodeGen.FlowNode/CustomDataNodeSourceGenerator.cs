@@ -90,14 +90,19 @@ public class CustomDataNodeSourceGenerator : ISourceGenerator
                 var index = typeName.LastIndexOf('.');
                 if (index >= 0) category = typeName.Substring(0, index).Replace('.', '/');
             }
-            GenGetDataNode(symbol: namedTypeSymbol, nodeName: nodeName, category: category!, typeId: typeId, typeName: typeName);
-            GenSetDataNode(symbol: namedTypeSymbol, nodeName: nodeName, category: category!, typeId: typeId, typeName: typeName);
+            var description = FindArgumentValue(attribute, "Description")!;
+            var getterDescription = FindArgumentValue(attribute, "GetterDescription") ?? description;
+            var setterDescription = FindArgumentValue(attribute, "SetterDescription") ?? description;
+            GenGetDataNode(symbol: namedTypeSymbol, nodeName: nodeName, category: category!, typeId: typeId, typeName: typeName, description: getterDescription);
+            GenSetDataNode(symbol: namedTypeSymbol, nodeName: nodeName, category: category!, typeId: typeId, typeName: typeName, description: setterDescription);
             var isEvent = bool.TryParse(FindArgumentValue(attribute, "Event"), out bool e) && e;
             if (isEvent)
             {
-                GenEventReceiver(namedTypeSymbol: namedTypeSymbol, nodeName: nodeName, category: category!, typeId: typeId, typeName: typeName);
-                GenEventWaitReceiver(namedTypeSymbol: namedTypeSymbol, nodeName: nodeName, category: category!, typeId: typeId, typeName: typeName);
-                GenEventSender(nodeName: nodeName, category: category!, typeId: typeId, typeName: typeName);
+                var senderDescription = FindArgumentValue(attribute, "SenderDescription") ?? description;
+                var receiverDescription = FindArgumentValue(attribute, "ReceiverDescription") ?? description;
+                GenEventReceiver(namedTypeSymbol: namedTypeSymbol, nodeName: nodeName, category: category!, typeId: typeId, typeName: typeName, description: receiverDescription);
+                GenEventWaitReceiver(namedTypeSymbol: namedTypeSymbol, nodeName: nodeName, category: category!, typeId: typeId, typeName: typeName, description: receiverDescription);
+                GenEventSender(nodeName: nodeName, category: category!, typeId: typeId, typeName: typeName, description: senderDescription);
             }
         }
 
@@ -136,13 +141,14 @@ public class CustomDataNodeSourceGenerator : ISourceGenerator
             }
         }
 
-        void GenEventReceiver(INamedTypeSymbol namedTypeSymbol, string nodeName, string category, string typeId, string typeName)
+        void GenEventReceiver(INamedTypeSymbol namedTypeSymbol, string nodeName, string category, string typeId, string typeName, string description)
         {
             builder.AppendLine($$"""
                                  [ParadoxNotion.Design.Category("{{category}}")]
                                  [ParadoxNotion.Design.Icon("Icons/NotifyIcon")]
                                  [ParadoxNotion.Design.Color("ff5c5c")]
                                  [ParadoxNotion.Design.Name("{{nodeName}}(Receive)")]
+                                 [ParadoxNotion.Design.Description("{{description}}")]
                                  public class CustomEventNode_{{typeId}} : FlowCanvas.FlowNode, ICustomEventNode<{{typeName}}>
                                  {
                                      private FlowCanvas.FlowOutput _on = default!;
@@ -193,13 +199,14 @@ public class CustomDataNodeSourceGenerator : ISourceGenerator
                                  """);
         }
 
-        void GenEventWaitReceiver(INamedTypeSymbol namedTypeSymbol, string nodeName, string category, string typeId, string typeName)
+        void GenEventWaitReceiver(INamedTypeSymbol namedTypeSymbol, string nodeName, string category, string typeId, string typeName, string description)
         {
             builder.AppendLine($$"""
                                  [ParadoxNotion.Design.Category("{{category}}")]
                                  [ParadoxNotion.Design.Icon("Icons/NotifyIcon")]
                                  [ParadoxNotion.Design.Color("ff5c5c")]
                                  [ParadoxNotion.Design.Name("{{nodeName}}(WaitFor)")]
+                                 [ParadoxNotion.Design.Description("{{description}}")]
                                  public class CustomWaitEventNode_{{typeId}} : FlowCanvas.FlowNode, ICustomEventNode<{{typeName}}>
                                  {
                                      private FlowCanvas.FlowOutput _on = default!;
@@ -259,13 +266,14 @@ public class CustomDataNodeSourceGenerator : ISourceGenerator
         }
 
 
-        void GenEventSender(string nodeName, string category, string typeId, string typeName)
+        void GenEventSender(string nodeName, string category, string typeId, string typeName, string description)
         {
             builder.AppendLine($$"""
                                  [ParadoxNotion.Design.Category("{{category}}")]
                                  [ParadoxNotion.Design.Icon("Icons/NotifyIcon")]
                                  [ParadoxNotion.Design.Color("ff5c5c")]
                                  [ParadoxNotion.Design.Name("{{nodeName}}(Send)")]
+                                 [ParadoxNotion.Design.Description("{{description}}")]
                                  public class CustomSendEventNode_{{typeId}} : FlowCanvas.FlowNode
                                  {
                                      protected override void RegisterPorts()
@@ -278,11 +286,12 @@ public class CustomDataNodeSourceGenerator : ISourceGenerator
                                  """);
         }
 
-        void GenGetDataNode(INamedTypeSymbol symbol, string nodeName, string category, string typeId, string typeName)
+        void GenGetDataNode(INamedTypeSymbol symbol, string nodeName, string category, string typeId, string typeName, string description)
         {
             builder.AppendLine($$"""
                                  [ParadoxNotion.Design.Category("{{category}}")]
                                  [ParadoxNotion.Design.Name("{{nodeName}}(Get)")]
+                                 [ParadoxNotion.Design.Description("{{description}}")]
                                  public class CustomGetDataNode_{{typeId}} : FlowCanvas.FlowNode
                                  {
                                      protected override void RegisterPorts()
@@ -300,11 +309,12 @@ public class CustomDataNodeSourceGenerator : ISourceGenerator
             builder.AppendLine("}");
         }
 
-        void GenSetDataNode(INamedTypeSymbol symbol, string nodeName, string category, string typeId, string typeName)
+        void GenSetDataNode(INamedTypeSymbol symbol, string nodeName, string category, string typeId, string typeName, string description)
         {
             builder.AppendLine($$"""
                                  [ParadoxNotion.Design.Category("{{category}}")]
                                  [ParadoxNotion.Design.Name("{{nodeName}}(Set)")]
+                                 [ParadoxNotion.Design.Description("{{description}}")]
                                  public class CustomSetDataNode_{{typeId}} : FlowCanvas.FlowNode
                                  {
                                      protected override void RegisterPorts()

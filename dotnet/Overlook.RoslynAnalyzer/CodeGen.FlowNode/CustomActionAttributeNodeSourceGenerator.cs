@@ -82,6 +82,7 @@ public class CustomActionAttributeNodeSourceGenerator : ISourceGenerator
                 if (index >= 0) category = typeName.Substring(0, index).Replace('.', '/');
             }
             var nodeName = FindArgumentValue(attribute, "Name") ?? typeDeclarationSyntax.Identifier.Text;
+            var description = FindArgumentValue(attribute, "Description");
             var typeId = symbol.GetAttributes()
                 .FirstOrDefault(attr => attr.AttributeClass?.Name == "TypeGuidAttribute")
                 ?.ConstructorArguments.FirstOrDefault().Value?.ToString()?.Replace("-", "")
@@ -91,6 +92,7 @@ public class CustomActionAttributeNodeSourceGenerator : ISourceGenerator
                                  [ParadoxNotion.Design.Name("{{nodeName}}")]
                                  [ParadoxNotion.Design.Icon("Icons/NotifyIcon")]
                                  [ParadoxNotion.Design.Color("ff5c5c")]
+                                 [ParadoxNotion.Design.Description("{{description}}")]
                                  public class CustomActionAttributeNode_{{typeId}} : FlowCanvas.FlowNode, Game.IActionAttributeNode
                                  {
                                      public System.Type AttributeType => typeof({{typeName}});
