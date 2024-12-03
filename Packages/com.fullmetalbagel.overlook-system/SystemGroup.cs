@@ -48,12 +48,15 @@ namespace Game
     {
         public static void RegisterGroupSystems(this Container container, IReadOnlyList<SystemGroup> groups)
         {
-            foreach (var (system, graph) in groups.SelectMany(g => g.Systems))
+            foreach (var (group, system, graph) in from g in groups
+                                                   from t in g.Systems
+                                                   select (g, t.Type, t.Graph)
+            )
             {
                 var systemType = system.Type;
                 if (systemType == null)
                 {
-                    Debug.LogError($"invalid system: {system.IdAndName}");
+                    Debug.LogError($"invalid system: {group.Name}.{system.IdAndName}");
                     continue;
                 }
 
