@@ -344,5 +344,57 @@ namespace RelEcs.Tests
                 Is.Empty
             );
         }
+
+        [Test]
+        public void ArchetypesChangedDuringQuery()
+        {
+            // Setup initial entities
+            var entity1 = EntityBuilder.Create().Add(new Position()).Build(_world);
+            var entity2 = EntityBuilder.Create().Add(new Position()).Build(_world);
+            var entity3 = EntityBuilder.Create().Add(new Position()).Build(_world);
+
+            var processedEntities = 0;
+            var query = QueryBuilder.Create().Has<Position>().Build(_world);
+            var queryV = QueryBuilder.Create().Has<Position>().Has<Velocity>().Build(_world);
+
+            // Iterate through query while making archetype changes
+            foreach (var entity in query)
+            {
+                processedEntities++;
+
+                if (entity == entity1)
+                {
+                    // Add component to existing entity
+                    _world.AddComponent(entity2, new Velocity());
+                    Assert.That(queryV.Count(), Is.EqualTo(1));
+                }
+                else if (entity == entity2)
+                {
+                    // Remove component from existing entity
+                    _world.RemoveComponent<Position>(entity3);
+                    Assert.That(query.Count(), Is.EqualTo(2));
+
+                    // Spawn new entity during iteration
+                    EntityBuilder.Create().Add(new Position()).Build(_world);
+                    Assert.That(query.Count(), Is.EqualTo(3));
+
+                    // Despawn an entity during iteration
+                    _world.Despawn(entity1);
+                    Assert.That(query.Count(), Is.EqualTo(2));
+                }
+            }
+
+            // Verify the query processed all relevant entities
+            Assert.That(processedEntities, Is.EqualTo(3));
+
+            // Verify final world state
+            Assert.That(_world.IsAlive(entity1), Is.False);
+            Assert.That(_world.HasComponent<Position>(entity2), Is.True);
+            Assert.That(_world.HasComponent<Velocity>(entity2), Is.True);
+            Assert.That(_world.HasComponent<Position>(entity3), Is.False);
+
+            // Verify final query results
+            Assert.That(query.Count(), Is.EqualTo(2)); // entity2 and the newly spawned entity
+        }
     }
 }

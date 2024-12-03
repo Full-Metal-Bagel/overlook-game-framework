@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Game;
 #if ARCHETYPE_USE_NATIVE_BIT_ARRAY
 using TMask = RelEcs.NativeBitArrayMask;
 #else
@@ -107,47 +108,29 @@ namespace RelEcs
             return enumerator.Current;
         }
 
-        public struct Enumerator : IQueryEnumerator<QueryEntity>
+        public struct Enumerator : IQueryEnumerator<QueryEntity>, IDisposable
         {
-            private readonly Query _query;
-            private int _tableIndex;
-            private int _entityIndex;
+            private readonly PooledMemoryList<QueryEntity> _cachedEntities;
+            private List<QueryEntity>.Enumerator _enumerator;
 
             public Enumerator(in Query query)
             {
-                _query = query;
-                _tableIndex = 0;
-                _entityIndex = -1;
-            }
-
-            public bool MoveNext()
-            {
-                var tables = _query.Tables;
-                if (_tableIndex == tables.Count) return false;
-
-                if (++_entityIndex < tables[_tableIndex].Count) return true;
-
-                _entityIndex = 0;
-                _tableIndex++;
-
-                while (_tableIndex < tables.Count && tables[_tableIndex].IsEmpty)
+                _cachedEntities = new PooledMemoryList<QueryEntity>(128);
+                foreach (var table in query.Tables)
                 {
-                    _tableIndex++;
+                    for (int i = 0; i < table.Count; i++)
+                    {
+                        var row = table.Rows[i];
+                        var entity = table.GetStorage<Entity>()[row];
+                        _cachedEntities.Add(new QueryEntity { Entity = entity, Query = query });
+                    }
                 }
-
-                return _tableIndex < tables.Count && _entityIndex < tables[_tableIndex].Count;
+                _enumerator = _cachedEntities.GetEnumerator();
             }
 
-            public QueryEntity Current
-            {
-                get
-                {
-                    var table = _query.Tables[_tableIndex];
-                    var row = table.Rows[_entityIndex];
-                    var entity = table.GetStorage<Entity>()[row];
-                    return new QueryEntity { Entity = entity, Query = _query };
-                }
-            }
+            public bool MoveNext() => _enumerator.MoveNext();
+            public QueryEntity Current => _enumerator.Current;
+            public void Dispose() => _cachedEntities.Dispose();
         }
 
         public bool Equals(Query other) => ReferenceEquals(Tables, other.Tables) && ReferenceEquals(Archetypes, other.Archetypes) && Mask.Equals(other.Mask);
