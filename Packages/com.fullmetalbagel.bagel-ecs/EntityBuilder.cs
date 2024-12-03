@@ -286,6 +286,7 @@ namespace RelEcs
             where TInnerBuilder : IComponentsBuilder
             where TValue : class, new()
         {
+            Debug.Assert(component == null, $"use `Create(default({typeof(TValue).Name})) instead");
             return new NewObjectComponentBuilder<TInnerBuilder, TValue> { InnerBuilder = builder };
         }
 
