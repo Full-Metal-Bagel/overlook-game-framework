@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Game;
 
+// TODO: track the leak
 [DisallowDefaultConstructor]
 public readonly record struct PooledMemoryList<T> : IList<T>, IDisposable
 {
