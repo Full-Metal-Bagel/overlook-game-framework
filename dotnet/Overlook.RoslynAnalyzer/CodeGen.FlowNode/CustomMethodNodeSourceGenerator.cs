@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
@@ -70,6 +71,9 @@ public class CustomMethodNodeSourceGenerator : ISourceGenerator
             var category = FindArgumentValue(attribute, "Category");
             var returnName = FindArgumentValue(attribute, "ReturnName") ?? "Result";
             var description = FindArgumentValue(attribute, "Description");
+            var cacheResult = Convert.ToBoolean(FindArgumentValue(attribute, "CacheResult") ?? "true");
+            var hideResult = Convert.ToBoolean(FindArgumentValue(attribute, "HideResult") ?? "true");
+            var hideFlowPort = isPure || Convert.ToBoolean(FindArgumentValue(attribute, "HideFlowPort") ?? "false");
             if (string.IsNullOrEmpty(category))
             {
                 var index = methodName.LastIndexOf('.');
@@ -113,11 +117,46 @@ public class CustomMethodNodeSourceGenerator : ISourceGenerator
                                          }
                                      """);
             }
-            else if (isPure)
+            else if (hideFlowPort)
             {
                 builder.AppendLine($$"""
                                              AddValueOutput<{{methodSymbol.ReturnType.ToDisplayString()}}>(name: "{{returnName}}", ID: "{{methodId}}", () => {{callString}});
                                          }
+                                     """);
+            }
+            else if (cacheResult)
+            {
+                builder.AppendLine($$"""
+                                             var result = AddValueOutput<{{methodSymbol.ReturnType.ToDisplayString()}}>(name: "[Cache]{{returnName}}", ID: "{{methodId}}", () => _cacheResult);
+                                             var @out = AddFlowOutput("Out");
+                                             AddFlowInput("Call", flow =>
+                                             {
+                                                 _cacheResult = {{callString}};
+                                                 if (!string.IsNullOrEmpty(_resultParameterName)) flow.WriteParameter(_resultParameterName, _cacheResult);
+                                                 flow.Call(@out);
+                                             });
+                                         }
+
+                                         private {{methodSymbol.ReturnType.ToDisplayString()}} _cacheResult = default!;
+
+                                         [ParadoxNotion.Design.ExposeField, UnityEngine.SerializeField]
+                                         private string _resultParameterName = "";
+                                     """);
+            }
+            else if (hideResult)
+            {
+                builder.AppendLine($$"""
+                                             var @out = AddFlowOutput("Out");
+                                             AddFlowInput("Call", flow =>
+                                             {
+                                                 var r = {{callString}};
+                                                 if (!string.IsNullOrEmpty(_resultParameterName)) flow.WriteParameter(_resultParameterName, r);
+                                                 flow.Call(@out);
+                                             });
+                                         }
+
+                                         [ParadoxNotion.Design.ExposeField, UnityEngine.SerializeField]
+                                         private string _resultParameterName = "";
                                      """);
             }
             else
