@@ -62,7 +62,8 @@ public abstract class LocalEvaluation : Evaluation
             LocalDeclarationStatement(copyName.Identifier, ThisExpression()),
         };
 
-        initialDeclarations.AddRange(Upstream.GetLocalDeclarations(MemberKind.Enumerator));
+        var enumerators = Upstream.GetLocalDeclarations(MemberKind.Enumerator);
+        initialDeclarations.AddRange(enumerators);
         initialDeclarations.AddRange(Upstream.RenderInitialization(true, skipVar, takeVar));
         initialDeclarations.AddRange(RenderInitialization());
 
@@ -70,24 +71,28 @@ public abstract class LocalEvaluation : Evaluation
 
         var iterationBlock = Upstream.RenderIteration(true, List(accumulationStatements));
 
-        var disposeBlock = Block(Upstream.RenderDispose(true).Concat(RenderDispose()));
+        var disposeEnumerators = enumerators
+            // HACK: `int` and `IEnumerator` have no `Dispose` method
+            // TODO: ignore any type that doesn't have `Dispose` method
+            .Where(enumerator =>
+            {
+                var typeName= ((LocalDeclarationStatementSyntax)enumerator).Declaration.Type.ToFullString();
+                return typeName != "int" && typeName != "global::System.Collections.IEnumerator";
+            })
+            .Select(enumerator => ((LocalDeclarationStatementSyntax)enumerator).Declaration.Variables[0].Identifier)
+            .Select(identifier => ExpressionStatement(InvocationExpression(MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName(identifier), DisposeMethod))));
+
+        var disposeBlock = Block(Upstream.RenderDispose(true).Concat(RenderDispose()).Concat(disposeEnumerators));
 
         var iterationStatements = iterationBlock.Statements;
         iterationStatements = iterationStatements.AddRange(RenderReturn());
 
         BlockSyntax body;
 
-        if (disposeBlock.Statements.Count == 0)
-        {
-            body = Block(initialDeclarations.Concat(iterationStatements));
-        }
-        else
-        {
-            StatementSyntax tryStatement = TryStatement(
-                Block(iterationStatements), default, FinallyClause(disposeBlock));
+        StatementSyntax tryStatement = TryStatement(
+            Block(iterationStatements), default, FinallyClause(disposeBlock));
 
-            body = Block(initialDeclarations.Append(tryStatement));
-        }
+        body = Block(initialDeclarations.Append(tryStatement));
 
         return (BlockSyntax)copyRewriter.Visit(body);
     }
