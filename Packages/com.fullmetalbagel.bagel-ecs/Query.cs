@@ -85,7 +85,7 @@ namespace RelEcs
 
         public QueryEntity Single()
         {
-            var enumerator = GetEnumerator();
+            using var enumerator = GetEnumerator();
             if (!enumerator.MoveNext()) throw new NoElementsException();
             var entity = enumerator.Current;
             if (enumerator.MoveNext()) throw new MoreThanOneElementsException();
@@ -94,7 +94,7 @@ namespace RelEcs
 
         public QueryEntity SingleOrDefault()
         {
-            var enumerator = GetEnumerator();
+            using var enumerator = GetEnumerator();
             if (!enumerator.MoveNext()) return new QueryEntity { Entity = Entity.None };
             var entity = enumerator.Current;
             if (enumerator.MoveNext()) throw new MoreThanOneElementsException();
@@ -103,7 +103,7 @@ namespace RelEcs
 
         public QueryEntity First()
         {
-            var enumerator = GetEnumerator();
+            using var enumerator = GetEnumerator();
             if (!enumerator.MoveNext()) throw new NoElementsException();
             return enumerator.Current;
         }
