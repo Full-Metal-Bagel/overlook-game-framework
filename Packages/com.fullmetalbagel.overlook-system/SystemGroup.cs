@@ -22,7 +22,9 @@ namespace Game
         [field: SerializeField, HorizontalGroup, HideLabel] public int TickTimes { get; set; } = -1;
         public IReadOnlyList<SystemData> Systems => _systems;
         public int Count => _systems.Length;
-        [SerializeField] private SystemData[] _systems = default!;
+
+        [SerializeField, ListDrawerSettings(DefaultExpandedState = true)]
+        private SystemData[] _systems = default!;
 
         [Serializable]
         [SuppressMessage("Design", "CA1034:Nested types should not be visible")]
