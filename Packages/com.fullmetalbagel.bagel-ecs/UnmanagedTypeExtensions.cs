@@ -1,8 +1,10 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+#if !UNITY_5_3_OR_NEWER
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Reflection;
+#endif
 
 namespace RelEcs
 {
@@ -11,15 +13,20 @@ namespace RelEcs
     internal static class UnmanagedTypeExtensions
     {
         // https://stackoverflow.com/a/53969223
+#if !UNITY_5_3_OR_NEWER
         private static readonly ConcurrentDictionary<Type, bool> s_memoized = new();
+#endif
+
         public static bool IsUnmanaged(this Type type)
         {
+#if UNITY_5_3_OR_NEWER
+            return Unity.Collections.LowLevel.Unsafe.UnsafeUtility.IsUnmanaged(type);
+#else
             bool answer;
 
             // check if we already know the answer
             if (!s_memoized.TryGetValue(type, out answer))
             {
-
                 if (!type.IsValueType)
                 {
                     // not a struct -> false
@@ -42,6 +49,7 @@ namespace RelEcs
             }
 
             return answer;
+#endif
         }
     }
 }
