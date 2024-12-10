@@ -16,6 +16,8 @@ namespace RelEcs
         public Type Type => TypeIdAssigner.GetType(Value);
         public bool IsValueType => Type.IsValueType;
         public bool IsTag => TypeIdAssigner.IsTag(Value);
+        public int UnmanagedTypeSize => TypeIdAssigner.GetSize(Value);
+        public bool IsUnmanagedType => TypeIdAssigner.IsUnmanagedType(Value);
         public static implicit operator ushort(StorageType type) => type.Value;
 
         internal static StorageType Create(ushort typeId, Allocator _ = Allocator.Persistent)
@@ -45,10 +47,35 @@ namespace RelEcs
         private static readonly Dictionary<Type, ushort> s_typeIdMap = new();
         private static readonly Type[] s_types = new Type[MaxTypeCapacity];
         private static readonly BitArray s_isTagCache = new(MaxTypeCapacity);
+        private static readonly int[] s_typeSizes = new int[MaxTypeCapacity];
 
-        public static Type GetType(int typeId) => s_types[typeId];
-        public static bool IsTag(int typeId) => s_isTagCache[typeId];
+        public static Type GetType(int typeId)
+        {
+            Debug.Assert(typeId < Count);
+            return s_types[typeId];
+        }
+
+        public static bool IsTag(int typeId)
+        {
+            Debug.Assert(typeId < Count);
+            return s_isTagCache[typeId];
+        }
+
         public static int Count => s_counter + 1;
+
+        public static int GetSize(int typeId)
+        {
+            Debug.Assert(typeId < Count);
+            var size = s_typeSizes[typeId];
+            Debug.Assert(size >= 0, "invalid type size");
+            return size;
+        }
+
+        public static bool IsUnmanagedType(int typeId)
+        {
+            Debug.Assert(typeId < Count);
+            return s_typeSizes[typeId] >= 0;
+        }
 
         public static ushort GetOrCreate(Type type)
         {
@@ -62,8 +89,18 @@ namespace RelEcs
                 s_typeIdMap.Add(type, typeId);
                 s_types[typeId] = type;
                 s_isTagCache.Set(typeId, IsTagType(type));
+                s_typeSizes[typeId] = type.IsUnmanaged() ? SizeOf(type) : -1;
             }
             return typeId;
+
+            static int SizeOf(Type type)
+            {
+#if UNITY_5_3_OR_NEWER
+                return Unity.Collections.LowLevel.Unsafe.UnsafeUtility.SizeOf(type);
+#else
+                return (int)typeof(System.Runtime.CompilerServices.Unsafe).GetMethod("SizeOf")!.MakeGenericMethod(type).Invoke(null, null);
+#endif
+            }
         }
 
         private static bool IsTagType(Type type)

@@ -591,5 +591,129 @@ namespace RelEcs.Tests
             var entity = _archetypes.Spawn();
             Assert.Catch(() => _archetypes.AddUntypedValueComponent(entity.Identity, new ManagedStruct()));
         }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct TestRawData
+        {
+            public int Value1;
+            public float Value2;
+            public byte Value3;
+            public bool Value4;
+        }
+
+        [Test]
+        public void GetComponentRawData_ReturnsValidData()
+        {
+            // Arrange
+            var entity = _archetypes.Spawn();
+            var testData = new TestRawData { Value1 = 42, Value2 = 3.14f, Value3 = 255, Value4 = true };
+            _archetypes.AddComponent(entity.Identity, testData);
+
+            // Act
+            var rawData = _archetypes.GetComponentRawData(entity.Identity, StorageType.Create<TestRawData>());
+
+            // Assert
+            Assert.That(rawData.Length, Is.EqualTo(12));
+            var reconstructedData = MemoryMarshal.Read<TestRawData>(rawData);
+            Assert.That(reconstructedData.Value1, Is.EqualTo(testData.Value1));
+            Assert.That(reconstructedData.Value2, Is.EqualTo(testData.Value2));
+            Assert.That(reconstructedData.Value3, Is.EqualTo(testData.Value3));
+            Assert.That(reconstructedData.Value4, Is.EqualTo(testData.Value4));
+        }
+
+        [Test]
+        public void GetComponentRawData_WithTagStruct_ReturnsEmptySpan()
+        {
+            // Arrange
+            var entity = _archetypes.Spawn();
+            _archetypes.AddComponent(entity.Identity, new ZeroStruct());
+
+            // Act
+            var rawData = _archetypes.GetComponentRawData(entity.Identity, StorageType.Create<ZeroStruct>());
+
+            // Assert
+            Assert.That(rawData.Length, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void SetComponentRawData_UpdatesComponentData()
+        {
+            // Arrange
+            var entity = _archetypes.Spawn();
+            var originalData = new TestRawData { Value1 = 42, Value2 = 3.14f, Value3 = 255, Value4 = true };
+            _archetypes.AddComponent(entity.Identity, originalData);
+
+            var newData = new TestRawData { Value1 = 100, Value2 = 2.718f, Value3 = 128, Value4 = false };
+            var newRawData = MemoryMarshal.Cast<TestRawData, byte>(MemoryMarshal.CreateSpan(ref newData, 1));
+
+            // Act
+            _archetypes.SetComponentRawData(entity.Identity, StorageType.Create<TestRawData>(), newRawData);
+
+            // Assert
+            var component = _archetypes.GetComponent<TestRawData>(entity.Identity);
+            Assert.That(component.Value1, Is.EqualTo(newData.Value1));
+            Assert.That(component.Value2, Is.EqualTo(newData.Value2));
+            Assert.That(component.Value3, Is.EqualTo(newData.Value3));
+            Assert.That(component.Value4, Is.EqualTo(newData.Value4));
+        }
+
+        [Test]
+        public void GetComponentRawData_NonExistentEntity_Throws()
+        {
+            // Arrange
+            var nonExistentEntity = new Entity(new Identity(999));
+
+            // Act & Assert
+            Assert.Catch<Exception>(() =>
+                _archetypes.GetComponentRawData(nonExistentEntity.Identity, StorageType.Create<TestRawData>()));
+        }
+
+        [Test]
+        public void GetComponentRawData_NonExistentComponent_Throws()
+        {
+            // Arrange
+            var entity = _archetypes.Spawn();
+
+            // Act & Assert
+            Assert.Catch<Exception>(() =>
+                _archetypes.GetComponentRawData(entity.Identity, StorageType.Create<TestRawData>()));
+        }
+
+        [Test]
+        public void GetComponentRawData_MultipleBooleanComponents_HandlesCorrectly()
+        {
+            // Arrange
+            var entity1 = _archetypes.Spawn();
+            var entity2 = _archetypes.Spawn();
+            var entity3 = _archetypes.Spawn();
+
+            _archetypes.AddComponent(entity1.Identity, true);
+            _archetypes.AddComponent(entity2.Identity, false);
+            _archetypes.AddComponent(entity3.Identity, true);
+
+            // Act & Assert
+            var rawData1 = _archetypes.GetComponentRawData(entity1.Identity, StorageType.Create<bool>());
+            var rawData2 = _archetypes.GetComponentRawData(entity2.Identity, StorageType.Create<bool>());
+            var rawData3 = _archetypes.GetComponentRawData(entity3.Identity, StorageType.Create<bool>());
+
+            Assert.That(rawData1.Length, Is.EqualTo(1)); // bool is 1 byte
+            Assert.That(rawData2.Length, Is.EqualTo(1));
+            Assert.That(rawData3.Length, Is.EqualTo(1));
+
+            var value1 = MemoryMarshal.Read<bool>(rawData1);
+            var value2 = MemoryMarshal.Read<bool>(rawData2);
+            var value3 = MemoryMarshal.Read<bool>(rawData3);
+
+            Assert.That(value1, Is.True);
+            Assert.That(value2, Is.False);
+            Assert.That(value3, Is.True);
+
+            // Verify we can modify the values through raw data
+            var newData = new byte[] { 0 }; // false
+            _archetypes.SetComponentRawData(entity1.Identity, StorageType.Create<bool>(), newData);
+            Assert.That(_archetypes.GetComponent<bool>(entity1.Identity), Is.False);
+            Assert.That(_archetypes.GetComponent<bool>(entity2.Identity), Is.False);
+            Assert.That(_archetypes.GetComponent<bool>(entity3.Identity), Is.True);
+        }
     }
 }
