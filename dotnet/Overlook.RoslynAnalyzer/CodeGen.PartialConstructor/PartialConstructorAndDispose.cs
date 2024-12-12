@@ -53,7 +53,7 @@ public class PartialConstructorAndDispose : ISourceGenerator
         foreach (var group in receiver.PartialDisposes.GroupBy(c => c.Ancestors().OfType<ClassDeclarationSyntax>().First().Identifier.ToString()))
         {
             var className = group.Key;
-            var @namespace = group.First().Ancestors().OfType<NamespaceDeclarationSyntax>().FirstOrDefault();
+            var @namespace = group.First().Ancestors().OfType<BaseNamespaceDeclarationSyntax>().FirstOrDefault();
             if (@namespace != null)
             {
                 source.AppendLine($"namespace {@namespace.Name}");
