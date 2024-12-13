@@ -49,16 +49,16 @@ public class AttributesSourceGenerator : ISourceGenerator
             var hasPartial = node.Modifiers.Any(m => m.ValueText == "partial");
             if (string.IsNullOrEmpty(guid) && !hasPartial) continue;
 
+            if (GetAttributeValueType(node) == null)
+            {
+                // ReportDiagnostic(context, DiagnosticDescriptors.InvalidInterfaceDescriptor, node, attributeName);
+                continue;
+            }
+
             var attributeName = node.Identifier.ToString();
             if (!hasPartial)
             {
                 ReportDiagnostic(context, DiagnosticDescriptors.NoPartialDescriptor, node, attributeName);
-                continue;
-            }
-
-            if (GetAttributeValueType(node) == null)
-            {
-                ReportDiagnostic(context, DiagnosticDescriptors.InvalidInterfaceDescriptor, node, attributeName);
                 continue;
             }
 
