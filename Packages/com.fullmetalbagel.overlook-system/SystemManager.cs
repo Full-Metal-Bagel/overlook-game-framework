@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using System;
 using System.Collections.Generic;
@@ -73,38 +73,35 @@ namespace Game
             Stages = groups.Select(g => g.TickStage).ToArray();
             _remainedTimes = groups.Select(g => g.TickTimes).ToArray();
         }
-
         public void Tick(GameData data, TickStage tickStage)
         {
             for (var systemIndex = 0; systemIndex < Systems.Count; systemIndex++)
             {
-                if (tickStage == TickStage.Update) data.TickSystemEvents(systemIndex);
-
+                ref var times = ref _remainedTimes[systemIndex];
                 var stage = Stages[systemIndex];
-                if (stage != tickStage) continue;
-
-                var times = RemainedTimes[systemIndex];
-                if (times == 0) continue;
-                if (times > 0) _remainedTimes[systemIndex]--;
-
-                try
+                if (stage == tickStage && times != 0)
                 {
-                    var system = Systems[systemIndex];
+                    times--;
+                    try
+                    {
+                        var system = Systems[systemIndex];
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-                    var systemName = SystemNames[systemIndex];
-                    UnityEngine.Profiling.Profiler.BeginSample(systemName);
+                        var systemName = SystemNames[systemIndex];
+                        UnityEngine.Profiling.Profiler.BeginSample(systemName);
 #endif
-                    system.Tick(data);
+                        system.Tick(data);
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-                    UnityEngine.Profiling.Profiler.EndSample();
+                        UnityEngine.Profiling.Profiler.EndSample();
 #endif
-                }
+                    }
 #pragma warning disable CA1031
-                catch (Exception ex)
+                    catch (Exception ex)
 #pragma warning restore CA1031
-                {
-                    _logger.LogException(ex);
+                    {
+                        _logger.LogException(ex);
+                    }
                 }
+                if (tickStage == TickStage.Update) data.TickSystemEvents(systemIndex);
             }
         }
     }

@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using System;
 using System.Collections.Generic;
@@ -79,6 +79,7 @@ namespace Game
                 select (@group, t.Type.Type, t.Graph)
             ;
 
+            var systemIndex = 0;
             foreach (var (group, systemType, graph) in systemGroupAndTypes)
             {
                 if (systemType == null)
@@ -89,7 +90,8 @@ namespace Game
 
                 Debug.Assert(systemType.GetCustomAttribute<GraphSystemAttribute>() == null || graph != null);
                 var systemContainer = container.CreateChildContainer();
-                systemContainer.Register(systemType).With(graph).AsSelf();
+                systemContainer.Register(systemType).With(graph, systemIndex).AsSelf();
+                systemIndex++;
                 (SystemGroup group, object system) ret;
                 try
                 {

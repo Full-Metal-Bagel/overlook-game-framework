@@ -82,6 +82,19 @@ namespace Game
             PendingCount++;
         }
 
+        public IEnumerable<T> GetAllExcluding(int excludedSystemIndex)
+        {
+            Debug.Assert(Environment.CurrentManagedThreadId == _threadId.Value);
+
+            for (int i = 0; i < Count; i++)
+            {
+                if (_events[i].SystemIndex != excludedSystemIndex)
+                {
+                    yield return _events[i].Event;
+                }
+            }
+        }
+
         public void Tick(int systemIndex, int currentFrame)
         {
             Debug.Assert(systemIndex >= 0);
@@ -97,7 +110,9 @@ namespace Game
             while (popCount < pendingStart)
             {
                 ref var data = ref _events.Peek();
+
                 if (data.SystemIndex != systemIndex) break;
+
                 _events.Pop();
                 var lastingFrames = currentFrame - data.StartFrame;
                 if (lastingFrames < data.MaxLastingFrames) _events.Push(data);
