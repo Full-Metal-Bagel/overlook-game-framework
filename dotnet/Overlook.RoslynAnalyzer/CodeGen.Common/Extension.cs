@@ -1,11 +1,12 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace CodeGen;
 
-public static class Extension
+internal static class Extension
 {
     public static string GetFullName(this TypeDeclarationSyntax node)
     {
@@ -39,6 +40,11 @@ public static class Extension
     public static string GetName(this FieldDeclarationSyntax node)
     {
         return node.Declaration.Variables.First().Identifier.Text;
+    }
+
+    public static string GetName(this BaseTypeDeclarationSyntax node)
+    {
+        return node.Identifier.Text;
     }
 
     public static string GetName(this MethodDeclarationSyntax node)
@@ -133,5 +139,34 @@ public static class Extension
             .SingleOrDefault(attribute => attribute.Name.ToString() is "TypeGuid" or "PropertyGuid" or "FieldGuid" or "MethodGuid")
         ;
         return guidAttribute == null ? "" : guidAttribute.ArgumentList!.Arguments[0].ToString();
+    }
+
+    public static bool HasAttributeOf(this MemberDeclarationSyntax node, string attributeName)
+    {
+        return node.AttributeLists.SelectMany(al => al.Attributes).Any(attribute => attribute.Name.ToString() == attributeName);
+    }
+
+    public static IEnumerable<INamedTypeSymbol> GetAllTypes(this INamespaceSymbol @namespace)
+    {
+        // Get types directly in this namespace
+        foreach (var type in @namespace.GetTypeMembers())
+        {
+            yield return type;
+
+            // Get nested types
+            foreach (var nestedType in type.GetTypeMembers())
+            {
+                yield return nestedType;
+            }
+        }
+
+        // Recursively get types from child namespaces
+        foreach (var childNamespace in @namespace.GetNamespaceMembers())
+        {
+            foreach (var type in GetAllTypes(childNamespace))
+            {
+                yield return type;
+            }
+        }
     }
 }
