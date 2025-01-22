@@ -99,7 +99,7 @@ public class ReplicationSourceGenerator : ISourceGenerator
             "#pragma warning disable CS9074 // The 'scoped' modifier of parameter doesn't match overridden or implemented member.");
         sb.AppendLine("public class EventStorageFormatter : MemoryPackFormatter<EventStorage>");
         sb.AppendLine("{");
-        sb.AppendLine("    public override void Serialize<TBufferWriter>(ref MemoryPackWriter<TBufferWriter> writer, ref EventStorage? value)");
+        sb.AppendLine("    public override void Serialize<TBufferWriter>(ref MemoryPackWriter<TBufferWriter> writer, ref EventStorage value)");
         sb.AppendLine("    {");
         int i = 0;
         foreach (TypeDeclarationSyntax node in receiver.Nodes)
@@ -111,7 +111,7 @@ public class ReplicationSourceGenerator : ISourceGenerator
         }
         sb.AppendLine("    }");
 
-        sb.AppendLine("    public override void Deserialize(ref MemoryPackReader reader, ref EventStorage? value)");
+        sb.AppendLine("    public override void Deserialize(ref MemoryPackReader reader, ref EventStorage value)");
         sb.AppendLine("    {");
         sb.AppendLine("        value = new EventStorage();");
         i = 0;
