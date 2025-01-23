@@ -125,6 +125,63 @@ public class ReplicationSourceGenerator : ISourceGenerator
         sb.AppendLine("    }");
         sb.AppendLine("}");
         context.AddSource("ReplicateEvents.g.cs", sb.ToString());
+
+        sb.Clear();
+        sb.AppendLine("#nullable enable");
+        sb.AppendLine("using System;");
+        sb.AppendLine("using MemoryPack;");
+        sb.AppendLine("using RelEcs;");
+        sb.AppendLine("using System.Collections.Generic;");
+        sb.AppendLine("namespace Game;");
+        sb.AppendLine(
+            "#pragma warning disable CS9074 // The 'scoped' modifier of parameter doesn't match overridden or implemented member.");
+
+        foreach (TypeDeclarationSyntax node in receiver.Nodes)
+        {
+            if (node is not RecordDeclarationSyntax record)
+            {
+                continue;
+            }
+            string text = node.Identifier.Text;
+            sb.AppendLine($"public class {text}Formatter : MemoryPackFormatter<{text}>");
+            sb.AppendLine("{");
+            sb.AppendLine($"    public override void Serialize<TBufferWriter>(ref MemoryPackWriter<TBufferWriter> writer, ref {text} value)");
+            sb.AppendLine("    {");
+            foreach (ParameterSyntax param in record.ParameterList!.Parameters)
+            {
+                sb.AppendLine($"        writer.WriteValue(value.{param.Identifier.Text});");
+            }
+            sb.AppendLine("    }");
+            sb.AppendLine($"    public override void Deserialize(ref MemoryPackReader reader, ref {text} value)");
+            sb.AppendLine("    {");
+            i = 0;
+            foreach (ParameterSyntax param in record.ParameterList!.Parameters)
+            {
+                switch (param.Type)
+                {
+                    case PredefinedTypeSyntax predefinedTypeSyntax:
+                        sb.AppendLine($"        {predefinedTypeSyntax.Keyword.Text} param{i} = default;");
+                        break;
+                    case IdentifierNameSyntax identifierNameSyntax:
+                        sb.AppendLine($"        {identifierNameSyntax.Identifier.Text} param{i} = default;");
+                        break;
+                }
+                sb.AppendLine($"        reader.ReadValue(ref param{i});");
+                i += 1;
+            }
+
+            sb.Append($"        value = new {text}(");
+            for (int j = 0; j != i - 1; j += 1)
+            {
+                sb.Append($"param{j}, ");
+            }
+
+            sb.Append($"param{i - 1}");
+            sb.Append(");\n");
+            sb.AppendLine("    }");
+            sb.AppendLine("}");
+        }
+        context.AddSource("EventFormatters.g.cs", sb.ToString());
     }
 
     private sealed class SyntaxReceiver : ISyntaxReceiver
