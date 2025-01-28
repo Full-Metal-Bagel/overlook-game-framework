@@ -15,21 +15,7 @@ namespace Game
         LateUpdate
     }
 
-    public readonly ref struct RuntimeSystem
-    {
-        public IGameSystem System { get; }
-        public string Name { get; }
-        public TickStage Stage { get; }
-        public int RemainedTimes { get; }
-
-        public RuntimeSystem(IGameSystem system, string name, TickStage stage, int remainedTimes)
-        {
-            System = system;
-            Name = name;
-            Stage = stage;
-            RemainedTimes = remainedTimes;
-        }
-    }
+    public readonly record struct RuntimeSystem(IGameSystem System, string Name, TickStage Stage, int RemainedTimes);
 
     [Serializable]
     public class SystemManager
