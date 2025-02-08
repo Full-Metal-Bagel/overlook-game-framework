@@ -61,10 +61,14 @@ namespace Overlook.Ecs.Tests
             code();
         }
 
-        public static void CatchDebugAssert(TestDelegate code)
+        public static void CatchDebugAssert(TestDelegate code, int assertionTimes = 1)
         {
 #if UNITY_2022_3_OR_NEWER
-            UnityEngine.TestTools.LogAssert.Expect(UnityEngine.LogType.Assert, new Regex(".*"));
+            while (assertionTimes > 0)
+            {
+                UnityEngine.TestTools.LogAssert.Expect(UnityEngine.LogType.Assert, new Regex(".*"));
+                assertionTimes--;
+            }
 #endif
             Assert.Catch(code);
         }

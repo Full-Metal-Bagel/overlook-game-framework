@@ -1,0 +1,51 @@
+name: dotnet-unit-test
+
+on:
+  push:
+    branches: [ main ] # for caching LFS files
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-2022
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
+    steps:
+    # cache lfs https://github.com/actions/checkout/issues/165
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        lfs: false
+    - name: Create LFS file list
+      run: git lfs ls-files --long | grep "dotnet/" | cut -d ' ' -f1 | sort > .lfs-assets-id
+    - name: LFS Cache
+      uses: actions/cache@v3
+      with:
+        path: .git/lfs/objects
+        key: ${{ runner.os }}-lfs-${{ hashFiles('.lfs-assets-id') }}
+        restore-keys: |
+          ${{ runner.os }}-lfs-
+    - name: Git LFS Pull
+      run: git lfs pull "dotnet/"
+    - uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 8.0.100
+    - name: Restore dependencies
+      run: |
+        cd "dotnet"
+        dotnet restore
+    - name: Build
+      run: |
+        cd "dotnet"
+        dotnet build --no-restore
+    - name: Test
+      run: |
+        cd "dotnet"
+        dotnet test --no-build --verbosity normal

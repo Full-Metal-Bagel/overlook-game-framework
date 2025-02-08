@@ -5,7 +5,7 @@ using Unity.Collections;
 
 namespace Overlook.Ecs;
 
-public class SortedSetTypeSet : IDisposable, IEquatable<SortedSetTypeSet>
+public sealed class SortedSetTypeSet : IDisposable, IEquatable<SortedSetTypeSet>
 {
     private readonly SortedSet<StorageType> _types = new();
     public int Count => _types.Count;

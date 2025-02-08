@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Unity.Collections
 {
@@ -26,13 +27,15 @@ namespace UnityEngine
         Exception,
     }
 
+    [SuppressMessage("Naming", "CA1716:Identifiers should not match keywords")]
+    [SuppressMessage("Style", "IDE1006:Naming Styles")]
     public class Object
     {
         public string name { get; set; } = "";
     }
-    
+
     public class GameObject : Object { }
-    
+
     public static class Debug
     {
         public static void Log(object message, Object? _ = null)
@@ -59,7 +62,7 @@ namespace UnityEngine
         {
             System.Diagnostics.Debug.Assert(condition);
         }
-        
+
         public static void Assert(bool condition, string message, Object? _ = null)
         {
             System.Diagnostics.Debug.Assert(condition, message);
@@ -74,10 +77,11 @@ namespace UnityEngine
 
 namespace UnityEngine.Pool
 {
+    [SuppressMessage("Design", "CA1000:Do not declare static members on generic types")]
     public static class ListPool<T>
     {
         static readonly ConcurrentQueue<List<T>> s_pool = new();
-        
+
         public static List<T> Get()
         {
             return s_pool.TryDequeue(out List<T> list) ? list : new List<T>();
@@ -90,6 +94,7 @@ namespace UnityEngine.Pool
         }
     }
 
+    [SuppressMessage("Style", "IDE1006:Naming Styles")]
     public class ObjectPool<T>
     {
         private readonly System.Func<T> m_CreateFunc;
@@ -98,13 +103,13 @@ namespace UnityEngine.Pool
         private readonly bool m_CollectionCheck;
         private readonly int m_DefaultCapacity;
         private readonly int m_MaxSize;
-        
+
         private readonly ConcurrentQueue<T> m_Queue = new();
         private readonly HashSet<T>? m_ActiveItems;
 
-        public ObjectPool(System.Func<T> createFunc, 
-            System.Action<T> actionOnGet = null!, 
-            System.Action<T> actionOnRelease = null!, 
+        public ObjectPool(System.Func<T> createFunc,
+            System.Action<T> actionOnGet = null!,
+            System.Action<T> actionOnRelease = null!,
             bool collectionCheck = false,
             int defaultCapacity = 10,
             int maxSize = 10000)
@@ -115,7 +120,7 @@ namespace UnityEngine.Pool
             m_CollectionCheck = collectionCheck;
             m_DefaultCapacity = defaultCapacity;
             m_MaxSize = maxSize;
-            
+
             m_ActiveItems = collectionCheck ? new HashSet<T>() : null;
         }
 
@@ -152,7 +157,7 @@ namespace UnityEngine.Pool
             }
 
             m_ActionOnRelease?.Invoke(item);
-            
+
             if (m_Queue.Count < m_MaxSize)
             {
                 m_Queue.Enqueue(item);

@@ -64,7 +64,7 @@ namespace Overlook.Ecs.Tests
         [Test]
         public void Remove_WithInvalidRow_ThrowsException()
         {
-            AssertUtils.ExpectDebugAssert(() => _table.Remove(1), assertionTimes: 2);
+            AssertUtils.CatchDebugAssert(() => _table.Remove(1), assertionTimes: 2);
         }
 
         [Test]
@@ -100,7 +100,7 @@ namespace Overlook.Ecs.Tests
             var identity = new Identity(1); // Replace with actual identity or mock.
             var newTable = new Table(2, _mockTypes, _tableStorage);
 
-            AssertUtils.ExpectDebugAssert(() => Table.MoveEntry(identity, 999, _table, newTable));
+            AssertUtils.CatchDebugAssert(() => Table.MoveEntry(identity, 999, _table, newTable));
         }
 
         [Test]
