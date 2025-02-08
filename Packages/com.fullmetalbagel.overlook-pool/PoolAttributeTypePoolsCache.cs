@@ -4,7 +4,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Reflection;
 
-namespace Game;
+namespace Overlook.Pool;
 
 [AttributeUsage(AttributeTargets.Class)]
 public sealed class PoolAttribute : Attribute

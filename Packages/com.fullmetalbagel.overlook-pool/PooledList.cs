@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Game
+namespace Overlook.Pool
 {
     [SuppressMessage("Design", "CA1002:Do not expose generic lists")]
     [DisallowDefaultConstructor]

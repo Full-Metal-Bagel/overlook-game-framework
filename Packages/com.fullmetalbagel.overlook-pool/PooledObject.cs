@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 
-namespace Game
+namespace Overlook.Pool
 {
     public readonly ref struct PooledObject<T> where T : class, new()
     {

@@ -1,5 +1,5 @@
 ﻿using System;
-using Game;
+using Overlook.Pool;
 using NUnit.Framework;
 
 [TestFixture]
@@ -15,7 +15,7 @@ public class TestPools
     [Test]
     public void Get_ReturnsSamePool_ForSameType()
     {
-        var pools = new Game.TypePoolsCache();
+        var pools = new Overlook.Pool.TypePoolsCache();
         var pool1 = pools.GetOrCreate<TestObject>();
         var pool2 = pools.GetOrCreate<TestObject>();
         Assert.That(pool2, Is.SameAs(pool1));
@@ -24,7 +24,7 @@ public class TestPools
     [Test]
     public void Get_ReturnsCorrectPoolType()
     {
-        var pools = new Game.TypePoolsCache();
+        var pools = new Overlook.Pool.TypePoolsCache();
         var pool = pools.GetOrCreate<TestObject>();
         Assert.IsInstanceOf<IObjectPool<TestObject>>(pool);
     }
@@ -32,7 +32,7 @@ public class TestPools
     [Test]
     public void Get_WithType_ReturnsCorrectPool()
     {
-        var pools = new Game.TypePoolsCache();
+        var pools = new Overlook.Pool.TypePoolsCache();
         var pool = pools.GetOrCreate(typeof(TestObject));
         Assert.IsInstanceOf<IObjectPool>(pool);
     }
@@ -40,7 +40,7 @@ public class TestPools
     [Test]
     public void Get_WithCustomCreateFunc_UsesProvidedFunc()
     {
-        var pools = new Game.TypePoolsCache();
+        var pools = new Overlook.Pool.TypePoolsCache();
         var customObject = new TestObject();
         var pool = pools.GetOrCreate(() => customObject);
         var rentedObject = pool.Rent();
@@ -50,7 +50,7 @@ public class TestPools
     [Test]
     public void Dispose_DisposesAllPools()
     {
-        var pools = new Game.TypePoolsCache();
+        var pools = new Overlook.Pool.TypePoolsCache();
         var pool1 = pools.GetOrCreate<TestObject>();
         var pool2 = pools.GetOrCreate<TestObject2>();
 
@@ -63,7 +63,7 @@ public class TestPools
     [Test]
     public void Get_WithCustomParameters_CreatesPoolCorrectly()
     {
-        var pools = new Game.TypePoolsCache();
+        var pools = new Overlook.Pool.TypePoolsCache();
         int initCount = 0;
         int maxCount = 10;
         Func<int, int> expandFunc = count => count + 1;

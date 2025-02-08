@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using NUnit.Framework;
 using System;
-using Game;
+using Overlook.Pool;
 
 #if UNITY_5_3_OR_NEWER
 using UnityEngine;

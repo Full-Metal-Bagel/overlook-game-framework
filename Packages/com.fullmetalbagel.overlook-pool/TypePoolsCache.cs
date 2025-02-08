@@ -4,7 +4,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
-namespace Game;
+namespace Overlook.Pool;
 
 [SuppressMessage("Naming", "CA1724:The type name Pools conflicts in whole or in part with the namespace name 'FluffyUnderware.Curvy.Pools'")]
 public sealed class TypePoolsCache : IDisposable

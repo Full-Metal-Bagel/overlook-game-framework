@@ -4,7 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using UnityEngine;
 
-namespace Game;
+namespace Overlook.Pool;
 
 public interface IObjectPool
 {

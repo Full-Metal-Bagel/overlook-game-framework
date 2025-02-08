@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Game;
+namespace Overlook.Pool;
 
 public static class SharedPools
 {

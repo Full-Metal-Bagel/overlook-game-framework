@@ -1,7 +1,19 @@
 {
   "dependencies": {
+    "com.fullmetalbagel.overlook-core": {
+      "version": "file:com.fullmetalbagel.overlook-core",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {}
+    },
     "com.fullmetalbagel.overlook-ecs": {
       "version": "file:com.fullmetalbagel.overlook-ecs",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {}
+    },
+    "com.fullmetalbagel.overlook-pool": {
+      "version": "file:com.fullmetalbagel.overlook-pool",
       "depth": 0,
       "source": "embedded",
       "dependencies": {}

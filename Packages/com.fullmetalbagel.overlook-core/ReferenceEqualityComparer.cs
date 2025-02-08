@@ -1,7 +1,7 @@
 #nullable enable
 using System.Collections.Generic;
 
-namespace Overlook.Ecs;
+namespace Overlook;
 
 public class ReferenceEqualityComparer<T> : IEqualityComparer<T> where T : class
 {

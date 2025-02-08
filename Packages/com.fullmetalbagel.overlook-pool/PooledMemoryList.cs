@@ -4,7 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Game;
+namespace Overlook.Pool;
 
 // TODO: track the leak
 [DisallowDefaultConstructor]

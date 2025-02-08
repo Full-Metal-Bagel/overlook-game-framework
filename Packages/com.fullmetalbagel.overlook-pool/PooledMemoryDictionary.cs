@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Game;
+namespace Overlook.Pool;
 
 [SuppressMessage("Design", "CA1065:Do not raise exceptions in unexpected locations")]
 [SuppressMessage("Performance", "CA1815:Override equals and operator equals on value types")]
