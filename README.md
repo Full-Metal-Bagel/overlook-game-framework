@@ -11,3 +11,11 @@ A lightweight, high-performance ECS (Entity Component System) framework for Unit
 - Support for both managed and unmanaged components
 - Flexible query system for entity filtering
 - Optional Unity Collections integration for native containers
+
+### License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+### Acknowledgments
+
+- modified from [RelEcs](https://github.com/Byteron/RelEcs)
