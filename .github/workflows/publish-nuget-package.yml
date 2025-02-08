@@ -1,9 +1,9 @@
 name: publish-nuget-package
 
 on:
-  push:
-    tags:
-      - '*'
+#  push:
+#    tags:
+#      - '*'
   workflow_dispatch:
 
 jobs:
