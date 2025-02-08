@@ -20,13 +20,9 @@ using TSet = Overlook.Ecs.SortedSetTypeSet;
 
 namespace Overlook.Ecs;
 
-public readonly struct UntypedComponent
-{
-    public Array Storage { get; init; }
-    public int Row { get; init; }
-    public StorageType Type { get; init; }
-}
+public readonly record struct UntypedComponent(Array Storage, int Row, StorageType Type);
 
+[SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope")]
 public sealed class Archetypes : IDisposable
 {
     internal readonly Pool<EntityMeta> _meta = new(512, EntityMeta.Invalid);
@@ -275,11 +271,13 @@ public sealed class Archetypes : IDisposable
         }
     }
 
+    [SuppressMessage("Performance", "CA1822:Mark members as static")]
     private List<object> RentComponents()
     {
         return ListPool<object>.Get();
     }
 
+    [SuppressMessage("Performance", "CA1822:Mark members as static")]
     private void ReturnComponents(List<object> components)
     {
 #if OVERLOOK_ECS_USE_OBJECT_POOL
@@ -369,7 +367,7 @@ public sealed class Archetypes : IDisposable
 
         if (!oldTable.Types.Contains(type))
         {
-            throw new Exception($"cannot remove non-existent component {type.Type.Name} from entity {identity}");
+            throw new ArgumentException($"cannot remove non-existent component {type.Type.Name} from entity {identity}", nameof(type));
         }
 
         using var newTypes = TSet.Create(oldTable.Types, Allocator.Temp);

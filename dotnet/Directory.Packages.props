@@ -1,0 +1,19 @@
+<Project>
+  <PropertyGroup>
+    <!-- NU1603: Microsoft.xunit.netcore.extensions package has dependencies to versions which aren't published, so ignore those warnings
+             NU5105: we're explicitly opting in to semver2, as is most of .NET Core
+            CS1701 and CS1702 are by default ignored by Microsoft.NET.Sdk, but if you define the NoWarn property in Directory.Build.props,
+            you don't get those defaults.
+            SYSLIB0011: Removing binary formatter will happen as part of a larger .NET-wide effort.
+            SYSLIB0037 & SYSLIB0044: The deprecated AssemblyName members could require a bigger refactor for us: https://github.com/dotnet/msbuild/issues/7902
+            RS0016 & RS0017: Roslyn analyzers seem to be bugged, claiming that API's that exist don't and vise-versa: https://github.com/dotnet/msbuild/issues/7903
+
+            NU1507: There are 2 package sources defined in your configuration. When using central package management, please map your package sources with package source mapping: https://github.com/dotnet/sdk/issues/25379
+        -->
+    <NoWarn>$(NoWarn);NU1603;NU5105;NU1701;1702;SYSLIB0011;SYSLIB0037;SYSLIB0044;RS0016;RS0017;NU1507;</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="JetBrains.Annotations" Version="2024.3.0" />
+    <PackageVersion Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.0" />
+  </ItemGroup>
+</Project>

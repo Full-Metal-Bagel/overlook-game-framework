@@ -1,12 +1,14 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Threading;
 using Unity.Collections;
 
 namespace Overlook.Ecs;
 
+[SuppressMessage("Design", "CA1036:Override methods on comparable types")]
 [DisallowDefaultConstructor]
 public readonly record struct StorageType(ushort Value) : IComparable<StorageType>
 {
@@ -82,7 +84,7 @@ internal static class TypeIdAssigner
         if (!s_typeIdMap.TryGetValue(type, out ushort typeId))
         {
             var id = Interlocked.Increment(ref s_counter);
-            if (id is >= MaxTypeCapacity or < 0) throw new IndexOutOfRangeException($"please expand the {nameof(MaxTypeCapacity)}");
+            if (id is >= MaxTypeCapacity or < 0) throw new OutOfTypeIdCapacityException($"please expand the {nameof(MaxTypeCapacity)}");
             typeId = (ushort)id;
             s_typeIdMap.Add(type, typeId);
             s_types[typeId] = type;
@@ -96,7 +98,7 @@ internal static class TypeIdAssigner
 #if UNITY_5_3_OR_NEWER
             return Unity.Collections.LowLevel.Unsafe.UnsafeUtility.SizeOf(type);
 #else
-                return (int)typeof(System.Runtime.CompilerServices.Unsafe).GetMethod("SizeOf")!.MakeGenericMethod(type).Invoke(null, null);
+            return (int)typeof(System.Runtime.CompilerServices.Unsafe).GetMethod("SizeOf")!.MakeGenericMethod(type).Invoke(null, null);
 #endif
         }
     }
@@ -108,7 +110,7 @@ internal static class TypeIdAssigner
         var size = Unity.Collections.LowLevel.Unsafe.UnsafeUtility.SizeOf(type);
         if (size == 0) return true;
 #else
-            var size = System.Runtime.InteropServices.Marshal.SizeOf(type);
+        var size = System.Runtime.InteropServices.Marshal.SizeOf(type);
 #endif
         if (size > 1) return false;
         // Check the current type for fields
@@ -126,4 +128,11 @@ internal static class TypeIdAssigner<T>
         var id = TypeIdAssigner.GetOrCreate(typeof(T));
         StorageType = StorageType.Create(id);
     }
+}
+
+public sealed class OutOfTypeIdCapacityException : Exception
+{
+    public OutOfTypeIdCapacityException() { }
+    public OutOfTypeIdCapacityException(string message) : base(message) { }
+    public OutOfTypeIdCapacityException(string message, Exception inner) : base(message, inner) { }
 }

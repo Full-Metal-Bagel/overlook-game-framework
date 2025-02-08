@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using UnityEngine.Pool;
 #if OVERLOOK_ECS_USE_UNITY_COLLECTION
 using TMask = Overlook.Ecs.NativeBitArrayMask;
@@ -135,6 +136,8 @@ public readonly struct Query : IEquatable<Query>, IQuery<Query.Enumerator, Query
     }
 
     public bool Equals(Query other) => ReferenceEquals(Tables, other.Tables) && ReferenceEquals(Archetypes, other.Archetypes) && Mask.Equals(other.Mask);
+
+    [SuppressMessage("Design", "CA1065:Do not raise exceptions in unexpected locations")]
     public override bool Equals(object? obj)
     {
         if (obj == null) return false;

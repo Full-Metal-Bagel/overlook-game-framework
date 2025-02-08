@@ -15,12 +15,12 @@ public readonly record struct Identity(
     [field: FieldOffset(0)] int Generation = 1)
 {
     [field: FieldOffset(0)] public ulong Id { get; } = unchecked((ulong)Index) << 32 | unchecked((uint)Generation);
-    public static Identity None = new(0, 0);
-    public static Identity Any = new(int.MaxValue, 0);
+    public static Identity None { get; } = new(0, 0);
+    public static Identity Any { get; } = new(int.MaxValue, 0);
     public override string ToString() => $"{Index}({Generation})";
 }
 
-public class Pool<T>
+internal class Pool<T>
 {
     private T[] _resources;
     private int[] _generations;
@@ -77,7 +77,6 @@ public class Pool<T>
     private T Get(Identity identity)
     {
         Debug.Assert(identity.Index < _size);
-        // return identity.Generation == _generations[identity.Id] ? _resources[identity.Id] : _invalidValue;
         if (identity.Generation == _generations[identity.Index])
         {
             return _resources[identity.Index];

@@ -205,7 +205,7 @@ namespace Overlook.Ecs.Tests
         public void RemoveComponent_ThrowsWhenComponentDoesNotExist()
         {
             var entity = _archetypes.Spawn();
-            Assert.Throws<Exception>(() =>
+            Assert.Catch<Exception>(() =>
                 _archetypes.RemoveComponent(entity.Identity, typeof(string))); // Assuming it throws an exception when trying to remove a non-existent component
         }
 
