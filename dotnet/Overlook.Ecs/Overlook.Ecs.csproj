@@ -1,6 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
+        <PackageId>Overlook.Ecs</PackageId>
+        <Version>0.1.0</Version>
+        <Authors>Full Metal Bagel</Authors>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <Title>Overlook ECS</Title>
+        <Description>Overlook ECS</Description>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <RepositoryUrl>https://github.com/Full-Metal-Bagel/overlook-game-framework</RepositoryUrl>
         <TargetFramework>netstandard2.1</TargetFramework>
         <ImplicitUsings>false</ImplicitUsings>
         <Nullable>enable</Nullable>
