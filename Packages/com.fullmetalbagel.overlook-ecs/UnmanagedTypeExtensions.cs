@@ -14,7 +14,7 @@ internal static class UnmanagedTypeExtensions
 {
     // https://stackoverflow.com/a/53969223
 #if !UNITY_5_3_OR_NEWER
-        private static readonly ConcurrentDictionary<Type, bool> s_memoized = new();
+    private static readonly ConcurrentDictionary<Type, bool> s_memoized = new();
 #endif
 
     public static bool IsUnmanaged(this Type type)

@@ -33,7 +33,7 @@ public static class ComponentGroups
                          {
                              return assembly.GetCustomAttributes<ComponentGroupAttribute>();
                          }
-                         catch (Exception ex)
+                         catch (ArgumentNullException ex)
                          {
                              Debug.LogException(ex);
                              return Enumerable.Empty<ComponentGroupAttribute>();

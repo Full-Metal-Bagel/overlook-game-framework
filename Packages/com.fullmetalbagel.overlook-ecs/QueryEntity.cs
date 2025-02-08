@@ -10,11 +10,8 @@ public interface IQueryEntity
     public T GetObject<T>() where T : class;
 }
 
-public readonly struct QueryEntity : IQueryEntity
+public readonly record struct QueryEntity(Entity Entity, Query Query = default) : IQueryEntity
 {
-    public Entity Entity { get; init; }
-    [OptionalOnInit] public Query Query { get; init; }
-
     public bool Has<T>()
     {
         return Query.Has<T>(Entity);
