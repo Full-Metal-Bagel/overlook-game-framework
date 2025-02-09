@@ -7,7 +7,7 @@ namespace Overlook.Pool
 {
     public readonly ref struct PooledObject<T> where T : class, new()
     {
-#if !DISABLE_POOLED_COLLECTIONS_CHECKS
+#if !DISABLE_OVERLOOK_POOLED_COLLECTIONS_CHECKS
         private static readonly ConcurrentDictionary<object, object> s_usingCollections = new();
 #endif
 
@@ -27,7 +27,7 @@ namespace Overlook.Pool
             {
                 _value = new T();
             }
-#if !DISABLE_POOLED_COLLECTIONS_CHECKS
+#if !DISABLE_OVERLOOK_POOLED_COLLECTIONS_CHECKS
             if (!s_usingCollections.TryAdd(_value, _value))
                 throw new PooledCollectionException("the collection had been occupied already");
 #endif
@@ -35,7 +35,7 @@ namespace Overlook.Pool
 
         public T GetValue()
         {
-#if !DISABLE_POOLED_COLLECTIONS_CHECKS
+#if !DISABLE_OVERLOOK_POOLED_COLLECTIONS_CHECKS
             if (!s_usingCollections.ContainsKey(_value))
                 throw new PooledCollectionException("the collection had been disposed already");
 #endif
@@ -47,7 +47,7 @@ namespace Overlook.Pool
 
         public void Dispose()
         {
-#if !DISABLE_POOLED_COLLECTIONS_CHECKS
+#if !DISABLE_OVERLOOK_POOLED_COLLECTIONS_CHECKS
             if (!s_usingCollections.TryRemove(_value, out _))
                 throw new PooledCollectionException("the collection had been disposed already");
 #endif

@@ -10,7 +10,7 @@ namespace Overlook.Pool;
 [DisallowDefaultConstructor]
 public readonly struct PooledMemoryDictionary<TKey, TValue> : IDisposable
 {
-#if !DISABLE_POOLED_COLLECTIONS_CHECKS
+#if !DISABLE_OVERLOOK_POOLED_COLLECTIONS_CHECKS
     private static readonly HashSet<object> s_usingCollections = new();
 #endif
 
@@ -27,7 +27,7 @@ public readonly struct PooledMemoryDictionary<TKey, TValue> : IDisposable
     {
         _value = UnityEngine.Pool.DictionaryPool<TKey, TValue>.Get();
         _value.EnsureCapacity(capacity);
-#if !DISABLE_POOLED_COLLECTIONS_CHECKS
+#if !DISABLE_OVERLOOK_POOLED_COLLECTIONS_CHECKS
         if (!s_usingCollections.Add(_value))
             throw new PooledCollectionException("the collection had been occupied already");
 #endif
@@ -35,7 +35,7 @@ public readonly struct PooledMemoryDictionary<TKey, TValue> : IDisposable
 
     public Dictionary<TKey, TValue> GetValue()
     {
-#if !DISABLE_POOLED_COLLECTIONS_CHECKS
+#if !DISABLE_OVERLOOK_POOLED_COLLECTIONS_CHECKS
         if (!s_usingCollections.Contains(_value))
             throw new PooledCollectionException("the collection had been disposed already");
 #endif
@@ -47,7 +47,7 @@ public readonly struct PooledMemoryDictionary<TKey, TValue> : IDisposable
 
     public void Dispose()
     {
-#if !DISABLE_POOLED_COLLECTIONS_CHECKS
+#if !DISABLE_OVERLOOK_POOLED_COLLECTIONS_CHECKS
         if (!s_usingCollections.Remove(_value))
             throw new PooledCollectionException("the collection had been disposed already");
 #endif

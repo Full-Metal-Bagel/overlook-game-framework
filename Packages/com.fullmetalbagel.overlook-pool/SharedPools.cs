@@ -26,7 +26,7 @@ public static class SharedPools
         return s_pools.GetOrCreate(createFunc: createFunc, onRentAction: onRentAction, onRecycleAction: onRecycleAction, initCount: initCount, maxCount: maxCount, expandFunc: expandFunc);
     }
 
-    [Conditional("KG_DEBUG")]
+    [Conditional("OVERLOOK_DEBUG")]
     private static void WarnIfNoPoolAttributeAndMaxCountLessThan0(Type type, int? maxCount)
     {
         if (maxCount is null or <= 0 && !PoolAttributeTypePoolsCache.HasPoolAttribute(type))

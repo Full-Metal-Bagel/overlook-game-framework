@@ -4,4 +4,4 @@ namespace Overlook;
 public sealed class DisallowDefaultConstructorAttribute : System.Attribute { }
 
 [System.AttributeUsage(System.AttributeTargets.Property)]
-public sealed class OptionalOnInit : System.Attribute { }
+public sealed class OptionalOnInitAttribute : System.Attribute { }

@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
-using UnityEngine;
 
 namespace Overlook.Pool;
 
@@ -123,7 +121,7 @@ public sealed class ObjectPool<T> : IObjectPool, IObjectPool<T>, IDisposable whe
     private T Expand(int currentCount)
     {
         var returnInstance = _createFunc();
-        var targetCount = Mathf.Clamp(ExpandFunc(currentCount), 1, MaxCount);
+        var targetCount = Math.Clamp(ExpandFunc(currentCount), 1, MaxCount);
         // TODO: lock to avoid additional "Add" on multi-threaded scenario for precise control the max size of pool?
         for (var i = currentCount + 1; i < targetCount; i++)
         {

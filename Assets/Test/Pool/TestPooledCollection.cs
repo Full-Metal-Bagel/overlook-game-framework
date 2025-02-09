@@ -89,7 +89,7 @@ public class PooledListTests
         Assert.Fail("PooledCollectionException not thrown");
     }
 
-    // If applicable, tests for DISABLE_POOLED_COLLECTIONS_CHECKS logic.
+    // If applicable, tests for DISABLE_OVERLOOK_POOLED_COLLECTIONS_CHECKS logic.
     // ...
     [Test]
     public void UsingPattern_ReleasesListBackToPool()

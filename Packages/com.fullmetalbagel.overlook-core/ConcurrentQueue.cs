@@ -4,11 +4,10 @@
 
 #if !UNITY_2021_1_OR_NEWER
 
-#pragma warning disable CA1010
-#pragma warning disable CA1711
-#pragma warning disable IDE0055
+#pragma warning disable CA1711 // Identifiers should not have incorrect suffix
+#pragma warning disable IDE0161 // Use file-scoped namespace
 
-namespace Game
+namespace Overlook
 {
     public class ConcurrentQueue<T> : System.Collections.Concurrent.ConcurrentQueue<T>
     {

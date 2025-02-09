@@ -9,7 +9,7 @@ namespace Overlook.Pool;
 [DisallowDefaultConstructor]
 public readonly ref struct PooledArray<T>
 {
-#if !DISABLE_POOLED_COLLECTIONS_CHECKS
+#if !DISABLE_OVERLOOK_POOLED_COLLECTIONS_CHECKS
     private static readonly HashSet<object> s_usingCollections = new();
 #endif
 
@@ -17,7 +17,7 @@ public readonly ref struct PooledArray<T>
 
     public T[] GetValue()
     {
-#if !DISABLE_POOLED_COLLECTIONS_CHECKS
+#if !DISABLE_OVERLOOK_POOLED_COLLECTIONS_CHECKS
         if (!s_usingCollections.Contains(_value))
             throw new PooledCollectionException("the collection had been disposed already");
 #endif
@@ -30,7 +30,7 @@ public readonly ref struct PooledArray<T>
     public PooledArray(int minimumLength)
     {
         _value = ArrayPool<T>.Shared.Rent(minimumLength);
-#if !DISABLE_POOLED_COLLECTIONS_CHECKS
+#if !DISABLE_OVERLOOK_POOLED_COLLECTIONS_CHECKS
         if (!s_usingCollections.Add(_value))
             throw new PooledCollectionException("the collection had been occupied already");
 #endif
@@ -42,7 +42,7 @@ public readonly ref struct PooledArray<T>
 
     public void Dispose()
     {
-#if !DISABLE_POOLED_COLLECTIONS_CHECKS
+#if !DISABLE_OVERLOOK_POOLED_COLLECTIONS_CHECKS
         if (!s_usingCollections.Remove(_value))
             throw new PooledCollectionException("the collection had been disposed already");
 #endif

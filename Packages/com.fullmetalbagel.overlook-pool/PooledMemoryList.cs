@@ -10,7 +10,7 @@ namespace Overlook.Pool;
 [DisallowDefaultConstructor]
 public readonly record struct PooledMemoryList<T> : IList<T>, IDisposable
 {
-#if !DISABLE_POOLED_COLLECTIONS_CHECKS
+#if !DISABLE_OVERLOOK_POOLED_COLLECTIONS_CHECKS
     private static readonly HashSet<object> s_usingCollections = new();
 #endif
 
@@ -20,7 +20,7 @@ public readonly record struct PooledMemoryList<T> : IList<T>, IDisposable
     {
         _value = UnityEngine.Pool.ListPool<T>.Get();
         _value.Capacity = Math.Max(_value.Capacity, capacity);
-#if !DISABLE_POOLED_COLLECTIONS_CHECKS
+#if !DISABLE_OVERLOOK_POOLED_COLLECTIONS_CHECKS
         if (!s_usingCollections.Add(_value))
             throw new PooledCollectionException("the collection had been occupied already");
 #endif
@@ -28,7 +28,7 @@ public readonly record struct PooledMemoryList<T> : IList<T>, IDisposable
 
     public List<T> GetValue()
     {
-#if !DISABLE_POOLED_COLLECTIONS_CHECKS
+#if !DISABLE_OVERLOOK_POOLED_COLLECTIONS_CHECKS
         if (!s_usingCollections.Contains(_value))
             throw new PooledCollectionException("the collection had been disposed already");
 #endif
@@ -41,7 +41,7 @@ public readonly record struct PooledMemoryList<T> : IList<T>, IDisposable
     [SuppressMessage("Design", "CA1065:Do not raise exceptions in unexpected locations")]
     public void Dispose()
     {
-#if !DISABLE_POOLED_COLLECTIONS_CHECKS
+#if !DISABLE_OVERLOOK_POOLED_COLLECTIONS_CHECKS
         if (!s_usingCollections.Remove(_value))
             throw new PooledCollectionException("the collection had been disposed already");
 #endif

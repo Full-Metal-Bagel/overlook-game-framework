@@ -7,7 +7,7 @@ namespace Overlook.Pool
     [DisallowDefaultConstructor]
     public readonly ref struct PooledStringBuilder
     {
-#if !DISABLE_POOLED_COLLECTIONS_CHECKS
+#if !DISABLE_OVERLOOK_POOLED_COLLECTIONS_CHECKS
         private static readonly HashSet<object> s_usingCollections = new();
 #endif
 
@@ -18,7 +18,7 @@ namespace Overlook.Pool
         {
             _value = s_pool.Get();
             _value.Capacity = Math.Max(_value.Capacity, capacity);
-#if !DISABLE_POOLED_COLLECTIONS_CHECKS
+#if !DISABLE_OVERLOOK_POOLED_COLLECTIONS_CHECKS
             if (!s_usingCollections.Add(_value))
                 throw new PooledCollectionException("the collection had been occupied already");
 #endif
@@ -26,7 +26,7 @@ namespace Overlook.Pool
 
         public StringBuilder GetValue()
         {
-#if !DISABLE_POOLED_COLLECTIONS_CHECKS
+#if !DISABLE_OVERLOOK_POOLED_COLLECTIONS_CHECKS
             if (!s_usingCollections.Contains(_value))
                 throw new PooledCollectionException("the collection had been disposed already");
 #endif
@@ -38,7 +38,7 @@ namespace Overlook.Pool
 
         public void Dispose()
         {
-#if !DISABLE_POOLED_COLLECTIONS_CHECKS
+#if !DISABLE_OVERLOOK_POOLED_COLLECTIONS_CHECKS
             if (!s_usingCollections.Remove(_value))
                 throw new PooledCollectionException("the collection had been disposed already");
 #endif
