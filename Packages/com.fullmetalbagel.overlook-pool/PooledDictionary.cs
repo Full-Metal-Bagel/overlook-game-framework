@@ -22,7 +22,7 @@ public readonly ref struct PooledDictionary<TKey, TValue>
 
     public PooledDictionary(int capacity)
     {
-        _value = SharedPools<> UnityEngine.Pool.DictionaryPool<TKey, TValue>.Get();
+        _value = SharedPools<Dictionary<TKey, TValue>>.Rent();
         _value.EnsureCapacity(capacity);
 #if !DISABLE_OVERLOOK_POOLED_COLLECTIONS_CHECKS
         if (!s_usingCollections.Add(_value))

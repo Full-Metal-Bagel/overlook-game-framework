@@ -4,6 +4,22 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Overlook.Pool;
 
+[AttributeUsage(AttributeTargets.Class)]
+public sealed class SharedPoolAttribute : Attribute
+{
+    public int InitCount { get; set; } = 0;
+    public int MaxCount { get; set; } = int.MaxValue;
+
+    public SharedPoolAttribute(Type type)
+    {
+
+    }
+}
+
+public interface ISharedObjectPool<T> : IObjectPool<T> where T : class
+{
+}
+
 public static class SharedPools
 {
     private static readonly PoolAttributeTypePoolsCache s_pools = new();

@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using NUnit.Framework;
 using Overlook.Ecs;
+using Overlook.Pool;
 using UnityEngine;
 using UnityEngine.TestTools;
 #if OVERLOOK_ECS_USE_UNITY_COLLECTION
