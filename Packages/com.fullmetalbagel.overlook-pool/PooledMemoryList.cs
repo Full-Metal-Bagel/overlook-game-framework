@@ -1,24 +1,26 @@
-﻿using System;
+#nullable enable
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Overlook.Ecs;
+namespace Overlook.Pool;
 
-[SuppressMessage("Design", "CA1002:Do not expose generic lists")]
+// TODO: track the leak
 [DisallowDefaultConstructor]
-internal readonly ref struct PooledList<T>
+public readonly record struct PooledMemoryList<T> : IList<T>, IDisposable
 {
-#if !DISABLE_POOLED_COLLECTIONS_CHECKS
+#if !DISABLE_OVERLOOK_POOLED_COLLECTIONS_CHECKS
     private static readonly HashSet<object> s_usingCollections = new();
 #endif
 
     private readonly List<T> _value;
 
-    public PooledList(int capacity)
+    public PooledMemoryList(int capacity)
     {
         _value = UnityEngine.Pool.ListPool<T>.Get();
         _value.Capacity = Math.Max(_value.Capacity, capacity);
-#if !DISABLE_POOLED_COLLECTIONS_CHECKS
+#if !DISABLE_OVERLOOK_POOLED_COLLECTIONS_CHECKS
         if (!s_usingCollections.Add(_value))
             throw new PooledCollectionException("the collection had been occupied already");
 #endif
@@ -26,25 +28,28 @@ internal readonly ref struct PooledList<T>
 
     public List<T> GetValue()
     {
-#if !DISABLE_POOLED_COLLECTIONS_CHECKS
+#if !DISABLE_OVERLOOK_POOLED_COLLECTIONS_CHECKS
         if (!s_usingCollections.Contains(_value))
             throw new PooledCollectionException("the collection had been disposed already");
 #endif
         return _value;
     }
 
-    public static implicit operator List<T>(PooledList<T> self) => self.GetValue();
+    public static implicit operator List<T>(PooledMemoryList<T> self) => self.GetValue();
     public List<T> ToList() => GetValue();
 
+    [SuppressMessage("Design", "CA1065:Do not raise exceptions in unexpected locations")]
     public void Dispose()
     {
-#if !DISABLE_POOLED_COLLECTIONS_CHECKS
+#if !DISABLE_OVERLOOK_POOLED_COLLECTIONS_CHECKS
         if (!s_usingCollections.Remove(_value))
             throw new PooledCollectionException("the collection had been disposed already");
 #endif
         UnityEngine.Pool.ListPool<T>.Release(_value);
     }
 
+    IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     public List<T>.Enumerator GetEnumerator() => GetValue().GetEnumerator();
 
     public void Add(T item) => GetValue().Add(item);

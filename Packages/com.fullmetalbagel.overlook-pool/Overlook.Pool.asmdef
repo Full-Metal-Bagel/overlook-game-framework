@@ -1,0 +1,16 @@
+{
+    "name": "Overlook.Pool",
+    "rootNamespace": "Overlook.Pool",
+    "references": [
+        "GUID:a61875c202ec041f48b061c6e00013ad"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
