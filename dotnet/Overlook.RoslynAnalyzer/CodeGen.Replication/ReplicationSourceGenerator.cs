@@ -113,7 +113,6 @@ public class ReplicationSourceGenerator : ISourceGenerator
 
         sb.AppendLine("    public override void Deserialize(ref MemoryPackReader reader, ref EventStorage value)");
         sb.AppendLine("    {");
-        sb.AppendLine("        value = new EventStorage();");
         i = 0;
         foreach (TypeDeclarationSyntax node in receiver.Nodes)
         {
