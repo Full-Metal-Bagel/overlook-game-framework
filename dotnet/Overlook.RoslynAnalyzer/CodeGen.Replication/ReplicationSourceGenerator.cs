@@ -33,96 +33,38 @@ public class ReplicationSourceGenerator : ISourceGenerator
         sb.AppendLine("using MemoryPack;");
         sb.AppendLine("using System.Collections.Generic;");
         sb.AppendLine("namespace Game;");
-        sb.AppendLine("public static class ReplicationExtension");
-        sb.AppendLine("{");
 
-        sb.AppendLine("    public static void CollectEvents(this GameData data, EventStorage storage, int systemIndex)");
+        sb.AppendLine("public readonly partial record struct EventStorage");
+        sb.AppendLine("{");
+        sb.AppendLine("    public static readonly Dictionary<Type, Type> s_eventListMap = new Dictionary<Type, Type>");
+        sb.AppendLine("    {");
+        foreach (TypeDeclarationSyntax node in receiver.Nodes)
+        {
+            string text = node.Identifier.Text;
+            sb.AppendLine($"        {{ typeof({text}), typeof(Storage<{text}>) }},");
+        }
+        sb.AppendLine("    };");
+        sb.AppendLine("    public static readonly Dictionary<Type, IMemoryPackFormatter> s_eventFormatterMap = new Dictionary<Type, IMemoryPackFormatter>");
+        sb.AppendLine("    {");
+        foreach (TypeDeclarationSyntax node in receiver.Nodes)
+        {
+            string text = node.Identifier.Text;
+            sb.AppendLine($"        {{ typeof({text}), new {text}Formatter() }},");
+        }
+        sb.AppendLine("    };");
+        sb.AppendLine("    public void CollectEvents(GameData data, int systemIndex)");
         sb.AppendLine("    {");
         foreach (TypeDeclarationSyntax node in receiver.Nodes)
         {
             string text = node.Identifier.Text;
             sb.AppendLine($"        foreach ({text} @event in data.GetEvents<{text}>().GetAllExcluding(systemIndex))");
             sb.AppendLine("        {");
-            sb.AppendLine("            storage.AppendEvent(@event);");
+            sb.AppendLine("            AppendEvent(@event);");
             sb.AppendLine("        }");
-        }
-        sb.AppendLine("    }");
-
-        sb.AppendLine("    public static void TriggerEvents(this GameData data, EventStorage storage)");
-        sb.AppendLine("    {");
-        foreach (TypeDeclarationSyntax node in receiver.Nodes)
-        {
-            string text = node.Identifier.Text;
-            sb.AppendLine($"        foreach ({text} @event in storage.GetEvents<{text}>())");
-            sb.AppendLine("        {");
-            sb.AppendLine("            data.AppendEvent(@event);");
-            sb.AppendLine("        }");
-        }
-        sb.AppendLine("        storage.Clear();");
-        sb.AppendLine("    }");
-
-        sb.AppendLine("    public static void CopyFrom(this EventStorage self, EventStorage other)");
-        sb.AppendLine("    {");
-        foreach (TypeDeclarationSyntax node in receiver.Nodes)
-        {
-            string text = node.Identifier.Text;
-            sb.AppendLine($"        self.GetEvents<{text}>().AddRange(other.GetEvents<{text}>());");
-        }
-        sb.AppendLine("    }");
-
-        sb.AppendLine("    public static void UpdateHistory(this EventStorage self, EventStorage history)");
-        sb.AppendLine("    {");
-        foreach (TypeDeclarationSyntax node in receiver.Nodes)
-        {
-            string text = node.Identifier.Text;
-            sb.AppendLine($"        history.GetEvents<{text}>().AddRange(self.GetEvents<{text}>());");
-            sb.AppendLine($"        self.GetEvents<{text}>().Clear();");
-            sb.AppendLine($"        self.GetEvents<{text}>().AddRange(history.GetEvents<{text}>());");
-        }
-        sb.AppendLine("    }");
-
-        sb.AppendLine("    public static void ComputeDelta(this EventStorage prev, EventStorage history)");
-        sb.AppendLine("    {");
-        foreach (TypeDeclarationSyntax node in receiver.Nodes)
-        {
-            string text = node.Identifier.Text;
-            sb.AppendLine($"        if (prev.GetEvents<{text}>().Count > 0 && history.GetEvents<{text}>().Count > 0)");
-            sb.AppendLine("        {");
-            sb.AppendLine($"            history.GetEvents<{text}>().RemoveRange(0, prev.GetEvents<{text}>().Count);");
-            sb.AppendLine("        }");
-        }
-        sb.AppendLine("    }");
-
-        sb.AppendLine("}");
-
-        sb.AppendLine(
-            "#pragma warning disable CS9074 // The 'scoped' modifier of parameter doesn't match overridden or implemented member.");
-        sb.AppendLine("public class EventStorageFormatter : MemoryPackFormatter<EventStorage>");
-        sb.AppendLine("{");
-        sb.AppendLine("    public override void Serialize<TBufferWriter>(ref MemoryPackWriter<TBufferWriter> writer, ref EventStorage value)");
-        sb.AppendLine("    {");
-        int i = 0;
-        foreach (TypeDeclarationSyntax node in receiver.Nodes)
-        {
-            string text = node.Identifier.Text;
-            sb.AppendLine($"        var events{i} = value!.GetEvents<{text}>();");
-            sb.AppendLine($"        writer.GetFormatter<List<{text}>>().Serialize(ref writer, ref events{i});");
-            i += 1;
-        }
-        sb.AppendLine("    }");
-
-        sb.AppendLine("    public override void Deserialize(ref MemoryPackReader reader, ref EventStorage value)");
-        sb.AppendLine("    {");
-        i = 0;
-        foreach (TypeDeclarationSyntax node in receiver.Nodes)
-        {
-            string text = node.Identifier.Text;
-            sb.AppendLine($"        var events{i} = value!.GetEvents<{text}>();");
-            sb.AppendLine($"        reader.GetFormatter<List<{text}>>().Deserialize(ref reader, ref events{i});");
-            i += 1;
         }
         sb.AppendLine("    }");
         sb.AppendLine("}");
+
         context.AddSource("ReplicateEvents.g.cs", sb.ToString());
 
         sb.Clear();
@@ -153,7 +95,7 @@ public class ReplicationSourceGenerator : ISourceGenerator
             sb.AppendLine("    }");
             sb.AppendLine($"    public override void Deserialize(ref MemoryPackReader reader, ref {text} value)");
             sb.AppendLine("    {");
-            i = 0;
+            int i = 0;
             foreach (ParameterSyntax param in record.ParameterList!.Parameters)
             {
                 switch (param.Type)
