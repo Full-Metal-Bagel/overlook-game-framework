@@ -2,5 +2,9 @@
   "name": "com.fullmetalbagel.overlook-ecs",
   "version": "0.1.0",
   "unity": "2022.3",
-  "displayName": "Overlook ECS"
+  "displayName": "Overlook ECS",
+  "dependencies": {
+    "com.fullmetalbagel.overlook-core": "0.1.0",
+    "com.fullmetalbagel.overlook-pool": "0.1.0"
+  }
 }

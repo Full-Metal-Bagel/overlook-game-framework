@@ -2,13 +2,13 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Overlook.Ecs;
+namespace Overlook.Pool;
 
 [SuppressMessage("Design", "CA1002:Do not expose generic lists")]
 [DisallowDefaultConstructor]
-internal readonly ref struct PooledList<T>
+public readonly ref struct PooledList<T>
 {
-#if !DISABLE_POOLED_COLLECTIONS_CHECKS
+#if !DISABLE_OVERLOOK_POOLED_COLLECTIONS_CHECKS
     private static readonly HashSet<object> s_usingCollections = new();
 #endif
 
@@ -16,9 +16,9 @@ internal readonly ref struct PooledList<T>
 
     public PooledList(int capacity)
     {
-        _value = UnityEngine.Pool.ListPool<T>.Get();
+        _value = SharedPools<List<T>>.Rent();
         _value.Capacity = Math.Max(_value.Capacity, capacity);
-#if !DISABLE_POOLED_COLLECTIONS_CHECKS
+#if !DISABLE_OVERLOOK_POOLED_COLLECTIONS_CHECKS
         if (!s_usingCollections.Add(_value))
             throw new PooledCollectionException("the collection had been occupied already");
 #endif
@@ -26,7 +26,7 @@ internal readonly ref struct PooledList<T>
 
     public List<T> GetValue()
     {
-#if !DISABLE_POOLED_COLLECTIONS_CHECKS
+#if !DISABLE_OVERLOOK_POOLED_COLLECTIONS_CHECKS
         if (!s_usingCollections.Contains(_value))
             throw new PooledCollectionException("the collection had been disposed already");
 #endif
@@ -38,11 +38,11 @@ internal readonly ref struct PooledList<T>
 
     public void Dispose()
     {
-#if !DISABLE_POOLED_COLLECTIONS_CHECKS
+#if !DISABLE_OVERLOOK_POOLED_COLLECTIONS_CHECKS
         if (!s_usingCollections.Remove(_value))
             throw new PooledCollectionException("the collection had been disposed already");
 #endif
-        UnityEngine.Pool.ListPool<T>.Release(_value);
+        SharedPools<List<T>>.Recycle(_value);
     }
 
     public List<T>.Enumerator GetEnumerator() => GetValue().GetEnumerator();

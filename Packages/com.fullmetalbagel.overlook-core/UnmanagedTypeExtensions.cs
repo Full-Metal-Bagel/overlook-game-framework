@@ -6,11 +6,11 @@ using System.Linq;
 using System.Reflection;
 #endif
 
-namespace Overlook.Ecs;
+namespace Overlook;
 
 [SuppressMessage("Design", "CA1031:Do not catch general exception types")]
 [SuppressMessage("Design", "CA1812:Internal class that is apparently never instantiated")]
-internal static class UnmanagedTypeExtensions
+public static class UnmanagedTypeExtensions
 {
     // https://stackoverflow.com/a/53969223
 #if !UNITY_5_3_OR_NEWER

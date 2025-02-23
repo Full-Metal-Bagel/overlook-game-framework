@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using Overlook.Pool;
 using Unity.Collections;
 using UnityEngine;
 using UnityEngine.Pool;
@@ -32,10 +33,8 @@ public sealed class Archetypes : IDisposable
     internal readonly Dictionary<TMask, Query> _queries = new();
     internal readonly Dictionary<StorageType, List<Table>> _tablesByType = new();
     private static readonly StorageType s_entityType = StorageType.Create<Entity>();
-#if OVERLOOK_ECS_USE_OBJECT_POOL
-        private readonly PoolAttributeTypePoolsCache _pools = new();
-        private readonly HashSet<object> _pooledInstances = new(1024, ReferenceEqualityComparer<object>.Default);
-#endif
+    private readonly PoolAttributeTypePoolsCache _pools = new();
+    private readonly HashSet<object> _pooledInstances = new(1024, ReferenceEqualityComparer<object>.Default);
     // TODO: concurrent?
     private Dictionary<StorageType, List<object>>?[] _objectStorages =
         new Dictionary<StorageType, List<object>>?[512];
@@ -134,12 +133,8 @@ public sealed class Archetypes : IDisposable
 
     public T AddObjectComponent<T>(Identity identity) where T : class, new()
     {
-#if OVERLOOK_ECS_USE_OBJECT_POOL
-            var instance = _pools.GetOrCreate<T>().Rent();
-            _pooledInstances.Add(instance);
-#else
-        var instance = new T();
-#endif
+        var instance = _pools.GetOrCreate<T>().Rent();
+        _pooledInstances.Add(instance);
         AddObjectComponent(identity, instance);
         return instance;
     }
@@ -162,11 +157,7 @@ public sealed class Archetypes : IDisposable
 
     internal void CreateObjectComponentWithoutTableChanges<T>(Identity identity, bool allowDuplicated = false) where T : class, new()
     {
-#if OVERLOOK_ECS_USE_OBJECT_POOL
-            var instance = _pools.GetOrCreate<T>().Rent();
-#else
-        var instance = new T();
-#endif
+        var instance = _pools.GetOrCreate<T>().Rent();
         AddObjectComponentWithoutTableChanges(identity, instance, allowDuplicated);
     }
 
@@ -196,12 +187,8 @@ public sealed class Archetypes : IDisposable
 
     public T AddMultipleObjectComponent<T>(Identity identity) where T : class, new()
     {
-#if OVERLOOK_ECS_USE_OBJECT_POOL
-            var instance = _pools.GetOrCreate<T>().Rent();
-            _pooledInstances.Add(instance);
-#else
-        var instance = new T();
-#endif
+        var instance = _pools.GetOrCreate<T>().Rent();
+        _pooledInstances.Add(instance);
         AddMultipleObjectComponent(identity, instance);
         return instance;
     }
@@ -280,15 +267,13 @@ public sealed class Archetypes : IDisposable
     [SuppressMessage("Performance", "CA1822:Mark members as static")]
     private void ReturnComponents(List<object> components)
     {
-#if OVERLOOK_ECS_USE_OBJECT_POOL
-            foreach (var obj in components)
+        foreach (var obj in components)
+        {
+            if (_pooledInstances.Remove(obj))
             {
-                if (_pooledInstances.Remove(obj))
-                {
-                    _pools.GetOrCreate(obj.GetType()).Recycle(obj);
-                }
+                _pools.GetOrCreate(obj.GetType()).Recycle(obj);
             }
-#endif
+        }
 
         ListPool<object>.Release(components);
     }
@@ -337,12 +322,8 @@ public sealed class Archetypes : IDisposable
 
                 if (components.Count == 0)
                 {
-#if OVERLOOK_ECS_USE_OBJECT_POOL
-                        var instance = _pools.GetOrCreate(type.Type).Rent();
-                        _pooledInstances.Add(instance);
-#else
-                    var instance = Activator.CreateInstance(type.Type);
-#endif
+                    var instance = _pools.GetOrCreate(type.Type).Rent();
+                    _pooledInstances.Add(instance);
                     components.Add(instance);
                 }
             }
@@ -600,14 +581,12 @@ public sealed class Archetypes : IDisposable
             _objectStorages[index] = null;
         }
 
-#if OVERLOOK_ECS_USE_OBJECT_POOL
-            foreach (var instance in _pooledInstances)
-            {
-                _pools.GetOrCreate(instance.GetType()).Recycle(instance);
-            }
-            _pooledInstances.Clear();
-            _pools.Dispose();
-#endif
+        foreach (var instance in _pooledInstances)
+        {
+            _pools.GetOrCreate(instance.GetType()).Recycle(instance);
+        }
+        _pooledInstances.Clear();
+        _pools.Dispose();
 
         foreach (var table in _tables) table.Dispose();
         foreach (var query in _queries.Values) query.Mask.Dispose();
