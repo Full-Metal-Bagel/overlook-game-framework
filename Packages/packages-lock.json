@@ -10,7 +10,10 @@
       "version": "file:com.fullmetalbagel.overlook-ecs",
       "depth": 0,
       "source": "embedded",
-      "dependencies": {}
+      "dependencies": {
+        "com.fullmetalbagel.overlook-core": "0.1.0",
+        "com.fullmetalbagel.overlook-pool": "0.1.0"
+      }
     },
     "com.fullmetalbagel.overlook-pool": {
       "version": "file:com.fullmetalbagel.overlook-pool",
