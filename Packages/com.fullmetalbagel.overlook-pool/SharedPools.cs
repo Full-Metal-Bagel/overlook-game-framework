@@ -4,49 +4,27 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Overlook.Pool;
 
-[AttributeUsage(AttributeTargets.Class)]
-public sealed class SharedPoolAttribute : Attribute
-{
-    public int InitCount { get; set; } = 0;
-    public int MaxCount { get; set; } = int.MaxValue;
-
-    public SharedPoolAttribute(Type type)
-    {
-
-    }
-}
-
-public interface ISharedObjectPool<T> : IObjectPool<T> where T : class
-{
-}
-
 public static class SharedPools
 {
-    private static readonly PoolAttributeTypePoolsCache s_pools = new();
+    private static readonly TypePoolsCacheWithDefaultPolicy s_pools = new();
 
-    public static IObjectPool Get(Type type, int? initCount = null, int? maxCount = null, Func<int, int>? expandFunc = null)
+    public static IObjectPool Get(Type type)
     {
-        WarnIfNoPoolAttributeAndMaxCountLessThan0(type, maxCount);
-        return s_pools.GetOrCreate(type: type, initCount: initCount, maxCount: maxCount, expandFunc: expandFunc);
+        WarnIfNoPoolAttributeAndMaxCountLessThan0(type);
+        return s_pools.GetOrCreate(type);
     }
 
-    public static IObjectPool<T> Get<T>(Action<T>? onRentAction = null, Action<T>? onRecycleAction = null, int? initCount = null, int? maxCount = null, Func<int, int>? expandFunc = null) where T : class, new()
+    public static IObjectPool<T> Get<T>() where T : class, new()
     {
-        WarnIfNoPoolAttributeAndMaxCountLessThan0(typeof(T), maxCount);
-        return s_pools.GetOrCreate(initCount: initCount, onRentAction: onRentAction, onRecycleAction: onRecycleAction, maxCount: maxCount, expandFunc: expandFunc);
-    }
-
-    public static IObjectPool<T> Get<T>(Func<T> createFunc, Action<T>? onRentAction = null, Action<T>? onRecycleAction = null, int? initCount = null, int? maxCount = null, Func<int, int>? expandFunc = null) where T : class
-    {
-        WarnIfNoPoolAttributeAndMaxCountLessThan0(typeof(T), maxCount);
-        return s_pools.GetOrCreate(createFunc: createFunc, onRentAction: onRentAction, onRecycleAction: onRecycleAction, initCount: initCount, maxCount: maxCount, expandFunc: expandFunc);
+        WarnIfNoPoolAttributeAndMaxCountLessThan0(typeof(T));
+        return s_pools.GetOrCreate<T>();
     }
 
     [Conditional("OVERLOOK_DEBUG")]
-    private static void WarnIfNoPoolAttributeAndMaxCountLessThan0(Type type, int? maxCount)
+    private static void WarnIfNoPoolAttributeAndMaxCountLessThan0(Type type)
     {
-        if (maxCount is null or <= 0 && !PoolAttributeTypePoolsCache.HasPoolAttribute(type))
-            Debug.LogWarning($"No pool attribute found for type {type.FullName}");
+        if (!TypePoolsCacheWithDefaultPolicy.HasPoolPolicy(type))
+            Debug.LogWarning($"No pool policy found for type {type.FullName}");
     }
 }
 

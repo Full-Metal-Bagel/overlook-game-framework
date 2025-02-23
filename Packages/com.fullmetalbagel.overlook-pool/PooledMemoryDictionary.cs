@@ -25,7 +25,7 @@ public readonly struct PooledMemoryDictionary<TKey, TValue> : IDisposable
 
     public PooledMemoryDictionary(int capacity)
     {
-        _value = UnityEngine.Pool.DictionaryPool<TKey, TValue>.Get();
+        _value = SharedPools<Dictionary<TKey, TValue>>.Rent();
         _value.EnsureCapacity(capacity);
 #if !DISABLE_OVERLOOK_POOLED_COLLECTIONS_CHECKS
         if (!s_usingCollections.Add(_value))
@@ -51,7 +51,7 @@ public readonly struct PooledMemoryDictionary<TKey, TValue> : IDisposable
         if (!s_usingCollections.Remove(_value))
             throw new PooledCollectionException("the collection had been disposed already");
 #endif
-        UnityEngine.Pool.DictionaryPool<TKey, TValue>.Release(_value);
+        SharedPools<Dictionary<TKey, TValue>>.Recycle(_value);
     }
 
     public Dictionary<TKey, TValue>.Enumerator GetEnumerator() => GetValue().GetEnumerator();

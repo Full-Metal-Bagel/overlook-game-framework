@@ -48,7 +48,7 @@ public readonly ref struct PooledDictionary<TKey, TValue>
         if (!s_usingCollections.Remove(_value))
             throw new PooledCollectionException("the collection had been disposed already");
 #endif
-        UnityEngine.Pool.DictionaryPool<TKey, TValue>.Release(_value);
+        SharedPools<Dictionary<TKey, TValue>>.Recycle(_value);
     }
 
     public Dictionary<TKey, TValue>.Enumerator GetEnumerator() => GetValue().GetEnumerator();

@@ -18,7 +18,7 @@ public readonly record struct PooledMemoryList<T> : IList<T>, IDisposable
 
     public PooledMemoryList(int capacity)
     {
-        _value = UnityEngine.Pool.ListPool<T>.Get();
+        _value = SharedPools<List<T>>.Rent();
         _value.Capacity = Math.Max(_value.Capacity, capacity);
 #if !DISABLE_OVERLOOK_POOLED_COLLECTIONS_CHECKS
         if (!s_usingCollections.Add(_value))
@@ -45,7 +45,7 @@ public readonly record struct PooledMemoryList<T> : IList<T>, IDisposable
         if (!s_usingCollections.Remove(_value))
             throw new PooledCollectionException("the collection had been disposed already");
 #endif
-        UnityEngine.Pool.ListPool<T>.Release(_value);
+        SharedPools<List<T>>.Recycle(_value);
     }
 
     IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
