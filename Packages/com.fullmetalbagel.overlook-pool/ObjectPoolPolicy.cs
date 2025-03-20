@@ -16,9 +16,9 @@ public interface IObjectPoolPolicy
 
 public sealed class DefaultObjectPoolPolicy<T> : IObjectPoolPolicy where T : class, new()
 {
-    public int InitCount => 1;
-    public int MaxCount => int.MaxValue;
-    public int Expand(int size) => size == 0 ? InitCount : Math.Min(size * 2, MaxCount);
+    public int InitCount { get; init; } = 1;
+    public int MaxCount { get; init; } = int.MaxValue;
+    public int Expand(int size) => size * 2;
     public object Create() => new T();
 }
 

@@ -5,9 +5,10 @@ using System.Collections.Generic;
 
 namespace Overlook.Pool;
 
-public sealed class PooledMemoryList<T> : IDisposable
+[DisallowDefaultConstructor]
+public readonly record struct PooledMemoryList<T> : IDisposable
 {
-    public List<T>? Value { get; private set; }
+    public List<T> Value { get; }
 
     public PooledMemoryList(int capacity)
     {
@@ -15,11 +16,10 @@ public sealed class PooledMemoryList<T> : IDisposable
         Value.Capacity = Math.Max(Value.Capacity, capacity);
     }
 
-    public static implicit operator List<T>(PooledMemoryList<T> self) => self.Value!;
+    public static implicit operator List<T>(PooledMemoryList<T> self) => self.Value;
 
     public void Dispose()
     {
-        if (Value != null) StaticPools<List<T>>.Recycle(Value);
-        Value = null;
+        StaticPools<List<T>>.Recycle(Value);
     }
 }

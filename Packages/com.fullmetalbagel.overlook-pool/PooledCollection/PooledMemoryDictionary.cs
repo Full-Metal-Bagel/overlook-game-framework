@@ -5,9 +5,10 @@ using System.Diagnostics.CodeAnalysis;
 namespace Overlook.Pool;
 
 [SuppressMessage("Naming", "CA1711:Identifiers should not have incorrect suffix")]
-public sealed class PooledMemoryDictionary<TKey, TValue> : IDisposable
+[DisallowDefaultConstructor]
+public readonly record struct PooledMemoryDictionary<TKey, TValue> : IDisposable
 {
-    public Dictionary<TKey, TValue>? Value { get; private set; }
+    public Dictionary<TKey, TValue> Value { get; }
 
     public PooledMemoryDictionary(Dictionary<TKey, TValue> collection)
         : this(collection.Count)
@@ -26,7 +27,6 @@ public sealed class PooledMemoryDictionary<TKey, TValue> : IDisposable
 
     public void Dispose()
     {
-        if (Value != null) StaticPools<Dictionary<TKey, TValue>>.Recycle(Value);
-        Value = null;
+        StaticPools<Dictionary<TKey, TValue>>.Recycle(Value);
     }
 }
