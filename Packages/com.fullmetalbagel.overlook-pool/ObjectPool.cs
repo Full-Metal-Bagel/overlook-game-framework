@@ -5,7 +5,7 @@ using System.Threading;
 
 namespace Overlook.Pool;
 
-public interface IObjectPool
+public interface IObjectPool : IDisposable
 {
     IObjectPoolPolicy Policy { get; }
     int RentedCount { get; }
@@ -14,7 +14,7 @@ public interface IObjectPool
     void Recycle(object instance);
 }
 
-public interface IObjectPool<T> where T : class
+public interface IObjectPool<T> : IDisposable where T : class
 {
     IObjectPoolPolicy Policy { get; }
     int RentedCount { get; }
@@ -29,7 +29,7 @@ public interface IObjectPoolCallback
     void OnRecycle();
 }
 
-public sealed class ObjectPool<T> : IObjectPool, IObjectPool<T>, IDisposable where T : class
+public sealed class DefaultObjectPool<T> : IObjectPool, IObjectPool<T> where T : class
 {
     private readonly ConcurrentQueue<T> _pool = new();
 
@@ -38,7 +38,7 @@ public sealed class ObjectPool<T> : IObjectPool, IObjectPool<T>, IDisposable whe
     public int PooledCount => _pool.Count;
     public IObjectPoolPolicy Policy { get; }
 
-    public ObjectPool(IObjectPoolPolicy policy)
+    public DefaultObjectPool(IObjectPoolPolicy policy)
     {
         Debug.Assert(policy.InitCount >= 0);
         Debug.Assert(policy.MaxCount >= 0);
@@ -70,8 +70,6 @@ public sealed class ObjectPool<T> : IObjectPool, IObjectPool<T>, IDisposable whe
     public void Recycle(T instance)
     {
 #if OVERLOOK_DEBUG
-        if (Policy.MaxCount < 0) Debug.LogWarning("pool had been disposed already");
-
         if (_trackers.TryGetValue(instance, out var tracker))
         {
             _trackers.Remove(instance);
