@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using static Overlook.Pool.StaticPools;
 
 namespace Overlook.Pool;
 
@@ -9,7 +10,7 @@ public readonly ref struct PooledHashSet<T>
 
     public PooledHashSet(int capacity)
     {
-        Value = StaticPools<HashSet<T>>.Rent();
+        Value = GetPool<HashSet<T>>().Rent();
         Value.EnsureCapacity(capacity);
     }
 
@@ -17,6 +18,6 @@ public readonly ref struct PooledHashSet<T>
 
     public void Dispose()
     {
-        StaticPools<HashSet<T>>.Recycle(Value);
+        GetPool<HashSet<T>>().Recycle(Value);
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using static Overlook.Pool.StaticPools;
 
 namespace Overlook.Pool;
 
@@ -19,7 +20,7 @@ public readonly record struct PooledMemoryDictionary<TKey, TValue> : IDisposable
 
     public PooledMemoryDictionary(int capacity)
     {
-        Value = StaticPools<Dictionary<TKey, TValue>>.Rent();
+        Value = GetPool<Dictionary<TKey, TValue>>().Rent();
         Value.EnsureCapacity(capacity);
     }
 
@@ -27,6 +28,6 @@ public readonly record struct PooledMemoryDictionary<TKey, TValue> : IDisposable
 
     public void Dispose()
     {
-        StaticPools<Dictionary<TKey, TValue>>.Recycle(Value);
+        GetPool<Dictionary<TKey, TValue>>().Recycle(Value);
     }
 }

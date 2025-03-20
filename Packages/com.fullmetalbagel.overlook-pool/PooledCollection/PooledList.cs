@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using static Overlook.Pool.StaticPools;
 
 namespace Overlook.Pool;
 
@@ -12,7 +13,7 @@ public readonly ref struct PooledList<T>
 
     public PooledList(int capacity)
     {
-        Value = StaticPools<List<T>>.Rent();
+        Value = GetPool<List<T>>().Rent();
         Value.Capacity = Math.Max(Value.Capacity, capacity);
     }
 
@@ -20,6 +21,6 @@ public readonly ref struct PooledList<T>
 
     public void Dispose()
     {
-        StaticPools<List<T>>.Recycle(Value);
+        GetPool<List<T>>().Recycle(Value);
     }
 }

@@ -38,6 +38,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Overlook.Core\Overlook.Core.csproj" />
+      <ProjectReference Include="..\Overlook.Pool\Overlook.Pool.csproj" />
     </ItemGroup>
 
 </Project>

@@ -7,7 +7,8 @@ namespace Overlook.Pool;
 
 public interface IObjectPool : IDisposable
 {
-    IObjectPoolPolicy Policy { get; }
+    int InitCount { get; }
+    int MaxCount { get; }
     int RentedCount { get; }
     int PooledCount { get; }
     object Rent();
@@ -16,7 +17,8 @@ public interface IObjectPool : IDisposable
 
 public interface IObjectPool<T> : IDisposable where T : class
 {
-    IObjectPoolPolicy Policy { get; }
+    int InitCount { get; }
+    int MaxCount { get; }
     int RentedCount { get; }
     int PooledCount { get; }
     T Rent();
@@ -29,23 +31,25 @@ public interface IObjectPoolCallback
     void OnRecycle();
 }
 
-public sealed class DefaultObjectPool<T> : IObjectPool, IObjectPool<T> where T : class
+public sealed class DefaultObjectPool<T, TPolicy> : IObjectPool, IObjectPool<T>
+    where T : class
+    where TPolicy : unmanaged, IObjectPoolPolicy
 {
     private readonly ConcurrentQueue<T> _pool = new();
 
     private int _rentedCount;
     public int RentedCount => _rentedCount;
     public int PooledCount => _pool.Count;
-    public IObjectPoolPolicy Policy { get; }
+    public int InitCount => default(TPolicy).InitCount;
+    public int MaxCount => default(TPolicy).MaxCount;
 
-    public DefaultObjectPool(IObjectPoolPolicy policy)
+    public DefaultObjectPool()
     {
-        Debug.Assert(policy.InitCount >= 0);
-        Debug.Assert(policy.MaxCount >= 0);
-        Policy = policy;
-        for (var i = 0; i < policy.InitCount; i++)
+        Debug.Assert(InitCount >= 0);
+        Debug.Assert(MaxCount >= 0);
+        for (var i = 0; i < InitCount; i++)
         {
-            var instance = policy.Create();
+            var instance = default(TPolicy).Create();
             _pool.Enqueue((T)instance);
         }
     }
@@ -56,7 +60,7 @@ public sealed class DefaultObjectPool<T> : IObjectPool, IObjectPool<T> where T :
     [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope")]
     public T Rent()
     {
-        Debug.Assert(Policy.MaxCount >= 0, "pool had been disposed already");
+        Debug.Assert(MaxCount >= 0, "pool had been disposed already");
         var currentCount = _rentedCount;
         Interlocked.Increment(ref _rentedCount);
         if (!_pool.TryDequeue(out var instance)) instance = Expand(currentCount);
@@ -83,7 +87,7 @@ public sealed class DefaultObjectPool<T> : IObjectPool, IObjectPool<T> where T :
 #endif
         Interlocked.Decrement(ref _rentedCount);
         // TODO: lock to avoid additional "Add" on multi-threaded scenario for precise control the max size of pool?
-        if (_pool.Count < Policy.MaxCount)
+        if (_pool.Count < MaxCount)
         {
             _pool.Enqueue(instance);
             if (instance is IObjectPoolCallback callback) callback.OnRecycle();
@@ -96,12 +100,12 @@ public sealed class DefaultObjectPool<T> : IObjectPool, IObjectPool<T> where T :
 
     private T Expand(int currentCount)
     {
-        var returnInstance = (T)Policy.Create();
-        var targetCount = Math.Clamp(Policy.Expand(currentCount), 1, Policy.MaxCount);
+        var returnInstance = (T)default(TPolicy).Create();
+        var targetCount = Math.Clamp(default(TPolicy).Expand(currentCount), 1, MaxCount);
         // TODO: lock to avoid additional "Add" on multi-threaded scenario for precise control the max size of pool?
         for (var i = currentCount + 1; i < targetCount; i++)
         {
-            var instance = Policy.Create();
+            var instance = default(TPolicy).Create();
             _pool.Enqueue((T)instance);
         }
         return returnInstance;

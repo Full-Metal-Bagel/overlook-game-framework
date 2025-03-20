@@ -1,4 +1,4 @@
 -nullable:enable
 -warnaserror
 /nowarn:8034
--langVersion:10
+-langVersion:preview

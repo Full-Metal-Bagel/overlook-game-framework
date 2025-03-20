@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text;
+using static Overlook.Pool.StaticPools;
 
 namespace Overlook.Pool;
 
@@ -10,7 +11,7 @@ public readonly ref struct PooledStringBuilder
 
     public PooledStringBuilder(int capacity)
     {
-        Value = StaticPools<StringBuilder>.Rent();
+        Value = GetPool<StringBuilder>().Rent();
         Value.Capacity = Math.Max(Value.Capacity, capacity);
     }
 
@@ -18,6 +19,6 @@ public readonly ref struct PooledStringBuilder
 
     public void Dispose()
     {
-        StaticPools<StringBuilder>.Recycle(Value);
+        GetPool<StringBuilder>().Recycle(Value);
     }
 }

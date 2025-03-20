@@ -1,40 +1,29 @@
 ﻿using System;
-using System.Diagnostics.CodeAnalysis;
+using System.Collections.Concurrent;
 
 namespace Overlook.Pool;
 
 public static class StaticPools
 {
-    private static readonly TypePoolsCache s_pools = new();
+    private static readonly ConcurrentDictionary<Type, IObjectPool> s_pools = new();
 
-    internal static IObjectPool<T> Get<T>() where T : class, new()
+    public static IObjectPool<T> GetPool<T>() where T : class, new()
     {
-        var policy = StaticObjectPoolPolicy.Get(typeof(T));
-        return s_pools.GetOrCreate<T>(policy);
+        return Cache<T>.Instance;
     }
 
-    private static IObjectPool Get(Type type)
+    public static IObjectPool GetPool(Type type)
     {
-        var policy = StaticObjectPoolPolicy.Get(type);
-        return s_pools.GetOrCreate(type, policy);
+        return s_pools.GetOrAdd(type, static type => DefaultObjectPoolProvider.Get(type).CreatePool());
     }
 
-    public static object Rent(Type type) => Get(type).Rent();
-    public static void Recycle(Type type, object instance) => Get(type).Recycle(instance);
-    public static int RentedCount(Type type) => Get(type).RentedCount;
-    public static int PooledCount(Type type) => Get(type).PooledCount;
-    public static void Clear(Type type) => s_pools.Clear(type);
+    private static IObjectPool<T> GetOrAdd<T>() where T : class, new()
+    {
+        return (IObjectPool<T>)s_pools.GetOrAdd(typeof(T), static _ => DefaultObjectPoolProvider.Get<T>().CreatePool());
+    }
 
-    public static void Clear() => s_pools.Dispose();
-}
-
-[SuppressMessage("Design", "CA1000:Do not declare static members on generic types")]
-public static class StaticPools<T> where T : class, new()
-{
-    private static readonly IObjectPool<T> s_instance = StaticPools.Get<T>();
-    public static T Rent() => s_instance.Rent();
-    public static void Recycle(T instance) => s_instance.Recycle(instance);
-    public static int RentedCount => s_instance.RentedCount;
-    public static int PooledCount => s_instance.PooledCount;
-    public static void Clear() => s_instance.Dispose();
+    private static class Cache<T> where T : class, new()
+    {
+        public static IObjectPool<T> Instance { get; } = GetOrAdd<T>();
+    }
 }

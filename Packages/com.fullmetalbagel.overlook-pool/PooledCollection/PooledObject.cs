@@ -1,4 +1,6 @@
-﻿namespace Overlook.Pool;
+﻿using static Overlook.Pool.StaticPools;
+
+namespace Overlook.Pool;
 
 public readonly ref struct PooledObject<T> where T : class, new()
 {
@@ -6,13 +8,13 @@ public readonly ref struct PooledObject<T> where T : class, new()
 
     public PooledObject()
     {
-        Value = StaticPools<T>.Rent();
+        Value = GetPool<T>().Rent();
     }
 
     public static implicit operator T(PooledObject<T> self) => self.Value;
 
     public void Dispose()
     {
-        StaticPools<T>.Recycle(Value);
+        GetPool<T>().Recycle(Value);
     }
 }
