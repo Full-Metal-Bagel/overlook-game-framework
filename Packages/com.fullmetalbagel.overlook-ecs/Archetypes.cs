@@ -9,7 +9,6 @@ using System.Runtime.InteropServices;
 using Overlook.Pool;
 using Unity.Collections;
 using UnityEngine;
-using UnityEngine.Pool;
 
 #if OVERLOOK_ECS_USE_UNITY_COLLECTION
 using TMask = Overlook.Ecs.NativeBitArrayMask;
@@ -33,13 +32,15 @@ public sealed class Archetypes : IDisposable
     internal readonly Dictionary<TMask, Query> _queries = new();
     internal readonly Dictionary<StorageType, List<Table>> _tablesByType = new();
     private static readonly StorageType s_entityType = StorageType.Create<Entity>();
-    private readonly PoolAttributeTypePoolsCache _pools = new();
+
     private readonly HashSet<object> _pooledInstances = new(1024, ReferenceEqualityComparer<object>.Default);
     // TODO: concurrent?
     private Dictionary<StorageType, List<object>>?[] _objectStorages =
         new Dictionary<StorageType, List<object>>?[512];
 
     private bool _isDisposed = false;
+
+    private readonly TypeObjectPoolCache _poolsCache = new();
 
     public Archetypes()
     {
@@ -83,11 +84,11 @@ public sealed class Archetypes : IDisposable
     {
         ThrowIfNotAlive(identity);
         using var types = new PooledList<StorageType>(32);
-        builder.CollectTypes(types.GetValue());
-        if (types.Count == 0) return;
-        AddComponentTypes(identity, types.GetValue());
+        builder.CollectTypes(types.Value);
+        if (types.Value.Count == 0) return;
+        AddComponentTypes(identity, types.Value);
         var referenceInstancesStorage = _objectStorages[identity.Index]!;
-        foreach (var type in types)
+        foreach (var type in types.Value)
         {
             if (!type.IsValueType && !referenceInstancesStorage.ContainsKey(type))
             {
@@ -133,7 +134,7 @@ public sealed class Archetypes : IDisposable
 
     public T AddObjectComponent<T>(Identity identity) where T : class, new()
     {
-        var instance = _pools.GetOrCreate<T>().Rent();
+        var instance = _poolsCache.GetPool<T>().Rent();
         _pooledInstances.Add(instance);
         AddObjectComponent(identity, instance);
         return instance;
@@ -157,7 +158,7 @@ public sealed class Archetypes : IDisposable
 
     internal void CreateObjectComponentWithoutTableChanges<T>(Identity identity, bool allowDuplicated = false) where T : class, new()
     {
-        var instance = _pools.GetOrCreate<T>().Rent();
+        var instance = _poolsCache.GetPool<T>().Rent();
         AddObjectComponentWithoutTableChanges(identity, instance, allowDuplicated);
     }
 
@@ -187,7 +188,7 @@ public sealed class Archetypes : IDisposable
 
     public T AddMultipleObjectComponent<T>(Identity identity) where T : class, new()
     {
-        var instance = _pools.GetOrCreate<T>().Rent();
+        var instance = _poolsCache.GetPool<T>().Rent();
         _pooledInstances.Add(instance);
         AddMultipleObjectComponent(identity, instance);
         return instance;
@@ -261,7 +262,7 @@ public sealed class Archetypes : IDisposable
     [SuppressMessage("Performance", "CA1822:Mark members as static")]
     private List<object> RentComponents()
     {
-        return ListPool<object>.Get();
+        return _poolsCache.GetPool<List<object>>().Rent();
     }
 
     [SuppressMessage("Performance", "CA1822:Mark members as static")]
@@ -271,11 +272,11 @@ public sealed class Archetypes : IDisposable
         {
             if (_pooledInstances.Remove(obj))
             {
-                _pools.GetOrCreate(obj.GetType()).Recycle(obj);
+                _poolsCache.GetPool(obj.GetType()).Recycle(obj);
             }
         }
 
-        ListPool<object>.Release(components);
+        _poolsCache.GetPool<List<object>>().Recycle(components);
     }
 
     internal (Table table, int row) AddComponentTypes<TCollection>(Identity identity, TCollection types)
@@ -322,7 +323,7 @@ public sealed class Archetypes : IDisposable
 
                 if (components.Count == 0)
                 {
-                    var instance = _pools.GetOrCreate(type.Type).Rent();
+                    var instance = _poolsCache.GetPool(type.Type).Rent();
                     _pooledInstances.Add(instance);
                     components.Add(instance);
                 }
@@ -336,8 +337,8 @@ public sealed class Archetypes : IDisposable
     {
         ThrowIfNotAlive(identity);
         using var types = new PooledList<StorageType>(1);
-        types.Add(type);
-        return AddComponentTypes(identity, types.GetValue());
+        types.Value.Add(type);
+        return AddComponentTypes(identity, types.Value);
     }
 
     private void RemoveComponentType(Identity identity, StorageType type)
@@ -575,7 +576,7 @@ public sealed class Archetypes : IDisposable
 
             foreach (List<object> components in refStorage.Values)
             {
-                ListPool<object>.Release(components);
+                _poolsCache.GetPool<List<object>>().Recycle(components);
             }
 
             _objectStorages[index] = null;
@@ -583,10 +584,10 @@ public sealed class Archetypes : IDisposable
 
         foreach (var instance in _pooledInstances)
         {
-            _pools.GetOrCreate(instance.GetType()).Recycle(instance);
+            _poolsCache.GetPool(instance.GetType()).Recycle(instance);
         }
         _pooledInstances.Clear();
-        _pools.Dispose();
+        _poolsCache.Dispose();
 
         foreach (var table in _tables) table.Dispose();
         foreach (var query in _queries.Values) query.Mask.Dispose();

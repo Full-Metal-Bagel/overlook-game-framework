@@ -1,7 +1,9 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
+#if OVERLOOK_DEBUG
+using System.Diagnostics;
+#endif
 
 namespace Overlook.Pool;
 
@@ -67,7 +69,7 @@ public sealed class DefaultObjectPool<T, TPolicy> : IObjectPool, IObjectPool<T>
 #if OVERLOOK_DEBUG
         _trackers.Add(instance, new Tracker());
 #endif
-        if (instance is IObjectPoolCallback callback) callback.OnRent();
+        default(TPolicy).OnRent(instance);
         return instance;
     }
 
@@ -90,11 +92,11 @@ public sealed class DefaultObjectPool<T, TPolicy> : IObjectPool, IObjectPool<T>
         if (_pool.Count < MaxCount)
         {
             _pool.Enqueue(instance);
-            if (instance is IObjectPoolCallback callback) callback.OnRecycle();
+            default(TPolicy).OnRecycle(instance);
         }
-        else if (instance is IDisposable disposable)
+        else
         {
-            disposable.Dispose();
+            default(TPolicy).OnDispose(instance);
         }
     }
 

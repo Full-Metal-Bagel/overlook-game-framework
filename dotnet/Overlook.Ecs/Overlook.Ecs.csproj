@@ -12,7 +12,7 @@
         <TargetFramework>netstandard2.1</TargetFramework>
         <ImplicitUsings>false</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <LangVersion>10</LangVersion>
+        <LangVersion>11</LangVersion>
         <RootNamespace>Overlook.Ecs</RootNamespace>
         <EnableNETAnalyzers>true</EnableNETAnalyzers>
         <AnalysisLevel>6</AnalysisLevel>

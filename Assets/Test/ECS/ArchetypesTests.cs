@@ -278,10 +278,10 @@ namespace Overlook.Ecs.Tests
             _archetypes.AddComponent(entity.Identity, 123);
             _archetypes.AddComponent(entity.Identity, 123f);
             using var components = new PooledList<UntypedComponent>(32);
-            _archetypes.GetAllValueComponents(entity.Identity, components.GetValue());
-            Assert.That(components.Count, Is.EqualTo(3)); // will added `Entity` as component by default
-            Assert.That(components.GetValue().Any(c => c.Type == type1), Is.True);
-            Assert.That(components.GetValue().Any(c => c.Type == type2), Is.True);
+            _archetypes.GetAllValueComponents(entity.Identity, components.Value);
+            Assert.That(components.Value.Count, Is.EqualTo(3)); // will added `Entity` as component by default
+            Assert.That(components.Value.Any(c => c.Type == type1), Is.True);
+            Assert.That(components.Value.Any(c => c.Type == type2), Is.True);
         }
 
         [Test]

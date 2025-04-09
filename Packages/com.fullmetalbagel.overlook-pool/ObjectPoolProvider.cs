@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
@@ -15,6 +16,12 @@ public sealed class DefaultObjectPoolProvider<T> : IObjectPoolProvider where T :
 {
     public Type ObjectType => typeof(T);
     public IObjectPool CreatePool() => new DefaultObjectPool<T, DefaultObjectPoolPolicy<T>>();
+}
+
+public sealed class DefaultCollectionPoolProvider<TCollection, TElement> : IObjectPoolProvider where TCollection : class, ICollection<TElement>, new()
+{
+    public Type ObjectType => typeof(TCollection);
+    public IObjectPool CreatePool() => new DefaultObjectPool<TCollection, DefaultCollectionPoolPolicy<TCollection, TElement>>();
 }
 
 [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]

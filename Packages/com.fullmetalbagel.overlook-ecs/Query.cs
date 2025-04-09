@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using UnityEngine.Pool;
+using static Overlook.Pool.StaticPools;
 #if OVERLOOK_ECS_USE_UNITY_COLLECTION
 using TMask = Overlook.Ecs.NativeBitArrayMask;
 #else
@@ -116,7 +116,7 @@ public readonly struct Query : IEquatable<Query>, IQuery<Query.Enumerator, Query
 
         public Enumerator(in Query query)
         {
-            _cachedEntities = ListPool<QueryEntity>.Get();
+            _cachedEntities = GetPool<List<QueryEntity>>().Rent();
             _cachedEntities.Capacity = 128;
             foreach (var table in query.Tables)
             {
@@ -132,7 +132,11 @@ public readonly struct Query : IEquatable<Query>, IQuery<Query.Enumerator, Query
 
         public bool MoveNext() => _enumerator.MoveNext();
         public QueryEntity Current => _enumerator.Current;
-        public void Dispose() => ListPool<QueryEntity>.Release(_cachedEntities);
+        public void Dispose()
+        {
+            _cachedEntities.Clear();
+            GetPool<List<QueryEntity>>().Recycle(_cachedEntities);
+        }
     }
 
     public bool Equals(Query other) => ReferenceEquals(Tables, other.Tables) && ReferenceEquals(Archetypes, other.Archetypes) && Mask.Equals(other.Mask);

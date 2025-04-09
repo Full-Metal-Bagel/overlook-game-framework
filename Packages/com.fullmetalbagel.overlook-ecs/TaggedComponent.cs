@@ -98,9 +98,9 @@ public static class TaggedComponentExtension
         foreach (var (storageType, _) in world.Archetypes.GetObjectComponents(entity.Identity))
         {
             var type = storageType.Type;
-            types.Add(type);
+            types.Value.Add(type);
         }
-        foreach (var type in types)
+        foreach (var type in types.Value)
         {
             if (typeof(T).IsAssignableFrom(type))
             {

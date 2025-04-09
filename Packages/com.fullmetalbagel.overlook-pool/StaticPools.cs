@@ -1,11 +1,10 @@
 ﻿using System;
-using System.Collections.Concurrent;
 
 namespace Overlook.Pool;
 
 public static class StaticPools
 {
-    private static readonly ConcurrentDictionary<Type, IObjectPool> s_pools = new();
+    private static readonly TypeObjectPoolCache s_cache = new();
 
     public static IObjectPool<T> GetPool<T>() where T : class, new()
     {
@@ -14,16 +13,16 @@ public static class StaticPools
 
     public static IObjectPool GetPool(Type type)
     {
-        return s_pools.GetOrAdd(type, static type => DefaultObjectPoolProvider.Get(type).CreatePool());
+        return s_cache.GetPool(type);
     }
 
-    private static IObjectPool<T> GetOrAdd<T>() where T : class, new()
+    public static void Clear()
     {
-        return (IObjectPool<T>)s_pools.GetOrAdd(typeof(T), static _ => DefaultObjectPoolProvider.Get<T>().CreatePool());
+        s_cache.Dispose();
     }
 
     private static class Cache<T> where T : class, new()
     {
-        public static IObjectPool<T> Instance { get; } = GetOrAdd<T>();
+        public static IObjectPool<T> Instance { get; } = s_cache.GetPool<T>();
     }
 }
