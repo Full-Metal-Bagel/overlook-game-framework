@@ -1,0 +1,42 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <PackageId>Overlook.Core</PackageId>
+        <Version>0.1.0</Version>
+        <Authors>Full Metal Bagel</Authors>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <Title>Overlook Core</Title>
+        <Description>Overlook Core</Description>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <RepositoryUrl>https://github.com/Full-Metal-Bagel/overlook-game-framework</RepositoryUrl>
+        <TargetFramework>netstandard2.1</TargetFramework>
+        <ImplicitUsings>false</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <LangVersion>11</LangVersion>
+        <RootNamespace>Overlook</RootNamespace>
+        <EnableNETAnalyzers>true</EnableNETAnalyzers>
+        <AnalysisLevel>6</AnalysisLevel>
+        <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+        <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+        <RunAnalyzersDuringBuild>true</RunAnalyzersDuringBuild>
+        <RunAnalyzersDuringLiveAnalysis>true</RunAnalyzersDuringLiveAnalysis>
+        <CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors>
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+      <DefineConstants>TRACE;OVERLOOK_DEBUG</DefineConstants>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="..\..\Packages\com.fullmetalbagel.overlook-core\**\*.cs" />
+        <Link Include="..\..\.editorconfig" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="JetBrains.Annotations" />
+    </ItemGroup>
+
+</Project>
