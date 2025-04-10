@@ -10,14 +10,14 @@ public sealed class TypeObjectPoolCache : IDisposable
 
     public IObjectPool GetPool(Type type, IObjectPoolProvider? provider = null)
     {
-        provider ??= DefaultObjectPoolProvider.Get(type);
+        provider ??= ObjectPoolProvider.Get(type);
         CheckProvider(type, provider);
         return _pools.GetOrAdd(type, static (_, provider) => provider.CreatePool(), provider);
     }
 
     public IObjectPool<T> GetPool<T>(IObjectPoolProvider? provider = null) where T : class, new()
     {
-        provider ??= DefaultObjectPoolProvider.Get<T>();
+        provider ??= ObjectPoolProvider.Get<T>();
         CheckProvider(typeof(T), provider);
         return (IObjectPool<T>)_pools.GetOrAdd(typeof(T), static (_, provider) => provider.CreatePool(), provider);
     }

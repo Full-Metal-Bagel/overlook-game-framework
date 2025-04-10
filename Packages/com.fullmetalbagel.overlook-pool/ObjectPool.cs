@@ -33,7 +33,7 @@ public interface IObjectPoolCallback
     void OnRecycle();
 }
 
-public sealed class DefaultObjectPool<T, TPolicy> : IObjectPool, IObjectPool<T>
+public sealed class ObjectPool<T, TPolicy> : IObjectPool, IObjectPool<T>
     where T : class
     where TPolicy : unmanaged, IObjectPoolPolicy
 {
@@ -45,7 +45,7 @@ public sealed class DefaultObjectPool<T, TPolicy> : IObjectPool, IObjectPool<T>
     public int InitCount => default(TPolicy).InitCount;
     public int MaxCount => default(TPolicy).MaxCount;
 
-    public DefaultObjectPool()
+    public ObjectPool()
     {
         Debug.Assert(InitCount >= 0);
         Debug.Assert(MaxCount >= 0);

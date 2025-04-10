@@ -1,11 +1,10 @@
-using System;
 using System.Collections.Generic;
 using System.Reflection;
 using NUnit.Framework;
 using Overlook.Pool;
 using Overlook.Pool.Tests;
 
-[assembly: RegisterDefaultObjectPool<TestObjectB, CustomTestPoolPolicy>]
+[assembly: OverridePoolPolicy<TestObjectB, CustomTestPoolPolicy>]
 
 namespace Overlook.Pool.Tests;
 
@@ -27,7 +26,7 @@ public class DefaultObjectPoolProviderTests
     public void Get_GenericMethod_ReturnsCorrectProviderType()
     {
         // Act
-        var provider = DefaultObjectPoolProvider.Get<TestObjectA>();
+        var provider = ObjectPoolProvider.Get<TestObjectA>();
 
         // Assert
         Assert.That(provider, Is.Not.Null);
@@ -39,7 +38,7 @@ public class DefaultObjectPoolProviderTests
     public void Get_TypeParameter_ReturnsCorrectProviderType()
     {
         // Act
-        var provider = DefaultObjectPoolProvider.Get(typeof(TestObjectA));
+        var provider = ObjectPoolProvider.Get(typeof(TestObjectA));
 
         // Assert
         Assert.That(provider, Is.Not.Null);
@@ -51,9 +50,9 @@ public class DefaultObjectPoolProviderTests
     public void Get_SameType_ReturnsCachedProvider()
     {
         // Act
-        var provider1 = DefaultObjectPoolProvider.Get<TestObjectA>();
-        var provider2 = DefaultObjectPoolProvider.Get<TestObjectA>();
-        var provider3 = DefaultObjectPoolProvider.Get(typeof(TestObjectA));
+        var provider1 = ObjectPoolProvider.Get<TestObjectA>();
+        var provider2 = ObjectPoolProvider.Get<TestObjectA>();
+        var provider3 = ObjectPoolProvider.Get(typeof(TestObjectA));
 
         // Assert
         Assert.That(provider2, Is.SameAs(provider1), "Same instance should be returned for identical generic calls");
@@ -64,34 +63,34 @@ public class DefaultObjectPoolProviderTests
     public void CreatePool_ReturnsCorrectPoolType()
     {
         // Arrange
-        var provider = DefaultObjectPoolProvider.Get<TestObjectA>();
+        var provider = ObjectPoolProvider.Get<TestObjectA>();
 
         // Act
         var pool = provider.CreatePool();
 
         // Assert
         Assert.That(pool, Is.Not.Null);
-        Assert.That(pool, Is.InstanceOf<DefaultObjectPool<TestObjectA, DefaultObjectPoolPolicy<TestObjectA>>>());
+        Assert.That(pool, Is.InstanceOf<ObjectPool<TestObjectA, DefaultObjectPoolPolicy<TestObjectA>>>());
     }
 
     [Test]
     public void RegisterDefaultObjectPoolAttribute_IsRespectedForRegisteredTypes()
     {
         // Arrange & Act - TestObjectB has a custom policy registered via attribute
-        var provider = DefaultObjectPoolProvider.Get<TestObjectB>();
+        var provider = ObjectPoolProvider.Get<TestObjectB>();
         var pool = provider.CreatePool();
 
         // Assert
         Assert.That(provider, Is.Not.Null);
         Assert.That(pool, Is.Not.Null);
-        Assert.That(pool, Is.InstanceOf<DefaultObjectPool<TestObjectB, CustomTestPoolPolicy>>());
+        Assert.That(pool, Is.InstanceOf<ObjectPool<TestObjectB, CustomTestPoolPolicy>>());
     }
 
     [Test]
     public void ProviderCache_HasEntriesForAttributeRegisteredTypes()
     {
         // Access the private cache to verify it contains our attribute-registered type
-        var providerCacheField = typeof(DefaultObjectPoolProvider)
+        var providerCacheField = typeof(ObjectPoolProvider)
             .GetField("s_providerCache", BindingFlags.NonPublic | BindingFlags.Static);
 
         Assert.That(providerCacheField, Is.Not.Null, "Could not find s_providerCache field");
@@ -115,7 +114,7 @@ public class DefaultObjectPoolProviderTests
 
         // Run in parallel to ensure thread safety
         System.Threading.Tasks.Parallel.For(0, 10, _ => {
-            results.Add(DefaultObjectPoolProvider.Get(typeof(TestObjectA)));
+            results.Add(ObjectPoolProvider.Get(typeof(TestObjectA)));
         });
 
         // Assert

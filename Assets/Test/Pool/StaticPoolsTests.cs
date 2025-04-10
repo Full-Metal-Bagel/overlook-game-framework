@@ -6,7 +6,7 @@ using NUnit.Framework;
 using Overlook.Pool;
 using Overlook.Pool.Tests;
 
-[assembly: RegisterDefaultObjectPool<StaticPoolObject, CustomStaticPoolPolicy>]
+[assembly: OverridePoolPolicy<StaticPoolObject, CustomStaticPoolPolicy>]
 
 namespace Overlook.Pool.Tests;
 

@@ -50,7 +50,7 @@ public sealed class DynamicBuilder : IComponentsBuilder
 
     static class DynamicBuilderPool<T> where T : struct
     {
-        private static readonly IObjectPool<PooledBuilder> s_pool = new DefaultObjectPool<PooledBuilder, PooledBuilderPolicy>();
+        private static readonly IObjectPool<PooledBuilder> s_pool = new ObjectPool<PooledBuilder, PooledBuilderPolicy>();
 
         private readonly record struct PooledBuilderPolicy : IObjectPoolPolicy
         {
@@ -95,7 +95,7 @@ public sealed class DynamicBuilder : IComponentsBuilder
 
     static class DynamicBuilderPool
     {
-        private static readonly IObjectPool<PooledBuilder> s_pool = new DefaultObjectPool<PooledBuilder, PooledBuilderPolicy>();
+        private static readonly IObjectPool<PooledBuilder> s_pool = new ObjectPool<PooledBuilder, PooledBuilderPolicy>();
 
         private readonly record struct PooledBuilderPolicy : IObjectPoolPolicy
         {

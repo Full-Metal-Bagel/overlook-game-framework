@@ -83,13 +83,13 @@ public struct CallbackObjectPolicy : IObjectPoolPolicy
 }
 
 [TestFixture]
-public class DefaultObjectPoolTests
+public class ObjectPoolTests
 {
     [Test]
     public void Initialize_WithPreloadedPolicy_PreallocatesObjects()
     {
         // Arrange & Act
-        var pool = new DefaultObjectPool<SimplePoolObject, PreloadedPoolPolicy>();
+        var pool = new ObjectPool<SimplePoolObject, PreloadedPoolPolicy>();
 
         // Assert
         Assert.That(pool.InitCount, Is.EqualTo(5));
@@ -102,7 +102,7 @@ public class DefaultObjectPoolTests
     public void Initialize_WithEmptyPolicy_HasNoObjects()
     {
         // Arrange & Act
-        var pool = new DefaultObjectPool<SimplePoolObject, EmptyInitPoolPolicy>();
+        var pool = new ObjectPool<SimplePoolObject, EmptyInitPoolPolicy>();
 
         // Assert
         Assert.That(pool.InitCount, Is.EqualTo(0));
@@ -115,7 +115,7 @@ public class DefaultObjectPoolTests
     public void Rent_FromPreloadedPool_ReturnsPreallocatedObject()
     {
         // Arrange
-        var pool = new DefaultObjectPool<SimplePoolObject, PreloadedPoolPolicy>();
+        var pool = new ObjectPool<SimplePoolObject, PreloadedPoolPolicy>();
         var initialPooledCount = pool.PooledCount;
 
         // Act
@@ -131,7 +131,7 @@ public class DefaultObjectPoolTests
     public void Rent_FromEmptyPool_CreatesNewObject()
     {
         // Arrange
-        var pool = new DefaultObjectPool<SimplePoolObject, EmptyInitPoolPolicy>();
+        var pool = new ObjectPool<SimplePoolObject, EmptyInitPoolPolicy>();
 
         // Act
         var obj = pool.Rent();
@@ -146,7 +146,7 @@ public class DefaultObjectPoolTests
     public void Rent_MultipleTimes_ExpandsPool()
     {
         // Arrange
-        var pool = new DefaultObjectPool<SimplePoolObject, EmptyInitPoolPolicy>();
+        var pool = new ObjectPool<SimplePoolObject, EmptyInitPoolPolicy>();
 
         // Act - Rent more objects than initial capacity
         var objects = new List<SimplePoolObject>();
@@ -167,7 +167,7 @@ public class DefaultObjectPoolTests
     public void Recycle_ReturnedObject_IncreasesPooledCount()
     {
         // Arrange
-        var pool = new DefaultObjectPool<SimplePoolObject, EmptyInitPoolPolicy>();
+        var pool = new ObjectPool<SimplePoolObject, EmptyInitPoolPolicy>();
         var obj = pool.Rent();
         int initialPooledCount = pool.PooledCount;
 
@@ -183,7 +183,7 @@ public class DefaultObjectPoolTests
     public void RentAndRecycle_MultipleObjects_MaintainsCorrectCounts()
     {
         // Arrange
-        var pool = new DefaultObjectPool<SimplePoolObject, LimitedPoolPolicy>();
+        var pool = new ObjectPool<SimplePoolObject, LimitedPoolPolicy>();
 
         // Act & Assert - Rent all initial objects
         var obj1 = pool.Rent();
@@ -220,7 +220,7 @@ public class DefaultObjectPoolTests
     public void Recycle_BeyondMaxCapacity_DisposesObject()
     {
         // Arrange
-        var pool = new DefaultObjectPool<DisposablePoolObject, DisposableObjectPolicy>();
+        var pool = new ObjectPool<DisposablePoolObject, DisposableObjectPolicy>();
 
         // Fill the pool to max capacity
         var objects = new List<DisposablePoolObject>();
@@ -258,7 +258,7 @@ public class DefaultObjectPoolTests
     public void Dispose_Pool_DisposesAllObjects()
     {
         // Arrange
-        var pool = new DefaultObjectPool<DisposablePoolObject, DisposableObjectPolicy>();
+        var pool = new ObjectPool<DisposablePoolObject, DisposableObjectPolicy>();
 
         // Rent and recycle to ensure pool has some objects
         var obj1 = pool.Rent();
@@ -278,7 +278,7 @@ public class DefaultObjectPoolTests
     public void ObjectPoolCallback_IsInvoked_OnRentAndRecycle()
     {
         // Arrange
-        var pool = new DefaultObjectPool<CallbackPoolObject, CallbackObjectPolicy>();
+        var pool = new ObjectPool<CallbackPoolObject, CallbackObjectPolicy>();
 
         // Act
         var obj = pool.Rent();
@@ -307,7 +307,7 @@ public class DefaultObjectPoolTests
     public void NonGenericInterface_WorksCorrectly()
     {
         // Arrange
-        var pool = new DefaultObjectPool<SimplePoolObject, PreloadedPoolPolicy>();
+        var pool = new ObjectPool<SimplePoolObject, PreloadedPoolPolicy>();
         IObjectPool nonGenericPool = pool;
 
         // Act
@@ -330,7 +330,7 @@ public class DefaultObjectPoolTests
     public void ThreadSafety_ConcurrentRentAndRecycle()
     {
         // Arrange
-        var pool = new DefaultObjectPool<SimplePoolObject, LimitedPoolPolicy>();
+        var pool = new ObjectPool<SimplePoolObject, LimitedPoolPolicy>();
         const int iterations = 1000;
         const int threadCount = 8;
 
@@ -375,7 +375,7 @@ public class DefaultObjectPoolTests
     public void Expansion_RespectsPolicyRules()
     {
         // Arrange - use a policy that expands by 2
-        var pool = new DefaultObjectPool<SimplePoolObject, PreloadedPoolPolicy>();
+        var pool = new ObjectPool<SimplePoolObject, PreloadedPoolPolicy>();
         int initialPooledCount = pool.PooledCount;
 
         // Act - rent all initial objects plus one more
