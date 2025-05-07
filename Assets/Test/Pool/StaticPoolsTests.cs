@@ -102,7 +102,6 @@ public class StaticPoolsTests
         Assert.That(pool.InitCount, Is.EqualTo(3), "Should use the custom policy's InitCount");
         Assert.That(pool.MaxCount, Is.EqualTo(7), "Should use the custom policy's MaxCount");
 
-        // Rent an object to verify policy's create method works
         var obj = pool.Rent();
         Assert.That(obj, Is.Not.Null);
         Assert.That(obj, Is.InstanceOf<StaticPoolObject>());

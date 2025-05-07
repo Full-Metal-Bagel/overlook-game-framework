@@ -45,14 +45,15 @@ public sealed class OverrideGenericCollectionPoolPolicyAttribute<TPolicy> : Attr
         if (collectionType == null) return null;
 
         var elementType = collectionType.GetGenericArguments()[0];
-        return (IObjectPoolProvider)typeof(GenericCollectionPoolProvider<,,>).MakeGenericType(type, elementType, typeof(TPolicy));
+        var providerType = typeof(GenericCollectionPoolProvider<,,>).MakeGenericType(type, elementType, typeof(TPolicy));
+        return (IObjectPoolProvider)Activator.CreateInstance(providerType);
     }
 
     public int Priority => 100;
 }
 
 [AttributeUsage(AttributeTargets.Assembly)]
-public sealed class RegisterDefaultCollectionPoolAttribute : Attribute, IAssemblyObjectPoolProviderFactory
+internal sealed class RegisterDefaultCollectionPoolAttribute : Attribute, IAssemblyObjectPoolProviderFactory
 {
     public IObjectPoolProvider? CreateProvider(Type type)
     {
@@ -60,7 +61,8 @@ public sealed class RegisterDefaultCollectionPoolAttribute : Attribute, IAssembl
         if (collectionType == null) return null;
 
         var elementType = collectionType.GetGenericArguments()[0];
-        return (IObjectPoolProvider)typeof(DefaultCollectionPoolProvider<,>).MakeGenericType(type, elementType);
+        var providerType = typeof(DefaultCollectionPoolProvider<,>).MakeGenericType(type, elementType);
+        return (IObjectPoolProvider)Activator.CreateInstance(providerType);
     }
 
     public int Priority => 1000;

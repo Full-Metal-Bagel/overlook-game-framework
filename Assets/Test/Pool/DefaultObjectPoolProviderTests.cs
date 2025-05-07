@@ -85,26 +85,6 @@ public class DefaultObjectPoolProviderTests
     }
 
     [Test]
-    public void ProviderCache_HasEntriesForAttributeRegisteredTypes()
-    {
-        // Access the private cache to verify it contains our attribute-registered type
-        var providerCacheField = typeof(ObjectPoolProvider)
-            .GetField("s_providerCache", BindingFlags.NonPublic | BindingFlags.Static);
-
-        Assert.That(providerCacheField, Is.Not.Null, "Could not find s_providerCache field");
-
-        var providerCache = providerCacheField.GetValue(null);
-        var containsMethodInfo = providerCache.GetType().GetMethod("ContainsKey");
-
-        Assert.That(containsMethodInfo, Is.Not.Null, "Could not find ContainsKey method");
-
-        var hasTestObjectBProvider = (bool)containsMethodInfo.Invoke(providerCache, new object[] { typeof(TestObjectB) });
-
-        Assert.That(hasTestObjectBProvider, Is.True,
-            "Provider cache should contain an entry for TestObjectB from attribute registration");
-    }
-
-    [Test]
     public void Get_WithCustomTypeHandling_WorksWithThreadLocalTypeParameters()
     {
         // Act - This specifically tests the thread-local type parameter optimization

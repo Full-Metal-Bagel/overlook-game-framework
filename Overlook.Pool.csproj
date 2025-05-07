@@ -64,6 +64,7 @@
     <Compile Include="Packages/com.fullmetalbagel.overlook-pool/ObjectPoolProvider.cs" />
     <Compile Include="Packages/com.fullmetalbagel.overlook-pool/PooledCollection/PooledMemoryDictionary.cs" />
     <Compile Include="Packages/com.fullmetalbagel.overlook-pool/ObjectPool.cs" />
+    <Compile Include="Packages\com.fullmetalbagel.overlook-pool\AssemblyInfo.cs" />
     <None Include="Packages/com.fullmetalbagel.overlook-pool/csc.rsp" />
     <None Include="Packages/com.fullmetalbagel.overlook-pool/Overlook.Pool.asmdef" />
     <None Include="Packages/com.fullmetalbagel.overlook-pool/package.json" />
