@@ -17,9 +17,7 @@ public sealed class TypeObjectPoolCache : IDisposable
 
     public IObjectPool<T> GetPool<T>(IObjectPoolProvider? provider = null) where T : class, new()
     {
-        provider ??= ObjectPoolProvider.Get<T>();
-        CheckProvider(typeof(T), provider);
-        return (IObjectPool<T>)_pools.GetOrAdd(typeof(T), static (_, provider) => provider.CreatePool(), provider);
+        return (IObjectPool<T>)GetPool(typeof(T), provider);
     }
 
     public void Dispose()

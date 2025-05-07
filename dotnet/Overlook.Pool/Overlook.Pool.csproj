@@ -30,6 +30,9 @@
     <ItemGroup>
         <Compile Include="..\..\Packages\com.fullmetalbagel.overlook-pool\**\*.cs" />
         <Link Include="..\..\.editorconfig" />
+        <Compile Update="..\..\Packages\com.fullmetalbagel.overlook-pool\Providers\GenericCollectionPoolProvider.cs">
+          <Link>Providers\GenericCollectionPoolProvider.cs</Link>
+        </Compile>
     </ItemGroup>
 
     <ItemGroup>

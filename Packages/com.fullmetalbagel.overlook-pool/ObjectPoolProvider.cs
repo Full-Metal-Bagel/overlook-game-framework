@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
-using System.Threading;
+using System.Reflection;
 
 namespace Overlook.Pool;
 
@@ -14,33 +14,29 @@ public static class ObjectPoolProvider
 {
     // Cache to store policies by type
     private static readonly ConcurrentDictionary<Type, IObjectPoolProvider> s_providerCache = new();
-    private static readonly ThreadLocal<Type[]> s_typeParameters = new(() => new Type[1]);
-    private static readonly
-
-    static ObjectPoolProvider()
-    {
-        var globalProviderFactories = AppDomain.CurrentDomain.GetAssemblies()
-            .SelectMany(assembly => assembly.GetCustomAttributes(typeof(IObjectPoolProviderFactory), false))
-            .OfType<IObjectPoolProviderFactory>()
-        ;
-        foreach (var attribute in ))
-        {
-            var objectType = attribute.GetType().GenericTypeArguments[0];
-            s_providerCache.TryAdd(objectType, (IObjectPoolProvider)attribute);
-        }
-    }
+    private static readonly IAssemblyObjectPoolProviderFactory[] s_factories =
+            AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(assembly => assembly.GetCustomAttributes(false))
+                .OfType<IAssemblyObjectPoolProviderFactory>()
+                .OrderBy(item => item.Priority)
+                .ToArray()
+            ;
 
     public static IObjectPoolProvider Get(Type objectType)
     {
         return s_providerCache.GetOrAdd(objectType, static type =>
         {
-            s_typeParameters.Value[0] = type;
-            return (IObjectPoolProvider)Activator.CreateInstance(typeof(DefaultObjectPoolProvider<>).MakeGenericType(s_typeParameters.Value));
+            var attribute = type.GetCustomAttributes().SingleOrDefault(attribute => attribute is IObjectPoolProviderFactory);
+            if (attribute != null) return ((IObjectPoolProviderFactory)attribute).CreateProvider(type)!;
+
+            foreach (var factory in s_factories)
+            {
+                var provider = factory.CreateProvider(type);
+                if (provider != null) return provider;
+            }
+            return (IObjectPoolProvider)Activator.CreateInstance(typeof(DefaultObjectPoolProvider<>).MakeGenericType(type));
         });
     }
 
-    public static IObjectPoolProvider Get<T>() where T : class, new()
-    {
-        return s_providerCache.GetOrAdd(typeof(T), static _ => new DefaultObjectPoolProvider<T>());
-    }
+    public static IObjectPoolProvider Get<T>() => Get(typeof(T));
 }

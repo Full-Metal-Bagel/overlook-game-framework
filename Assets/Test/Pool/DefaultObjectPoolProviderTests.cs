@@ -31,7 +31,6 @@ public class DefaultObjectPoolProviderTests
         // Assert
         Assert.That(provider, Is.Not.Null);
         Assert.That(provider, Is.InstanceOf<DefaultObjectPoolProvider<TestObjectA>>());
-        Assert.That(provider.ObjectType, Is.EqualTo(typeof(TestObjectA)));
     }
 
     [Test]
@@ -43,7 +42,6 @@ public class DefaultObjectPoolProviderTests
         // Assert
         Assert.That(provider, Is.Not.Null);
         Assert.That(provider, Is.InstanceOf<DefaultObjectPoolProvider<TestObjectA>>());
-        Assert.That(provider.ObjectType, Is.EqualTo(typeof(TestObjectA)));
     }
 
     [Test]
@@ -125,17 +123,5 @@ public class DefaultObjectPoolProviderTests
         // All instances should be the same (cached)
         var first = results[0];
         Assert.That(results, Is.All.SameAs(first));
-    }
-
-    [Test]
-    public void Provider_ObjectType_ReturnsCorrectType()
-    {
-        // Arrange
-        var providerA = DefaultObjectPoolProvider.Get<TestObjectA>();
-        var providerB = DefaultObjectPoolProvider.Get<TestObjectB>();
-
-        // Assert
-        Assert.That(providerA.ObjectType, Is.EqualTo(typeof(TestObjectA)));
-        Assert.That(providerB.ObjectType, Is.EqualTo(typeof(TestObjectB)));
     }
 }
