@@ -14,6 +14,7 @@ public interface IAssemblyObjectPoolProviderFactory : IObjectPoolProviderFactory
     int Priority { get; }
 }
 
+#if !UNITY_5_3_OR_NEWER
 [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
 public sealed class OverridePoolPolicyAttribute<T, TPolicy> : Attribute, IAssemblyObjectPoolProviderFactory
     where T : class
@@ -52,6 +53,84 @@ public sealed class OverrideGenericCollectionPoolPolicyAttribute<TPolicy> : Attr
     public int Priority => 100;
 }
 
+[AttributeUsage(AttributeTargets.Class)]
+public sealed class PoolPolicyAttribute<TPolicy> : Attribute, IObjectPoolProviderFactory
+    where TPolicy : unmanaged, IObjectPoolPolicy
+{
+    public IObjectPoolProvider CreateProvider(Type type)
+    {
+        var providerType = typeof(CustomObjectPoolProvider<,>).MakeGenericType(type, typeof(TPolicy));
+        return (IObjectPoolProvider)Activator.CreateInstance(providerType);
+    }
+}
+
+#endif
+
+[AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
+public sealed class OverridePoolPolicyAttribute : Attribute, IAssemblyObjectPoolProviderFactory
+{
+    public Type PoolType { get; }
+    public Type PolicyType { get; }
+
+    public OverridePoolPolicyAttribute(Type poolType, Type policyType)
+    {
+        PoolType = poolType;
+        PolicyType = policyType;
+    }
+
+    public IObjectPoolProvider? CreateProvider(Type type)
+    {
+        if (type != PoolType) return null;
+        var providerType = typeof(CustomObjectPoolProvider<,>).MakeGenericType(type, PolicyType);
+        return (IObjectPoolProvider)Activator.CreateInstance(providerType);
+    }
+
+    public int Priority => 0;
+}
+
+[AttributeUsage(AttributeTargets.Assembly)]
+public sealed class OverrideGenericCollectionPoolPolicyAttribute : Attribute, IAssemblyObjectPoolProviderFactory
+{
+    public Type GenericCollectionType { get; }
+    public Type PolicyType { get; }
+
+    public OverrideGenericCollectionPoolPolicyAttribute(Type genericCollectionType, Type policyType)
+    {
+        GenericCollectionType = genericCollectionType;
+        PolicyType = policyType;
+    }
+
+    public IObjectPoolProvider? CreateProvider(Type type)
+    {
+        if (!type.IsGenericType || type.GetGenericTypeDefinition() != GenericCollectionType) return null;
+        var collectionType = type.GetInterfaces().SingleOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ICollection<>));
+        if (collectionType == null) return null;
+
+        var elementType = collectionType.GetGenericArguments()[0];
+        var providerType = typeof(GenericCollectionPoolProvider<,,>).MakeGenericType(type, elementType, PolicyType);
+        return (IObjectPoolProvider)Activator.CreateInstance(providerType);
+    }
+
+    public int Priority => 100;
+}
+
+[AttributeUsage(AttributeTargets.Class)]
+public sealed class PoolPolicyAttribute : Attribute, IObjectPoolProviderFactory
+{
+    public Type PolicyType { get; }
+
+    public PoolPolicyAttribute(Type policyType)
+    {
+        PolicyType = policyType;
+    }
+
+    public IObjectPoolProvider CreateProvider(Type type)
+    {
+        var providerType = typeof(CustomObjectPoolProvider<,>).MakeGenericType(type, PolicyType);
+        return (IObjectPoolProvider)Activator.CreateInstance(providerType);
+    }
+}
+
 [AttributeUsage(AttributeTargets.Assembly)]
 internal sealed class RegisterDefaultCollectionPoolAttribute : Attribute, IAssemblyObjectPoolProviderFactory
 {
@@ -66,15 +145,4 @@ internal sealed class RegisterDefaultCollectionPoolAttribute : Attribute, IAssem
     }
 
     public int Priority => 1000;
-}
-
-[AttributeUsage(AttributeTargets.Class)]
-public sealed class OverridePoolPolicyAttribute<TPolicy> : Attribute, IObjectPoolProviderFactory
-    where TPolicy : unmanaged, IObjectPoolPolicy
-{
-    public IObjectPoolProvider CreateProvider(Type type)
-    {
-        var providerType = typeof(CustomObjectPoolProvider<,>).MakeGenericType(type, typeof(TPolicy));
-        return (IObjectPoolProvider)Activator.CreateInstance(providerType);
-    }
 }

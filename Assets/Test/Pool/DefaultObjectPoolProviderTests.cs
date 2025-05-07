@@ -4,7 +4,7 @@ using NUnit.Framework;
 using Overlook.Pool;
 using Overlook.Pool.Tests;
 
-[assembly: OverridePoolPolicy<TestObjectB, CustomTestPoolPolicy>]
+[assembly: OverridePoolPolicy(typeof(TestObjectB), typeof(CustomTestPoolPolicy))]
 
 namespace Overlook.Pool.Tests;
 
