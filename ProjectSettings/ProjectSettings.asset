@@ -841,7 +841,7 @@ PlayerSettings:
   webGLMemoryGeometricGrowthCap: 96
   webGLPowerPreference: 2
   scriptingDefineSymbols:
-    Standalone: OVERLOOK_ECS_DEBUG
+    Standalone: OVERLOOK_ECS_DEBUG;OVERLOOK_DEBUG
   additionalCompilerArguments:
     Standalone: []
   platformArchitecture: {}

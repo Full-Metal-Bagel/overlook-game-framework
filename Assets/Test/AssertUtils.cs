@@ -5,7 +5,7 @@ namespace Overlook.Ecs.Tests
 {
     internal static class AssertUtils
     {
-        public static void ExpectDebugAssert(TestDelegate code, int assertionTimes = 1)
+        public static void CatchDebugAssertAndOtherExceptions(TestDelegate code, int assertionTimes = 1)
         {
 #if UNITY_2022_3_OR_NEWER
             while (assertionTimes > 0)
@@ -14,7 +14,7 @@ namespace Overlook.Ecs.Tests
                 assertionTimes--;
             }
 #endif
-            code();
+            Assert.Catch(code);
         }
 
         public static void CatchDebugAssert(TestDelegate code, int assertionTimes = 1)
@@ -25,8 +25,10 @@ namespace Overlook.Ecs.Tests
                 UnityEngine.TestTools.LogAssert.Expect(UnityEngine.LogType.Assert, new Regex(".*"));
                 assertionTimes--;
             }
-#endif
+            code();
+#else
             Assert.Catch(code);
+#endif
         }
     }
 }

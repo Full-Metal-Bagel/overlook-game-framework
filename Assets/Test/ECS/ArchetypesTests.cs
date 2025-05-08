@@ -431,7 +431,7 @@ namespace Overlook.Ecs.Tests
             var entity = _archetypes.Spawn().Identity;
             _archetypes.AddComponent(entity, new ZeroStruct());
             Assert.That(_archetypes.HasComponent(StorageType.Create<ZeroStruct>(), entity), Is.True);
-            AssertUtils.CatchDebugAssert(() => _archetypes.GetComponent<ZeroStruct>(entity));
+            AssertUtils.CatchDebugAssertAndOtherExceptions(() => _archetypes.GetComponent<ZeroStruct>(entity));
         }
 
         [Test]
@@ -440,7 +440,7 @@ namespace Overlook.Ecs.Tests
             var entity = _archetypes.Spawn().Identity;
             _archetypes.AddObjectComponent(entity, (object)new ZeroStruct());
             Assert.That(_archetypes.HasComponent(StorageType.Create<ZeroStruct>(), entity), Is.True);
-            AssertUtils.CatchDebugAssert(() => _archetypes.GetComponent<ZeroStruct>(entity));
+            AssertUtils.CatchDebugAssertAndOtherExceptions(() => _archetypes.GetComponent<ZeroStruct>(entity));
         }
 
         [Test]
