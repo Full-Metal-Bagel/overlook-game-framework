@@ -9,6 +9,7 @@ public sealed class DefaultCollectionPoolProvider<TCollection, TElement> : IObje
     private readonly record struct Policy : IObjectPoolPolicy
     {
         public object Create() => new TCollection();
+        public void OnRent(object instance) => ((ICollection<TElement>)instance).Clear();
         public void OnRecycle(object instance) => ((ICollection<TElement>)instance).Clear();
         public void OnDispose(object instance) => ((ICollection<TElement>)instance).Clear();
     }

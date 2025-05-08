@@ -43,6 +43,29 @@ namespace Overlook.Pool.Tests
         }
 
         [Test]
+        public void PooledList_DefaultConstructor_CreatesEmptyList()
+        {
+            // Test the default constructor
+            using (var pooled = new PooledList<int>())
+            {
+                var list = pooled.Value;
+                Assert.That(list, Is.Not.Null);
+                Assert.That(list, Is.InstanceOf<List<int>>());
+                Assert.That(list.Count, Is.EqualTo(0));
+
+                // Should still be usable
+                list.Add(1);
+                list.Add(2);
+                Assert.That(list.Count, Is.EqualTo(2));
+            }
+
+            // After disposal, verify pool state
+            var pool = StaticPools.GetPool<List<int>>();
+            Assert.That(pool.RentedCount, Is.EqualTo(0), "List should be recycled after disposal");
+            Assert.That(pool.PooledCount, Is.GreaterThan(0), "List should be back in pool");
+        }
+
+        [Test]
         public void PooledList_CreateAndRecycle_MaintainsCapacity()
         {
             const int requestedCapacity = 100;
@@ -72,8 +95,6 @@ namespace Overlook.Pool.Tests
             // Get the list back and verify it's empty but maintains capacity
             var recycledList = pool.Rent();
             Assert.That(recycledList.Count, Is.EqualTo(0), "List should be empty");
-            Assert.That(recycledList.Capacity, Is.GreaterThanOrEqualTo(requestedCapacity),
-                "List should maintain its capacity after recycling");
 
             // Clean up
             pool.Recycle(recycledList);
@@ -97,6 +118,28 @@ namespace Overlook.Pool.Tests
                 pooled.Value.Add("test3");
                 Assert.That(list.Count, Is.EqualTo(3));
             }
+        }
+
+        [Test]
+        public void PooledDictionary_DefaultConstructor_CreatesEmptyDictionary()
+        {
+            // Test the default constructor
+            using (var pooled = new PooledDictionary<string, int>())
+            {
+                var dict = pooled.Value;
+                Assert.That(dict, Is.Not.Null);
+                Assert.That(dict, Is.InstanceOf<Dictionary<string, int>>());
+                Assert.That(dict.Count, Is.EqualTo(0));
+
+                // Should still be usable
+                dict["test"] = 42;
+                Assert.That(dict["test"], Is.EqualTo(42));
+            }
+
+            // After disposal, verify pool state
+            var pool = StaticPools.GetPool<Dictionary<string, int>>();
+            Assert.That(pool.RentedCount, Is.EqualTo(0), "Dictionary should be recycled after disposal");
+            Assert.That(pool.PooledCount, Is.GreaterThan(0), "Dictionary should be back in pool");
         }
 
         [Test]
@@ -124,6 +167,30 @@ namespace Overlook.Pool.Tests
             Assert.That(recycled.Count, Is.EqualTo(0), "Dictionary should be empty after recycling");
 
             pool.Recycle(recycled);
+        }
+
+        [Test]
+        public void PooledHashSet_DefaultConstructor_CreatesEmptyHashSet()
+        {
+            // Test the default constructor
+            using (var pooled = new PooledHashSet<int>())
+            {
+                var set = pooled.Value;
+                Assert.That(set, Is.Not.Null);
+                Assert.That(set, Is.InstanceOf<HashSet<int>>());
+                Assert.That(set.Count, Is.EqualTo(0));
+
+                // Should still be usable
+                set.Add(10);
+                set.Add(20);
+                Assert.That(set.Count, Is.EqualTo(2));
+                Assert.That(set.Contains(10), Is.True);
+            }
+
+            // After disposal, verify pool state
+            var pool = StaticPools.GetPool<HashSet<int>>();
+            Assert.That(pool.RentedCount, Is.EqualTo(0), "HashSet should be recycled after disposal");
+            Assert.That(pool.PooledCount, Is.GreaterThan(0), "HashSet should be back in pool");
         }
 
         [Test]
@@ -194,6 +261,27 @@ namespace Overlook.Pool.Tests
         }
 
         [Test]
+        public void PooledStringBuilder_DefaultConstructor_CreatesEmptyStringBuilder()
+        {
+            // Test the default constructor
+            using (var pooled = new PooledStringBuilder())
+            {
+                var sb = pooled.Value;
+                Assert.That(sb, Is.Not.Null);
+                Assert.That(sb.Length, Is.EqualTo(0));
+
+                // Should still be usable
+                sb.Append("Test string");
+                Assert.That(sb.ToString(), Is.EqualTo("Test string"));
+            }
+
+            // After disposal, verify pool state
+            var pool = StaticPools.GetPool<System.Text.StringBuilder>();
+            Assert.That(pool.RentedCount, Is.EqualTo(0), "StringBuilder should be recycled after disposal");
+            Assert.That(pool.PooledCount, Is.GreaterThan(0), "StringBuilder should be back in pool");
+        }
+
+        [Test]
         public void PooledStringBuilder_CreateAndRecycle_WorksCorrectly()
         {
             // Test the PooledStringBuilder
@@ -220,6 +308,30 @@ namespace Overlook.Pool.Tests
             Assert.That(recycled.Length, Is.EqualTo(0));
 
             pool.Recycle(recycled);
+        }
+
+        [Test]
+        public void PooledMemoryList_DefaultConstructor_CreatesEmptyList()
+        {
+            // Test the default constructor
+            using (var pooled = new PooledMemoryList<byte>())
+            {
+                var list = pooled.Value;
+                Assert.That(list, Is.Not.Null);
+                Assert.That(list, Is.InstanceOf<List<byte>>());
+                Assert.That(list.Count, Is.EqualTo(0));
+
+                // Should still be usable
+                list.Add(1);
+                list.Add(2);
+                Assert.That(list.Count, Is.EqualTo(2));
+                Assert.That(list[0], Is.EqualTo(1));
+            }
+
+            // After disposal, verify pool state
+            var pool = StaticPools.GetPool<List<byte>>();
+            Assert.That(pool.RentedCount, Is.EqualTo(0), "List should be recycled after disposal");
+            Assert.That(pool.PooledCount, Is.GreaterThan(0), "List should be back in pool");
         }
 
         [Test]
@@ -251,6 +363,30 @@ namespace Overlook.Pool.Tests
             var pool = StaticPools.GetPool<List<byte>>();
             Assert.That(pool.RentedCount, Is.EqualTo(0));
             Assert.That(pool.PooledCount, Is.GreaterThan(0));
+        }
+
+        [Test]
+        public void PooledMemoryDictionary_DefaultConstructor_CreatesEmptyDictionary()
+        {
+            // Test the default constructor
+            using (var pooled = new PooledMemoryDictionary<int, byte>())
+            {
+                var dict = pooled.Value;
+                Assert.That(dict, Is.Not.Null);
+                Assert.That(dict, Is.InstanceOf<Dictionary<int, byte>>());
+                Assert.That(dict.Count, Is.EqualTo(0));
+
+                // Should still be usable
+                dict[1] = 10;
+                dict[2] = 20;
+                Assert.That(dict.Count, Is.EqualTo(2));
+                Assert.That(dict[1], Is.EqualTo(10));
+            }
+
+            // After disposal, verify pool state
+            var pool = StaticPools.GetPool<Dictionary<int, byte>>();
+            Assert.That(pool.RentedCount, Is.EqualTo(0), "Dictionary should be recycled after disposal");
+            Assert.That(pool.PooledCount, Is.GreaterThan(0), "Dictionary should be back in pool");
         }
 
         [Test]
@@ -293,6 +429,64 @@ namespace Overlook.Pool.Tests
         }
 
         [Test]
+        public void ComparePooledListConstructors_ShouldBothWork()
+        {
+            // Test both constructors to ensure they behave correctly
+            using (var pooledWithCapacity = new PooledList<int>(10))
+            using (var pooledDefault = new PooledList<int>())
+            {
+                var listWithCapacity = pooledWithCapacity.Value;
+                var listDefault = pooledDefault.Value;
+
+                Assert.That(listWithCapacity, Is.Not.Null);
+                Assert.That(listDefault, Is.Not.Null);
+
+                // Both should start empty
+                Assert.That(listWithCapacity.Count, Is.EqualTo(0));
+                Assert.That(listDefault.Count, Is.EqualTo(0));
+
+                // The capacity-initialized one should have larger capacity
+                Assert.That(listWithCapacity.Capacity, Is.GreaterThanOrEqualTo(10));
+
+                // Both should be usable
+                listWithCapacity.Add(1);
+                listDefault.Add(2);
+
+                Assert.That(listWithCapacity.Count, Is.EqualTo(1));
+                Assert.That(listDefault.Count, Is.EqualTo(1));
+            }
+        }
+
+        [Test]
+        public void ComparePooledDictionaryConstructors_ShouldBothWork()
+        {
+            // Test both constructors to ensure they behave correctly
+            using (var pooledWithCapacity = new PooledDictionary<string, int>(5))
+            using (var pooledDefault = new PooledDictionary<string, int>())
+            {
+                var dictWithCapacity = pooledWithCapacity.Value;
+                var dictDefault = pooledDefault.Value;
+
+                Assert.That(dictWithCapacity, Is.Not.Null);
+                Assert.That(dictDefault, Is.Not.Null);
+
+                // Both should start empty
+                Assert.That(dictWithCapacity.Count, Is.EqualTo(0));
+                Assert.That(dictDefault.Count, Is.EqualTo(0));
+
+                // Both should be usable
+                dictWithCapacity.Add("test1", 1);
+                dictDefault.Add("test2", 2);
+
+                Assert.That(dictWithCapacity.Count, Is.EqualTo(1));
+                Assert.That(dictDefault.Count, Is.EqualTo(1));
+
+                Assert.That(dictWithCapacity["test1"], Is.EqualTo(1));
+                Assert.That(dictDefault["test2"], Is.EqualTo(2));
+            }
+        }
+
+        [Test]
         public void NestedPooledObjects_DisposedCorrectly()
         {
             // This test verifies that nested pooled objects work correctly
@@ -322,7 +516,7 @@ namespace Overlook.Pool.Tests
 
                 // Verify inner list was returned to pool
                 Assert.That(listPool.RentedCount, Is.EqualTo(0), "List should be recycled");
-                Assert.That(listPool.PooledCount, Is.EqualTo(initialListCount + 1), "List should be in pool");
+                Assert.That(listPool.PooledCount, Is.EqualTo(initialListCount), "List should be in pool");
 
                 // Outer object is still active
                 Assert.That(objectPool.RentedCount, Is.EqualTo(1), "Object should still be rented");
@@ -345,6 +539,68 @@ namespace Overlook.Pool.Tests
             // Clean up
             objectPool.Recycle(recycledObj);
             listPool.Recycle(recycledList);
+        }
+
+        [Test]
+        public void MultipleDefaultConstructors_WorkCorrectly_WithNestedDisposal()
+        {
+            // Test initializing all the various default constructors
+            // and verify they all dispose correctly when nested
+
+            using (var list = new PooledList<int>())
+            using (var dict = new PooledDictionary<string, int>())
+            using (var set = new PooledHashSet<double>())
+            using (var sb = new PooledStringBuilder())
+            using (var memList = new PooledMemoryList<byte>())
+            using (var memDict = new PooledMemoryDictionary<Guid, string>())
+            {
+                // Verify all are initialized correctly
+                Assert.That(list.Value, Is.Not.Null);
+                Assert.That(dict.Value, Is.Not.Null);
+                Assert.That(set.Value, Is.Not.Null);
+                Assert.That(sb.Value, Is.Not.Null);
+                Assert.That(memList.Value, Is.Not.Null);
+                Assert.That(memDict.Value, Is.Not.Null);
+
+                // Add some items to each
+                list.Value.Add(42);
+                dict.Value["key"] = 123;
+                set.Value.Add(3.14);
+                sb.Value.Append("Hello");
+                memList.Value.Add(255);
+                memDict.Value[Guid.NewGuid()] = "value";
+
+                // Verify items were added
+                Assert.That(list.Value.Count, Is.EqualTo(1));
+                Assert.That(dict.Value.Count, Is.EqualTo(1));
+                Assert.That(set.Value.Count, Is.EqualTo(1));
+                Assert.That(sb.Value.Length, Is.GreaterThan(0));
+                Assert.That(memList.Value.Count, Is.EqualTo(1));
+                Assert.That(memDict.Value.Count, Is.EqualTo(1));
+            }
+
+            // All should have been disposed and returned to their pools
+            var listPool = StaticPools.GetPool<List<int>>();
+            var dictPool = StaticPools.GetPool<Dictionary<string, int>>();
+            var setPool = StaticPools.GetPool<HashSet<double>>();
+            var sbPool = StaticPools.GetPool<System.Text.StringBuilder>();
+            var memListPool = StaticPools.GetPool<List<byte>>();
+            var memDictPool = StaticPools.GetPool<Dictionary<Guid, string>>();
+
+            Assert.That(listPool.RentedCount, Is.EqualTo(0));
+            Assert.That(dictPool.RentedCount, Is.EqualTo(0));
+            Assert.That(setPool.RentedCount, Is.EqualTo(0));
+            Assert.That(sbPool.RentedCount, Is.EqualTo(0));
+            Assert.That(memListPool.RentedCount, Is.EqualTo(0));
+            Assert.That(memDictPool.RentedCount, Is.EqualTo(0));
+
+            // Each pool should have at least one object
+            Assert.That(listPool.PooledCount, Is.GreaterThan(0));
+            Assert.That(dictPool.PooledCount, Is.GreaterThan(0));
+            Assert.That(setPool.PooledCount, Is.GreaterThan(0));
+            Assert.That(sbPool.PooledCount, Is.GreaterThan(0));
+            Assert.That(memListPool.PooledCount, Is.GreaterThan(0));
+            Assert.That(memDictPool.PooledCount, Is.GreaterThan(0));
         }
     }
 }

@@ -18,6 +18,8 @@ public readonly record struct PooledMemoryDictionary<TKey, TValue> : IDisposable
             Value!.Add(key, value);
     }
 
+    public PooledMemoryDictionary() : this(0) { }
+
     public PooledMemoryDictionary(int capacity)
     {
         Value = GetPool<Dictionary<TKey, TValue>>().Rent();

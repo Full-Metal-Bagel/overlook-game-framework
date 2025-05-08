@@ -11,6 +11,8 @@ public readonly record struct PooledMemoryList<T> : IDisposable
 {
     public List<T> Value { get; }
 
+    public PooledMemoryList() : this(0) { }
+
     public PooledMemoryList(int capacity)
     {
         Value = GetPool<List<T>>().Rent();

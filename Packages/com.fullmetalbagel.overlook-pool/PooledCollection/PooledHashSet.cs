@@ -8,6 +8,8 @@ public readonly ref struct PooledHashSet<T>
 {
     public HashSet<T> Value { get; }
 
+    public PooledHashSet() : this(0) { }
+
     public PooledHashSet(int capacity)
     {
         Value = GetPool<HashSet<T>>().Rent();

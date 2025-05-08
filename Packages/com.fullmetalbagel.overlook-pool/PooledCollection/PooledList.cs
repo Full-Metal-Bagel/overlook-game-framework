@@ -11,6 +11,8 @@ public readonly ref struct PooledList<T>
 {
     public List<T> Value { get; }
 
+    public PooledList() : this(0) { }
+
     public PooledList(int capacity)
     {
         Value = GetPool<List<T>>().Rent();

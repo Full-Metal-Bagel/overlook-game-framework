@@ -101,6 +101,7 @@ namespace Overlook.Pool.Tests
             Assert.That(pool.MaxCount, Is.EqualTo(10), "Should use EmptyInitPoolPolicy's MaxCount");
         }
 
+        [Test]
         public void DefaultCollectionPoolProvider_WorksWithGenericCollections()
         {
             // This test verifies that the default collection pool provider works

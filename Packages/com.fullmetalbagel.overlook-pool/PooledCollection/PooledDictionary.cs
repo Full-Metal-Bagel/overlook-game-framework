@@ -5,7 +5,6 @@ using static Overlook.Pool.StaticPools;
 namespace Overlook.Pool;
 
 [SuppressMessage("Naming", "CA1711:Identifiers should not have incorrect suffix")]
-[DisallowDefaultConstructor]
 public readonly ref struct PooledDictionary<TKey, TValue>
 {
     public Dictionary<TKey, TValue> Value { get; }
@@ -16,6 +15,8 @@ public readonly ref struct PooledDictionary<TKey, TValue>
         foreach (var (key, value) in collection)
             Value.Add(key, value);
     }
+
+    public PooledDictionary() : this(0) { }
 
     public PooledDictionary(int capacity)
     {

@@ -9,6 +9,8 @@ public readonly ref struct PooledStringBuilder
 {
     public StringBuilder Value { get; }
 
+    public PooledStringBuilder() : this(0) { }
+
     public PooledStringBuilder(int capacity)
     {
         Value = GetPool<StringBuilder>().Rent();

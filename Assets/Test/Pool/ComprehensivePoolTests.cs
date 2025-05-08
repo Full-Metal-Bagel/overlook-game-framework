@@ -466,5 +466,177 @@ namespace Overlook.Pool.Tests
             Assert.That(complexObjects, Is.All.Matches<ComplexPoolObject>(o => o.IsDisposed),
                 "All complex objects should be disposed when pool is disposed");
         }
+        
+        [Test]
+        public void PooledCollections_DefaultConstructors_WorkCorrectly()
+        {
+            // Test all the default constructors added in the latest updates
+            
+            using (var list = new PooledList<int>())
+            {
+                Assert.That(list.Value, Is.Not.Null);
+                Assert.That(list.Value.Count, Is.EqualTo(0));
+                
+                // Add data to confirm it works
+                list.Value.Add(1);
+                list.Value.Add(2);
+                Assert.That(list.Value.Count, Is.EqualTo(2));
+            }
+            
+            using (var dict = new PooledDictionary<string, int>())
+            {
+                Assert.That(dict.Value, Is.Not.Null);
+                Assert.That(dict.Value.Count, Is.EqualTo(0));
+                
+                // Add data to confirm it works
+                dict.Value["test"] = 42;
+                Assert.That(dict.Value.Count, Is.EqualTo(1));
+                Assert.That(dict.Value["test"], Is.EqualTo(42));
+            }
+            
+            using (var hashSet = new PooledHashSet<int>())
+            {
+                Assert.That(hashSet.Value, Is.Not.Null);
+                Assert.That(hashSet.Value.Count, Is.EqualTo(0));
+                
+                // Add data to confirm it works
+                hashSet.Value.Add(1);
+                hashSet.Value.Add(2);
+                Assert.That(hashSet.Value.Count, Is.EqualTo(2));
+                Assert.That(hashSet.Value.Contains(1), Is.True);
+            }
+            
+            using (var stringBuilder = new PooledStringBuilder())
+            {
+                Assert.That(stringBuilder.Value, Is.Not.Null);
+                Assert.That(stringBuilder.Value.Length, Is.EqualTo(0));
+                
+                // Add data to confirm it works
+                stringBuilder.Value.Append("Hello");
+                Assert.That(stringBuilder.Value.ToString(), Is.EqualTo("Hello"));
+            }
+            
+            using (var memList = new PooledMemoryList<byte>())
+            {
+                Assert.That(memList.Value, Is.Not.Null);
+                Assert.That(memList.Value.Count, Is.EqualTo(0));
+                
+                // Add data to confirm it works
+                memList.Value.Add(1);
+                memList.Value.Add(2);
+                Assert.That(memList.Value.Count, Is.EqualTo(2));
+                Assert.That(memList.Value[0], Is.EqualTo(1));
+            }
+            
+            using (var memDict = new PooledMemoryDictionary<int, string>())
+            {
+                Assert.That(memDict.Value, Is.Not.Null);
+                Assert.That(memDict.Value.Count, Is.EqualTo(0));
+                
+                // Add data to confirm it works
+                memDict.Value[1] = "test";
+                Assert.That(memDict.Value.Count, Is.EqualTo(1));
+                Assert.That(memDict.Value[1], Is.EqualTo("test"));
+            }
+        }
+        
+        [Test]
+        public void PooledCollections_CompareDefaultAndCapacityCtors()
+        {
+            // Test comparing the default and capacity constructors
+            
+            // List
+            using (var defaultList = new PooledList<int>())
+            using (var capacityList = new PooledList<int>(10))
+            {
+                Assert.That(defaultList.Value.Count, Is.EqualTo(0));
+                Assert.That(capacityList.Value.Count, Is.EqualTo(0));
+                Assert.That(capacityList.Value.Capacity, Is.GreaterThanOrEqualTo(10));
+                
+                // Both should be usable
+                defaultList.Value.Add(1);
+                capacityList.Value.Add(2);
+                
+                Assert.That(defaultList.Value[0], Is.EqualTo(1));
+                Assert.That(capacityList.Value[0], Is.EqualTo(2));
+            }
+            
+            // Dictionary
+            using (var defaultDict = new PooledDictionary<int, string>())
+            using (var capacityDict = new PooledDictionary<int, string>(10))
+            {
+                Assert.That(defaultDict.Value.Count, Is.EqualTo(0));
+                Assert.That(capacityDict.Value.Count, Is.EqualTo(0));
+                
+                // Both should be usable
+                defaultDict.Value[1] = "default";
+                capacityDict.Value[2] = "capacity";
+                
+                Assert.That(defaultDict.Value[1], Is.EqualTo("default"));
+                Assert.That(capacityDict.Value[2], Is.EqualTo("capacity"));
+            }
+            
+            // HashSet
+            using (var defaultSet = new PooledHashSet<int>())
+            using (var capacitySet = new PooledHashSet<int>(10))
+            {
+                Assert.That(defaultSet.Value.Count, Is.EqualTo(0));
+                Assert.That(capacitySet.Value.Count, Is.EqualTo(0));
+                
+                // Both should be usable
+                defaultSet.Value.Add(1);
+                capacitySet.Value.Add(2);
+                
+                Assert.That(defaultSet.Value.Contains(1), Is.True);
+                Assert.That(capacitySet.Value.Contains(2), Is.True);
+            }
+            
+            // StringBuilder
+            using (var defaultSb = new PooledStringBuilder())
+            using (var capacitySb = new PooledStringBuilder(10))
+            {
+                Assert.That(defaultSb.Value.Length, Is.EqualTo(0));
+                Assert.That(capacitySb.Value.Length, Is.EqualTo(0));
+                Assert.That(capacitySb.Value.Capacity, Is.GreaterThanOrEqualTo(10));
+                
+                // Both should be usable
+                defaultSb.Value.Append("default");
+                capacitySb.Value.Append("capacity");
+                
+                Assert.That(defaultSb.Value.ToString(), Is.EqualTo("default"));
+                Assert.That(capacitySb.Value.ToString(), Is.EqualTo("capacity"));
+            }
+            
+            // MemoryList
+            using (var defaultMemList = new PooledMemoryList<byte>())
+            using (var capacityMemList = new PooledMemoryList<byte>(10))
+            {
+                Assert.That(defaultMemList.Value.Count, Is.EqualTo(0));
+                Assert.That(capacityMemList.Value.Count, Is.EqualTo(0));
+                Assert.That(capacityMemList.Value.Capacity, Is.GreaterThanOrEqualTo(10));
+                
+                // Both should be usable
+                defaultMemList.Value.Add(1);
+                capacityMemList.Value.Add(2);
+                
+                Assert.That(defaultMemList.Value[0], Is.EqualTo(1));
+                Assert.That(capacityMemList.Value[0], Is.EqualTo(2));
+            }
+            
+            // MemoryDictionary
+            using (var defaultMemDict = new PooledMemoryDictionary<int, string>())
+            using (var capacityMemDict = new PooledMemoryDictionary<int, string>(10))
+            {
+                Assert.That(defaultMemDict.Value.Count, Is.EqualTo(0));
+                Assert.That(capacityMemDict.Value.Count, Is.EqualTo(0));
+                
+                // Both should be usable
+                defaultMemDict.Value[1] = "default";
+                capacityMemDict.Value[2] = "capacity";
+                
+                Assert.That(defaultMemDict.Value[1], Is.EqualTo("default"));
+                Assert.That(capacityMemDict.Value[2], Is.EqualTo("capacity"));
+            }
+        }
     }
 }
