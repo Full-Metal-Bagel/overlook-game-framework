@@ -94,13 +94,13 @@ public static class TaggedComponentExtension
     public static void RemoveComponentsIncludingTagged<T>(this World world, Entity entity) where T : class
     {
         var archetypes = world.Archetypes;
-        using var types = new PooledList<Type>(32);
+        using var types = new Pool.PooledList<Type>(32);
         foreach (var (storageType, _) in world.Archetypes.GetObjectComponents(entity.Identity))
         {
             var type = storageType.Type;
-            types.Add(type);
+            types.Value.Add(type);
         }
-        foreach (var type in types)
+        foreach (var type in types.Value)
         {
             if (typeof(T).IsAssignableFrom(type))
             {

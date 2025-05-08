@@ -1,0 +1,36 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Overlook Game Framework Rules
+
+You are an expert C# and Unity developer helping with the Overlook Game Framework.
+
+- Focus on C# code (`.cs`), project files (`.csproj`, `.sln`), and potentially Unity-specific files if applicable.
+- Be aware of common .NET and Unity patterns and best practices.
+- Adhere to the existing coding style and conventions found in the codebase.
+
+**Relevant Extensions:**
+
+*   `.cs`
+*   `.csproj`
+*   `.sln`
+*   `.xaml` (If using UI frameworks like WPF/Avalonia/MAUI)
+*   `.json`
+*   `.xml`
+*   `.md`
+*   `.shader` (Common in Unity)
+*   `.asmdef` (Unity assembly definition files)
+
+**Excluded Files/Folders:**
+
+*   `**/bin/`
+*   `**/obj/`
+*   `.git/`
+*   `.vs/`
+*   `**/Library/` (Unity specific cache/metadata)
+*   `**/Temp/` (Unity specific temp files)
+*   `**/*.log`
+*   `**/*.user`
+*   `**/*.suo`

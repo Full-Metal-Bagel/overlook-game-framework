@@ -1,7 +1,22 @@
 {
   "dependencies": {
+    "com.fullmetalbagel.overlook-core": {
+      "version": "file:com.fullmetalbagel.overlook-core",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {}
+    },
     "com.fullmetalbagel.overlook-ecs": {
       "version": "file:com.fullmetalbagel.overlook-ecs",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {
+        "com.fullmetalbagel.overlook-core": "0.1.0",
+        "com.fullmetalbagel.overlook-pool": "0.1.0"
+      }
+    },
+    "com.fullmetalbagel.overlook-pool": {
+      "version": "file:com.fullmetalbagel.overlook-pool",
       "depth": 0,
       "source": "embedded",
       "dependencies": {}
@@ -14,7 +29,7 @@
       "url": "https://package.openupm.com"
     },
     "com.unity.burst": {
-      "version": "1.8.17",
+      "version": "1.8.21",
       "depth": 1,
       "source": "registry",
       "dependencies": {
@@ -43,12 +58,19 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.ide.rider": {
-      "version": "3.0.34",
+      "version": "3.0.36",
       "depth": 0,
       "source": "registry",
       "dependencies": {
         "com.unity.ext.nunit": "1.0.6"
       },
+      "url": "https://packages.unity.com"
+    },
+    "com.unity.ide.vscode": {
+      "version": "1.2.5",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {},
       "url": "https://packages.unity.com"
     },
     "com.unity.mathematics": {
@@ -66,7 +88,7 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.settings-manager": {
-      "version": "2.0.1",
+      "version": "2.1.0",
       "depth": 1,
       "source": "registry",
       "dependencies": {},

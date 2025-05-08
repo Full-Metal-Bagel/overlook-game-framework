@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using JetBrains.Annotations;
+using Overlook.Pool;
 
 namespace Overlook.Ecs;
 
@@ -49,32 +50,29 @@ public sealed class DynamicBuilder : IComponentsBuilder
 
     static class DynamicBuilderPool<T> where T : struct
     {
-        private static readonly UnityEngine.Pool.ObjectPool<PooledBuilder> s_pool = new(
-            createFunc: () => new PooledBuilder { Pool = s_pool },
-            actionOnGet: x =>
-            {
-                x.Pool = s_pool;
-                x.Value = default!;
-            },
-            actionOnRelease: x =>
-            {
-                x.Pool = null;
-                x.Value = default!;
-            },
-            defaultCapacity: 4
-        );
+        private static readonly IObjectPool<PooledBuilder> s_pool = new ObjectPool<PooledBuilder, PooledBuilderPolicy>();
+
+        private readonly record struct PooledBuilderPolicy : IObjectPoolPolicy
+        {
+            public object Create() => new PooledBuilder(s_pool);
+        }
 
         public static PooledBuilder CreateBuilder(T value)
         {
-            var builder = s_pool.Get();
+            var builder = s_pool.Rent();
             builder.Value = value;
             return builder;
         }
 
         public sealed class PooledBuilder : IComponentsBuilder
         {
-            public UnityEngine.Pool.ObjectPool<PooledBuilder>? Pool { get; set; }
+            private IObjectPool<PooledBuilder>? _pool;
             public T Value { get; set; } = default!;
+
+            public PooledBuilder(IObjectPool<PooledBuilder>? pool)
+            {
+                _pool = pool;
+            }
 
             public void CollectTypes<TCollection>(TCollection types) where TCollection : ICollection<StorageType>
             {
@@ -88,41 +86,38 @@ public sealed class DynamicBuilder : IComponentsBuilder
 
             public void Dispose()
             {
-                Debug.Assert(Pool != null);
-                Pool?.Release(this);
-                Pool = null;
+                Debug.Assert(_pool != null);
+                _pool?.Recycle(this);
+                _pool = null;
             }
         }
     }
 
     static class DynamicBuilderPool
     {
-        private static readonly UnityEngine.Pool.ObjectPool<PooledBuilder> s_pool = new(
-            createFunc: () => new PooledBuilder { Pool = s_pool },
-            actionOnGet: x =>
-            {
-                x.Pool = s_pool;
-                x.Value = default!;
-            },
-            actionOnRelease: x =>
-            {
-                x.Pool = null;
-                x.Value = default!;
-            },
-            defaultCapacity: 32
-        );
+        private static readonly IObjectPool<PooledBuilder> s_pool = new ObjectPool<PooledBuilder, PooledBuilderPolicy>();
+
+        private readonly record struct PooledBuilderPolicy : IObjectPoolPolicy
+        {
+            public object Create() => new PooledBuilder(s_pool);
+        }
 
         public static PooledBuilder CreateBuilder(object value)
         {
-            var builder = s_pool.Get();
+            var builder = s_pool.Rent();
             builder.Value = value;
             return builder;
         }
 
         public sealed class PooledBuilder : IComponentsBuilder
         {
-            public UnityEngine.Pool.ObjectPool<PooledBuilder>? Pool { get; set; }
+            private IObjectPool<PooledBuilder>? _pool;
             public object Value { get; set; } = default!;
+
+            public PooledBuilder(IObjectPool<PooledBuilder>? pool)
+            {
+                _pool = pool;
+            }
 
             public void CollectTypes<TCollection>(TCollection types) where TCollection : ICollection<StorageType>
             {
@@ -136,9 +131,9 @@ public sealed class DynamicBuilder : IComponentsBuilder
 
             public void Dispose()
             {
-                Debug.Assert(Pool != null);
-                Pool?.Release(this);
-                Pool = null;
+                Debug.Assert(_pool != null);
+                _pool?.Recycle(this);
+                _pool = null;
             }
         }
     }
