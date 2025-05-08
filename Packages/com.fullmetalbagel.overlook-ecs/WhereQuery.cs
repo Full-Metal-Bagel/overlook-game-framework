@@ -5,7 +5,7 @@ namespace Overlook.Ecs;
 
 public struct WhereQuery<TEnumerable, TEnumerator, TQueryEntity> : IQuery<WhereQuery<TEnumerable, TEnumerator, TQueryEntity>.Enumerator, TQueryEntity>
     where TEnumerable : struct, IQuery<TEnumerator, TQueryEntity>
-    where TEnumerator : struct, IQueryEnumerator<TQueryEntity>
+    where TEnumerator : struct, IQueryEnumerator<TQueryEntity>, IDisposable
     where TQueryEntity : IQueryEntity
 {
     [SuppressMessage("Style", "IDE0044:Add readonly modifier")]
@@ -30,7 +30,7 @@ public struct WhereQuery<TEnumerable, TEnumerator, TQueryEntity> : IQuery<WhereQ
         return new WhereQuery<WhereQuery<TEnumerable, TEnumerator, TQueryEntity>, Enumerator, TQueryEntity>(this, entity => entity.Has<T>() && predicate(entity.GetObject<T>()));
     }
 
-    public struct Enumerator : IQueryEnumerator<TQueryEntity>
+    public struct Enumerator : IQueryEnumerator<TQueryEntity>, IDisposable
     {
         [SuppressMessage("Style", "IDE0044:Add readonly modifier")]
         private TEnumerator _enumerator;
@@ -53,6 +53,11 @@ public struct WhereQuery<TEnumerable, TEnumerator, TQueryEntity> : IQuery<WhereQ
         }
 
         public TQueryEntity Current => _enumerator.Current;
+
+        public void Dispose()
+        {
+            _enumerator.Dispose();
+        }
     }
 }
 
@@ -61,7 +66,7 @@ public static partial class ObjectComponentExtension
     public static WhereQuery<WhereQuery<TEnumerable, TEnumerator, TQueryEntity>, WhereQuery<TEnumerable, TEnumerator, TQueryEntity>.Enumerator, TQueryEntity> Where<T, TEnumerable, TEnumerator, TQueryEntity>(this WhereQuery<TEnumerable, TEnumerator, TQueryEntity> query, Func<T, bool> predicate)
         where T : class
         where TEnumerable : struct, IQuery<TEnumerator, TQueryEntity>
-        where TEnumerator : struct, IQueryEnumerator<TQueryEntity>
+        where TEnumerator : struct, IQueryEnumerator<TQueryEntity>, IDisposable
         where TQueryEntity : IQueryEntity
     {
         return query.WhereObject(predicate);
