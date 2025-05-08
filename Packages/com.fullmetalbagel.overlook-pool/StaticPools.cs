@@ -8,7 +8,7 @@ public static class StaticPools
 
     public static IObjectPool<T> GetPool<T>() where T : class, new()
     {
-        return Cache<T>.Instance;
+        return s_cache.GetPool<T>();
     }
 
     public static IObjectPool GetPool(Type type)
@@ -19,10 +19,5 @@ public static class StaticPools
     public static void Clear()
     {
         s_cache.Dispose();
-    }
-
-    private static class Cache<T> where T : class, new()
-    {
-        public static IObjectPool<T> Instance { get; } = s_cache.GetPool<T>();
     }
 }

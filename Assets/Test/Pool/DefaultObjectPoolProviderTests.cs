@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Reflection;
+using System.Threading.Tasks;
 using NUnit.Framework;
 using Overlook.Pool;
 using Overlook.Pool.Tests;
@@ -90,13 +91,19 @@ public class DefaultObjectPoolProviderTests
         // Act - This specifically tests the thread-local type parameter optimization
         var results = new List<IObjectPoolProvider>();
 
+        // Use a thread-safe collection to avoid race conditions
+        var syncResults = new System.Collections.Concurrent.ConcurrentBag<IObjectPoolProvider>();
+
         // Run in parallel to ensure thread safety
-        System.Threading.Tasks.Parallel.For(0, 10, _ => {
-            results.Add(ObjectPoolProvider.Get(typeof(TestObjectA)));
+        Parallel.For(0, 10, _ => {
+            syncResults.Add(ObjectPoolProvider.Get(typeof(TestObjectA)));
         });
 
+        // Transfer to regular list for assertions
+        results.AddRange(syncResults);
+
         // Assert
-        Assert.That(results, Has.Count.EqualTo(10));
+        Assert.That(results, Has.Count.EqualTo(10), "Should have exactly 10 results");
         Assert.That(results, Is.All.Not.Null);
         Assert.That(results, Is.All.InstanceOf<DefaultObjectPoolProvider<TestObjectA>>());
 

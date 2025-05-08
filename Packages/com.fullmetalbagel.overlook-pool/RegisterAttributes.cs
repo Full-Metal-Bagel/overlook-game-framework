@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 namespace Overlook.Pool;
 
@@ -142,6 +143,17 @@ internal sealed class RegisterDefaultCollectionPoolAttribute : Attribute, IAssem
         var elementType = collectionType.GetGenericArguments()[0];
         var providerType = typeof(DefaultCollectionPoolProvider<,>).MakeGenericType(type, elementType);
         return (IObjectPoolProvider)Activator.CreateInstance(providerType);
+    }
+
+    public int Priority => 1000;
+}
+
+[AttributeUsage(AttributeTargets.Assembly)]
+internal sealed class RegisterDefaultStringBuildPoolAttribute : Attribute, IAssemblyObjectPoolProviderFactory
+{
+    public IObjectPoolProvider? CreateProvider(Type type)
+    {
+        return type != typeof(StringBuilder) ? null : new DefaultStringBuilderPoolProvider();
     }
 
     public int Priority => 1000;

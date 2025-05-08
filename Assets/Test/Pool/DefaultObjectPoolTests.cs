@@ -6,9 +6,16 @@ using NUnit.Framework;
 namespace Overlook.Pool.Tests;
 
 // Test objects for pool usage
+[PoolPolicy(typeof(SimplePoolObject.Policy))]
 public class SimplePoolObject
 {
     public int Value { get; set; }
+
+    private record struct Policy : IObjectPoolPolicy
+    {
+        public void OnRecycle(object instance) => ((SimplePoolObject)instance).Value = 0;
+        public object Create() => new SimplePoolObject();
+    }
 }
 
 public class DisposablePoolObject : IDisposable

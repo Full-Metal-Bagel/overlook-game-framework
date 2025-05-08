@@ -191,34 +191,6 @@ public class StaticPoolsTests
     }
 
     [Test]
-    public void Cache_GenericClass_IsSingleton()
-    {
-        // This test verifies that the internal Cache<T> class
-        // properly initializes only once per type
-
-        // Use reflection to access the Cache<T> instance
-        var cacheType = typeof(StaticPools).GetNestedType("Cache`1",
-            BindingFlags.NonPublic | BindingFlags.Static)
-            ?.MakeGenericType(typeof(StaticPoolObject));
-
-        Assert.That(cacheType, Is.Not.Null, "Cache<T> type should exist");
-
-        var instanceProperty = cacheType.GetProperty("Instance",
-            BindingFlags.Public | BindingFlags.Static);
-
-        Assert.That(instanceProperty, Is.Not.Null, "Instance property should exist");
-
-        // Get the singleton instance twice
-        var instance1 = instanceProperty.GetValue(null);
-        var instance2 = instanceProperty.GetValue(null);
-
-        // Verify it's the same instance
-        Assert.That(instance1, Is.Not.Null);
-        Assert.That(instance2, Is.Not.Null);
-        Assert.That(instance2, Is.SameAs(instance1), "Cache<T>.Instance should be a singleton");
-    }
-
-    [Test]
     public void GetPool_VariousTypes_EachHasUniquePool()
     {
         // Test with multiple different types to ensure each gets its own pool
