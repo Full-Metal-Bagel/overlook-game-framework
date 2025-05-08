@@ -1,0 +1,4 @@
+-nullable:enable
+-warnaserror
+/nowarn:8034
+-langVersion:preview

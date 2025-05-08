@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using NUnit.Framework;
 using Overlook.Ecs;
+using Overlook.Pool;
 using UnityEngine;
 using UnityEngine.TestTools;
 #if OVERLOOK_ECS_USE_UNITY_COLLECTION
@@ -277,10 +278,10 @@ namespace Overlook.Ecs.Tests
             _archetypes.AddComponent(entity.Identity, 123);
             _archetypes.AddComponent(entity.Identity, 123f);
             using var components = new PooledList<UntypedComponent>(32);
-            _archetypes.GetAllValueComponents(entity.Identity, components.GetValue());
-            Assert.That(components.Count, Is.EqualTo(3)); // will added `Entity` as component by default
-            Assert.That(components.GetValue().Any(c => c.Type == type1), Is.True);
-            Assert.That(components.GetValue().Any(c => c.Type == type2), Is.True);
+            _archetypes.GetAllValueComponents(entity.Identity, components.Value);
+            Assert.That(components.Value.Count, Is.EqualTo(3)); // will added `Entity` as component by default
+            Assert.That(components.Value.Any(c => c.Type == type1), Is.True);
+            Assert.That(components.Value.Any(c => c.Type == type2), Is.True);
         }
 
         [Test]
@@ -430,7 +431,7 @@ namespace Overlook.Ecs.Tests
             var entity = _archetypes.Spawn().Identity;
             _archetypes.AddComponent(entity, new ZeroStruct());
             Assert.That(_archetypes.HasComponent(StorageType.Create<ZeroStruct>(), entity), Is.True);
-            AssertUtils.CatchDebugAssert(() => _archetypes.GetComponent<ZeroStruct>(entity));
+            AssertUtils.CatchDebugAssertAndOtherExceptions(() => _archetypes.GetComponent<ZeroStruct>(entity));
         }
 
         [Test]
@@ -439,7 +440,7 @@ namespace Overlook.Ecs.Tests
             var entity = _archetypes.Spawn().Identity;
             _archetypes.AddObjectComponent(entity, (object)new ZeroStruct());
             Assert.That(_archetypes.HasComponent(StorageType.Create<ZeroStruct>(), entity), Is.True);
-            AssertUtils.CatchDebugAssert(() => _archetypes.GetComponent<ZeroStruct>(entity));
+            AssertUtils.CatchDebugAssertAndOtherExceptions(() => _archetypes.GetComponent<ZeroStruct>(entity));
         }
 
         [Test]

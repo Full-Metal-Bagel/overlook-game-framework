@@ -211,6 +211,10 @@ indent_size = 2
 
 # https://github.com/dotnet/aspnetcore/blob/main/.editorconfig
 [*.{cs,vb}]
+
+# CA1002: Do not expose generic lists
+dotnet_diagnostic.CA1002.severity = suggestion
+
 # CA1062: Validate arguments of public methods
 dotnet_diagnostic.CA1062.severity = none
 
@@ -598,6 +602,3 @@ dotnet_diagnostic.CA2231.severity = suggestion
 # [{**/Shared/**.cs,**/microsoft.extensions.hostfactoryresolver.sources/**.{cs,vb}}]
 # # IDE0005: Remove unused usings. Ignore for shared src files since imports for those depend on the projects in which they are included.
 # dotnet_diagnostic.IDE0005.severity = silent
-
-# https://github.com/Full-Metal-Bagel/kgp-code/issues/2143
-dotnet_diagnostic.CA1002.severity = none

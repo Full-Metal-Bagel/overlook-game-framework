@@ -2,7 +2,9 @@
     "name": "Overlook.Ecs",
     "rootNamespace": "Overlook.Ecs",
     "references": [
-        "GUID:e0cd26848372d4e5c891c569017e11f1"
+        "GUID:e0cd26848372d4e5c891c569017e11f1",
+        "GUID:a61875c202ec041f48b061c6e00013ad",
+        "GUID:95793bf93d92468db194e5979796cdd7"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
