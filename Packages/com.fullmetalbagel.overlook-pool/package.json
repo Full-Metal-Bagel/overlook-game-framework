@@ -2,5 +2,8 @@
   "name": "com.fullmetalbagel.overlook-pool",
   "version": "1.0.0",
   "unity": "2022.3",
-  "displayName": "Overlook Pool"
+  "displayName": "Overlook Pool",
+  "dependencies": {
+    "com.fullmetalbagel.overlook-core": "1.0.0"
+  }
 }
