@@ -33,7 +33,7 @@ public static class TaggedComponentExtension
         // TODO: optimize by using a delegate creator instead of constructor?
         var concreteTagType = tagType.IsGenericType ? tagType.MakeGenericType(component.GetType()) : tagType;
         var ctor = concreteTagType.GetConstructor(new[] { component.GetType() });
-        Debug.Assert(ctor != null);
+        Debug.Assert(ctor != null, $"{tagType}:tagType t component={component.GetType()}");
         return ctor!.Invoke(new object[] { component });
     }
 

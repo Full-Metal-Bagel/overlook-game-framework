@@ -3,12 +3,13 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using Unity.Collections;
+using Unity.Jobs;
 
 namespace Overlook.Ecs;
 
 [DisallowDefaultConstructor]
 [SuppressMessage("Style", "IDE0044:Add readonly modifier")]
-public struct NativeBitArrayMask : IDisposable, IEquatable<NativeBitArrayMask>
+public struct NativeBitArrayMask : INativeDisposable, IEquatable<NativeBitArrayMask>
 {
     public NativeBitArraySet HasTypes { get; }
     public NativeBitArraySet NotTypes { get; }
@@ -38,6 +39,17 @@ public struct NativeBitArrayMask : IDisposable, IEquatable<NativeBitArrayMask>
         HasTypes.Dispose();
         NotTypes.Dispose();
         AnyTypes.Dispose();
+    }
+
+    public JobHandle Dispose(JobHandle inputDeps)
+    {
+        FirstType = StorageType.Create<Entity>();
+        HasAny = false;
+        return JobHandle.CombineDependencies(
+            HasTypes.Dispose(inputDeps),
+            NotTypes.Dispose(inputDeps),
+            AnyTypes.Dispose(inputDeps)
+        );
     }
 
     public void Has(StorageType type)

@@ -5,15 +5,18 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using Unity.Collections;
+using Unity.Jobs;
 using UnityEngine;
 
 namespace Overlook.Ecs;
 
 [DisallowDefaultConstructor]
-public struct NativeBitArraySet : IDisposable, IEquatable<NativeBitArraySet>
+public struct NativeBitArraySet : INativeDisposable, IEquatable<NativeBitArraySet>
 {
     [SuppressMessage("Style", "IDE0044:Add readonly modifier")]
     private NativeBitArray _bits;
+
+    public int Length => _bits.Length;
 
     public static NativeBitArraySet Create(Allocator allocator = Allocator.Persistent)
     {
@@ -125,6 +128,11 @@ public struct NativeBitArraySet : IDisposable, IEquatable<NativeBitArraySet>
     }
 
     public void Dispose() => _bits.Dispose();
+
+    public JobHandle Dispose(JobHandle inputDeps)
+    {
+        return _bits.Dispose(inputDeps);
+    }
 
     public bool Equals(NativeBitArraySet other)
     {

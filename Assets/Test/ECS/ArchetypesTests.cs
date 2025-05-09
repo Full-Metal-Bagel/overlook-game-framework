@@ -92,7 +92,7 @@ namespace Overlook.Ecs.Tests
         public void Despawn_DoesNothing_WhenEntityIsNotAlive()
         {
             var entity = new Entity(new Identity(999)); // Assuming this ID is not used
-            Assert.Catch<Exception>(() => _archetypes.Despawn(entity.Identity)); // The entity was never alive to begin with
+            Assert.That(_archetypes.Despawn(entity.Identity), Is.False); // The entity was never alive to begin with
         }
 
         [Test]

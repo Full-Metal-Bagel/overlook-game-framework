@@ -24,7 +24,7 @@ internal class Pool<T>
 {
     private T[] _resources;
     private int[] _generations;
-    private readonly Queue<int> _unusedIds = new(32);
+    private readonly List<int> _unusedIds = new(32);
     private readonly T _invalidValue;
     private int _size;
 
@@ -35,21 +35,32 @@ internal class Pool<T>
         _invalidValue = invalidValue;
     }
 
+    public bool Use(Identity identity)
+    {
+        EnsureCapacity(identity.Index + 1);
+        if (identity.Index < _generations.Length && _generations[identity.Index] > 0)
+            return false;
+
+        _unusedIds.Remove(identity.Index);
+        _resources[identity.Index] = _invalidValue;
+        _generations[identity.Index] = identity.Generation;
+        return true;
+    }
+
     public Identity Add(T item)
     {
         Debug.Assert(_resources.Length == _generations.Length);
-        if (_unusedIds.TryDequeue(out int index))
+        int index;
+        if (_unusedIds.Count > 0)
         {
+            index = _unusedIds[^1];
+            _unusedIds.RemoveAt(_unusedIds.Count - 1);
             Debug.Assert(index < _resources.Length);
             _resources[index] = item;
         }
         else
         {
-            if (_size == _resources.Length)
-            {
-                Array.Resize(ref _resources, _resources.Length << 1);
-                Array.Resize(ref _generations, _generations.Length << 1);
-            }
+            EnsureCapacity(_size);
             index = _size;
             _resources[index] = item;
             _generations[index] = 1;
@@ -65,7 +76,7 @@ internal class Pool<T>
         _resources[identity.Index] = _invalidValue;
         // TODO(dan): wrap around
         _generations[identity.Index] += 1;
-        _unusedIds.Enqueue(identity.Index);
+        _unusedIds.Add(identity.Index);
     }
 
     public T this[Identity identity]
@@ -74,9 +85,25 @@ internal class Pool<T>
         set => Set(identity, value);
     }
 
+    private void EnsureCapacity(int capacity)
+    {
+        if (capacity >= _resources.Length)
+        {
+            // Find nearest power of 2 that's greater than capacity
+            int newCapacity = 1;
+            while (newCapacity <= capacity)
+            {
+                newCapacity <<= 1;
+            }
+
+            Array.Resize(ref _resources, newCapacity);
+            Array.Resize(ref _generations, newCapacity);
+        }
+    }
+
     private T Get(Identity identity)
     {
-        Debug.Assert(identity.Index < _size);
+        EnsureCapacity(identity.Index);
         if (identity.Generation == _generations[identity.Index])
         {
             return _resources[identity.Index];
@@ -91,7 +118,7 @@ internal class Pool<T>
 
     private void Set(Identity identity, T item)
     {
-        Debug.Assert(identity.Index < _size);
+        EnsureCapacity(identity.Index);
         if (identity.Generation == _generations[identity.Index])
         {
             _resources[identity.Index] = item;
@@ -104,6 +131,7 @@ internal class Pool<T>
 
     public bool IsAlive(Identity identity)
     {
+        if (identity.Index >= _generations.Length || identity.Index < 0) return false;
         return _generations[identity.Index] == identity.Generation;
     }
 

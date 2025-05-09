@@ -46,6 +46,13 @@ public readonly ref struct ArchetypesBuilder
         _archetypes.CreateObjectComponentWithoutTableChanges<T>(identity, isDuplicateAllowed);
     }
 
+    public T GetOrCreateObject<T>(Identity identity) where T : class, new()
+    {
+        if (_archetypes.TryGetObjectComponent(identity, out T? obj)) return obj!;
+        CreateObject<T>(identity, isDuplicateAllowed: false);
+        return _archetypes.GetObjectComponent<T>(identity);
+    }
+
     public void SetValue(Identity identity, object? value)
     {
         SetValue(identity, value, false);

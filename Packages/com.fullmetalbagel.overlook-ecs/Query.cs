@@ -37,6 +37,7 @@ public readonly struct Query : IEquatable<Query>, IQuery<Query.Enumerator, Query
 
     public bool Contains(Entity entity)
     {
+        if (!Archetypes.IsAlive(entity)) return false;
         var meta = Archetypes.GetEntityMeta(entity.Identity);
         var table = Archetypes.GetTable(meta.TableId);
         return Tables.Contains(table);

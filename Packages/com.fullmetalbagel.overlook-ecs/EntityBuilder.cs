@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using JetBrains.Annotations;
 using Overlook.Pool;
 
@@ -31,6 +32,11 @@ public sealed class DynamicBuilder : IComponentsBuilder
     public void Dispose()
     {
         foreach (var builder in _builders) builder.Dispose();
+    }
+
+    public void AddDynamicRawData(ReadOnlyMemory<byte> data, Type type)
+    {
+        AddDynamicBuilder(DynamicRawBuilderPool.CreateBuilder(data, type));
     }
 
     public void AddDynamicBuilder(IComponentsBuilder builder)
@@ -93,6 +99,48 @@ public sealed class DynamicBuilder : IComponentsBuilder
         }
     }
 
+    static class DynamicRawBuilderPool
+    {
+        private static readonly IObjectPool<PooledRawBuilder> s_pool = new ObjectPool<PooledRawBuilder, PooledRawBuilderPolicy>();
+
+        public static PooledRawBuilder CreateBuilder(ReadOnlyMemory<byte> data, Type type)
+        {
+            var builder = s_pool.Rent();
+            builder.Data = data;
+            builder.Type = type;
+            return builder;
+        }
+
+        private readonly record struct PooledRawBuilderPolicy : IObjectPoolPolicy
+        {
+            public int MaxCount => 32;
+            public object Create() => new PooledRawBuilder();
+        }
+
+        public sealed class PooledRawBuilder : IComponentsBuilder
+        {
+            public ReadOnlyMemory<byte> Data { get; set; } = default!;
+            public Type Type { get; set; } = default!;
+
+            public void CollectTypes<TCollection>(TCollection types) where TCollection : ICollection<StorageType>
+            {
+                types.Add(StorageType.Create(Type));
+            }
+
+            public void Build(ArchetypesBuilder archetypes, Identity entityIdentity)
+            {
+                archetypes.SetRawData(entityIdentity, Type, Data.Span);
+            }
+
+            public void Dispose()
+            {
+                Data = default!;
+                Type = default!;
+                s_pool.Recycle(this);
+            }
+        }
+    }
+
     static class DynamicBuilderPool
     {
         private static readonly IObjectPool<PooledBuilder> s_pool = new ObjectPool<PooledBuilder, PooledBuilderPolicy>();
@@ -136,6 +184,29 @@ public sealed class DynamicBuilder : IComponentsBuilder
                 _pool = null;
             }
         }
+    }
+}
+
+public readonly struct DefaultValueComponentBuilder<TInnerBuilder> : IComponentsBuilder
+    where TInnerBuilder : IComponentsBuilder
+{
+    public Type ValueType { get; init; }
+    public TInnerBuilder InnerBuilder { get; init; }
+
+    public void CollectTypes<TCollection>(TCollection types) where TCollection : ICollection<StorageType>
+    {
+        types.Add(StorageType.Create(ValueType));
+        InnerBuilder.CollectTypes(types);
+    }
+
+    public void Build(ArchetypesBuilder archetypes, Identity entityIdentity)
+    {
+        InnerBuilder.Build(archetypes, entityIdentity);
+    }
+
+    public void Dispose()
+    {
+        InnerBuilder.Dispose();
     }
 }
 
@@ -245,6 +316,13 @@ public static class EntityBuilderExtension
         where TInnerBuilder : IComponentsBuilder
     {
         return new ValueComponentBuilder<T, TInnerBuilder> { InnerBuilder = builder, Value = data };
+    }
+
+    [Pure, MustUseReturnValue]
+    public static DefaultValueComponentBuilder<TInnerBuilder> AddDefaultValue<TInnerBuilder>(this TInnerBuilder builder, Type valueType)
+        where TInnerBuilder : IComponentsBuilder
+    {
+        return new DefaultValueComponentBuilder<TInnerBuilder> { InnerBuilder = builder, ValueType = valueType };
     }
 
     [Pure, MustUseReturnValue]
