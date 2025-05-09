@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <PackageId>Overlook.Core</PackageId>
-        <Version>0.1.0</Version>
+        <Version>1.0.0</Version>
         <Authors>Full Metal Bagel</Authors>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <Title>Overlook Core</Title>
@@ -28,6 +28,10 @@
 
     <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
       <DefineConstants>TRACE;OVERLOOK_DEBUG</DefineConstants>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+        <NoWarn>$(NoWarn);CA1822</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
