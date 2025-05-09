@@ -1,0 +1,31 @@
+name: publish-nuget-package
+
+on:
+#  push:
+#    tags:
+#      - '*'
+  workflow_dispatch:
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 8.0.x
+      - name: Restore dependencies
+        run: dotnet restore dotnet
+      - name: Pack projects
+        run: |
+          mkdir -p ./nuget-packages
+          dotnet pack -c Release -o ./nuget-packages ./dotnet/Overlook.Ecs
+          dotnet pack -c Release -o ./nuget-packages ./dotnet/Overlook.Core
+          dotnet pack -c Release -o ./nuget-packages ./dotnet/Overlook.Pool
+      - name: Publish packages
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: dotnet nuget push ./nuget-packages/*.nupkg --api-key $NUGET_API_KEY --source https://api.nuget.org/v3/index.json --skip-duplicate
