@@ -39,6 +39,8 @@ jobs:
           unitypackage_name: Overlook
   upm-release-pool:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
     - uses: actions/checkout@v2
     - uses: quabug/create-upm-release@v2
