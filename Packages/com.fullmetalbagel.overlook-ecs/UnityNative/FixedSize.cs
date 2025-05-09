@@ -1,9 +1,9 @@
-﻿#nullable enable
-
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 
-namespace RelEcs;
+namespace Overlook.Ecs;
 
+[SuppressMessage("Design", "CA1040:Avoid empty interfaces")]
 public interface IFixedSize { }
 
 [StructLayout(LayoutKind.Explicit, Size = 8)]

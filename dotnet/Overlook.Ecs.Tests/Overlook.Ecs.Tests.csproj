@@ -19,7 +19,7 @@
 
     <ItemGroup>
         <Compile Include="..\..\Assets\Test\*.cs" />
-        <Compile Include="..\..\Assets\Test\ECS\**\*.cs" />
+        <Compile Include="..\..\Assets\Test\ECS\**\*.cs" Exclude="..\..\Assets\Test\ECS\**\Native*.cs" />
     </ItemGroup>
 
     <ItemGroup>
