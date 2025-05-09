@@ -36,7 +36,7 @@ public sealed class Archetypes : IDisposable
     private readonly HashSet<object> _pooledInstances = new(1024, ReferenceEqualityComparer<object>.Default);
     // TODO: concurrent?
     private Dictionary<StorageType, List<object>>?[] _objectStorages =
-        new Dictionary<StorageType, List<object>>?[512];
+        new Dictionary<StorageType, List<object>>?[TypeIdAssigner.MaxTypeCapacity];
 
     private bool _isDisposed = false;
 
@@ -48,9 +48,20 @@ public sealed class Archetypes : IDisposable
         AddTable(types, new TableStorage(types));
     }
 
+    public Entity Use(Identity identity)
+    {
+        if (_meta.Use(identity)) return Spawn(identity);
+        throw new ArgumentException($"the entity {identity} is already existing", nameof(identity));
+    }
+
     public Entity Spawn()
     {
         var identity = _meta.Add(EntityMeta.Invalid);
+        return Spawn(identity);
+    }
+
+    private Entity Spawn(Identity identity)
+    {
         var table = _tables[0];
         int row = table.Add(identity);
         _meta[identity] = new EntityMeta(table.Id, row);
@@ -64,9 +75,9 @@ public sealed class Archetypes : IDisposable
         return entity;
     }
 
-    public void Despawn(Identity identity)
+    public bool Despawn(Identity identity)
     {
-        if (!IsAlive(identity)) return;
+        if (!IsAlive(identity)) return false;
 
         var meta = _meta[identity];
         var table = _tables[meta.TableId];
@@ -78,6 +89,7 @@ public sealed class Archetypes : IDisposable
         }
         refStorage.Clear();
         _meta.Remove(identity);
+        return true;
     }
 
     public void BuildComponents<TBuilder>(Identity identity, TBuilder builder) where TBuilder : IComponentsBuilder
@@ -166,7 +178,7 @@ public sealed class Archetypes : IDisposable
     {
         ThrowIfNotAlive(identity);
         var type = StorageType.Create(instance.GetType());
-        var components = _objectStorages[identity.Index]!.GetValueOrDefault(type);
+        var components = GetOrCreateComponentsStorage(identity, instance.GetType());
         if (components.Count >= 1 && !allowDuplicated)
         {
             Debug.LogError($"there's existing type of {type.Type}, set `{nameof(allowDuplicated)}` = `true` to add multiple component with same type onto the entity.", instance as UnityEngine.Object);
@@ -442,8 +454,8 @@ public sealed class Archetypes : IDisposable
         var hasComponents = entityComponents.TryGetValue(StorageType.Create(type), out List<object>? value);
         if (hasComponents)
         {
-            component = value![^1];
-            return hasComponents;
+            component = value!.LastOrDefault();
+            return component != null;
         }
         // TODO: cache type hierarchy tree for optimization
         foreach (var (t, v) in entityComponents)

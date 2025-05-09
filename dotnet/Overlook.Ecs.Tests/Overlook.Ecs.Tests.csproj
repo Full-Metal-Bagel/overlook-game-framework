@@ -7,6 +7,7 @@
         <IsPackable>false</IsPackable>
         <ImplicitUsings>disable</ImplicitUsings>
         <RootNamespace>Overlook.Ecs.Tests</RootNamespace>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>

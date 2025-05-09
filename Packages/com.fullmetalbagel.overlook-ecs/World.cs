@@ -5,8 +5,26 @@ using System.Threading;
 
 namespace Overlook.Ecs;
 
+public readonly struct ReadOnlyUnmanagedWorld : IEquatable<ReadOnlyUnmanagedWorld>
+{
+    private readonly World _world;
+    public ReadOnlyUnmanagedWorld(World world) => _world = world;
+
+    public bool IsAlive(Entity entity) => _world.IsAlive(entity);
+    public T GetComponent<T>(Entity entity) where T : unmanaged => _world.GetComponent<T>(entity);
+    public ReadOnlySpan<byte> GetComponentRawData(Entity entity, StorageType type) => _world.GetComponentRawData(entity, type);
+    public bool TryGetComponent<T>(Entity entity, out T? component) where T : unmanaged => _world.TryGetComponent(entity, out component);
+    public bool HasComponent(Entity entity, Type type) => _world.HasComponent(entity, type);
+    public bool HasComponent<T>(Entity entity) => _world.HasComponent<T>(entity);
+
+    public bool Equals(ReadOnlyUnmanagedWorld other) => ReferenceEquals(_world, other._world);
+    public override bool Equals(object? obj) => obj is ReadOnlyUnmanagedWorld other && Equals(other);
+    public override int GetHashCode() => _world.GetHashCode();
+}
+
 public sealed class World : IDisposable
 {
+    public static ReadOnlyUnmanagedWorld Empty => new(new World());
     private static int s_worldCount;
 
     internal Archetypes Archetypes { get; } = new();
@@ -17,14 +35,19 @@ public sealed class World : IDisposable
         Id = Interlocked.Increment(ref s_worldCount);
     }
 
+    public void Use(Entity entity)
+    {
+        Archetypes.Use(entity.Identity);
+    }
+
     public Entity Spawn()
     {
         return Archetypes.Spawn();
     }
 
-    public void Despawn(Entity entity)
+    public bool Despawn(Entity entity)
     {
-        Archetypes.Despawn(entity.Identity);
+        return Archetypes.Despawn(entity.Identity);
     }
 
     public void DespawnAllWith<T>()

@@ -89,7 +89,7 @@ namespace Overlook.Ecs.Tests
         public void Despawn_NonExistentEntity_Thrown()
         {
             var entity = new Entity(new Identity(999)); // Assuming 999 is an invalid ID
-            Assert.Catch<Exception>(() => _world.Despawn(entity));
+            Assert.That(_world.Despawn(entity), Is.False);;
         }
 
         [Test]
