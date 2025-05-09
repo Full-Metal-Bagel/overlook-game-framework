@@ -1,6 +1,7 @@
 # Overlook Game Framework
+# Overlook Game Framework
 
-A lightweight, high-performance ECS (Entity Component System) framework for Unity and .NET, designed with simplicity and efficiency in mind.
+A lightweight, modular game development framework for Unity and .NET applications. Overlook combines high-performance data structures, a powerful Entity Component System (ECS), and efficient memory management tools to help developers create responsive, scalable games with minimal overhead. Built with simplicity, performance, and flexibility as core principles, it provides essential building blocks while staying out of your creative way.
 
 ## Packages
 
@@ -10,22 +11,6 @@ The Overlook Game Framework is composed of several modular packages:
 *   **[Overlook ECS](./Packages/com.fullmetalbagel.overlook-ecs/README.md)**: A high-performance Entity Component System (ECS) implementation, enabling a data-oriented approach to game development.
 *   **[Overlook Pool](./Packages/com.fullmetalbagel.overlook-pool/README.md)**: Contains object pooling utilities to help manage memory efficiently by reusing objects.
 
-## Overlook ECS
-
-A lightweight, high-performance ECS (Entity Component System) framework for Unity and .NET, designed with simplicity and efficiency in mind.
-
-### Features
-
-- Pure C# implementation with minimal dependencies
-- High-performance component storage and retrieval
-- Support for both managed and unmanaged components
-- Flexible query system for entity filtering
-- Optional Unity Collections integration for native containers
-
 ### License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-### Acknowledgments
-
-- modified from [RelEcs](https://github.com/Byteron/RelEcs)

@@ -36,6 +36,7 @@
 
     <ItemGroup>
         <Compile Include="..\..\Packages\com.fullmetalbagel.overlook-core\**\*.cs" />
+        <None Include="..\..\Packages\com.fullmetalbagel.overlook-core\README.md" Pack="true" PackagePath="\" />
         <Link Include="..\..\.editorconfig" />
     </ItemGroup>
 
