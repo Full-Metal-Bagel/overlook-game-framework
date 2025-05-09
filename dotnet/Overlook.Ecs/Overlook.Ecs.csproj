@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <PackageId>Overlook.Ecs</PackageId>
-        <Version>0.1.0</Version>
+        <Version>1.0.0</Version>
         <Authors>Full Metal Bagel</Authors>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <Title>Overlook ECS</Title>
@@ -26,19 +26,27 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+        <DefineConstants>TRACE;OVERLOOK_DEBUG</DefineConstants>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+        <NoWarn>$(NoWarn);CA1822</NoWarn>
+    </PropertyGroup>
+
     <ItemGroup>
         <Compile Include="..\..\Packages\com.fullmetalbagel.overlook-ecs\**\*.cs" Exclude="**/Unity*.cs" />
         <Link Include="..\..\.editorconfig" />
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="JetBrains.Annotations" />
-      <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
+        <PackageReference Include="JetBrains.Annotations" />
+        <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Overlook.Core\Overlook.Core.csproj" />
-      <ProjectReference Include="..\Overlook.Pool\Overlook.Pool.csproj" />
+        <ProjectReference Include="..\Overlook.Core\Overlook.Core.csproj" />
+        <ProjectReference Include="..\Overlook.Pool\Overlook.Pool.csproj" />
     </ItemGroup>
 
 </Project>

@@ -1,8 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
     <PropertyGroup>
         <PackageId>Overlook.Pool</PackageId>
-        <Version>0.1.0</Version>
+        <Version>1.0.0</Version>
         <Authors>Full Metal Bagel</Authors>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <Title>Overlook Pool</Title>
@@ -27,12 +26,17 @@
         <NoWarn>$(NoWarn);CA2225</NoWarn>
     </PropertyGroup>
 
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+        <DefineConstants>TRACE;OVERLOOK_DEBUG</DefineConstants>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+        <NoWarn>$(NoWarn);CA1822</NoWarn>
+    </PropertyGroup>
+
     <ItemGroup>
         <Compile Include="..\..\Packages\com.fullmetalbagel.overlook-pool\**\*.cs" />
         <Link Include="..\..\.editorconfig" />
-        <Compile Update="..\..\Packages\com.fullmetalbagel.overlook-pool\Providers\GenericCollectionPoolProvider.cs">
-          <Link>Providers\GenericCollectionPoolProvider.cs</Link>
-        </Compile>
     </ItemGroup>
 
     <ItemGroup>
