@@ -1,6 +1,7 @@
 # Overlook Game Framework
+# Overlook Game Framework
 
-A lightweight, high-performance ECS (Entity Component System) framework for Unity and .NET, designed with simplicity and efficiency in mind.
+A lightweight, modular game development framework for Unity and .NET applications. Overlook combines high-performance data structures, a powerful Entity Component System (ECS), and efficient memory management tools to help developers create responsive, scalable games with minimal overhead. Built with simplicity, performance, and flexibility as core principles, it provides essential building blocks while staying out of your creative way.
 
 ## Packages
 
