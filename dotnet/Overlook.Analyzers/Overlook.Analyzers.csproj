@@ -7,7 +7,7 @@
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <IsRoslynComponent>true</IsRoslynComponent>
     <RootNamespace>Overlook.RoslynAnalyzer</RootNamespace>
-    <PackageId>Overlook.RoslynAnalyzer</PackageId>
+    <PackageId>Overlook.Analyzers</PackageId>
   </PropertyGroup>
 
   <ItemGroup>

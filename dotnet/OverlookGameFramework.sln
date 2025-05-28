@@ -10,7 +10,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Overlook.Pool", "Overlook.P
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Overlook.Pool.Tests", "Overlook.Pool.Tests\Overlook.Pool.Tests.csproj", "{1D8506C0-F997-40CE-93C8-9CEC8AC8BFC6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Overlook.RoslynAnalyzer", "Overlook.RoslynAnalyzer\Overlook.RoslynAnalyzer.csproj", "{D91F4149-4AA6-4F39-BF0C-FDACA4CD5743}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Overlook.Analyzers", "Overlook.Analyzers\Overlook.Analyzers.csproj", "{D91F4149-4AA6-4F39-BF0C-FDACA4CD5743}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
