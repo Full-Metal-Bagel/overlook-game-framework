@@ -3,7 +3,7 @@ using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace CodeGen.OptionalInit;
+namespace Overlook.Analyzers;
 
 [Generator]
 public class OptionalInit : ISourceGenerator

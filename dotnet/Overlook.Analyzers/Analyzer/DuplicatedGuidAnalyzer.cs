@@ -5,7 +5,7 @@ using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 
-namespace CodeGen;
+namespace Overlook.Analyzers;
 
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class DuplicatedGuidAnalyzer : DiagnosticAnalyzer
@@ -22,23 +22,31 @@ public sealed class DuplicatedGuidAnalyzer : DiagnosticAnalyzer
 
     private static void OnCompilationStart(CompilationStartAnalysisContext context)
     {
-        var typeGuidMap = new ConcurrentDictionary<Guid, INamedTypeSymbol>();
-        var methodGuidMap = new ConcurrentDictionary<Guid, IMethodSymbol>();
-        context.RegisterSymbolAction(ctx => AnalyzeNamedType(ctx, typeGuidMap), SymbolKind.NamedType);
-        context.RegisterSymbolAction(ctx => AnalyzeMethod(ctx, methodGuidMap), SymbolKind.Method);
+        context.RegisterSymbolAction(AnalyzeNamedTypeGuid, SymbolKind.NamedType);
+        context.RegisterSymbolAction(AnalyzeMethodGuid, SymbolKind.Method);
     }
 
-    private static void AnalyzeNamedType(SymbolAnalysisContext context, ConcurrentDictionary<Guid, INamedTypeSymbol> guidMap)
+    private static void AnalyzeNamedTypeGuid(SymbolAnalysisContext context)
     {
-        var namedTypeSymbol = (INamedTypeSymbol)context.Symbol;
-        AnalyzeGuidAttribute(context, guidMap, namedTypeSymbol, "TypeGuidAttribute",
-            DiagnosticDescriptors.DuplicateTypeGuid);
+        {
+            var map = new ConcurrentDictionary<Guid, INamedTypeSymbol>();
+            var namedTypeSymbol = (INamedTypeSymbol)context.Symbol;
+            AnalyzeGuidAttribute(context, map, namedTypeSymbol, "TypeGuidAttribute",
+                DiagnosticDescriptors.DuplicateTypeGuid);
+        }
+        {
+            var map = new ConcurrentDictionary<Guid, INamedTypeSymbol>();
+            var namedTypeSymbol = (INamedTypeSymbol)context.Symbol;
+            AnalyzeGuidAttribute(context, map, namedTypeSymbol, "GuidAttribute",
+                DiagnosticDescriptors.DuplicateTypeGuid);
+        }
     }
 
-    private static void AnalyzeMethod(SymbolAnalysisContext context, ConcurrentDictionary<Guid, IMethodSymbol> guidMap)
+    private static void AnalyzeMethodGuid(SymbolAnalysisContext context)
     {
+        var map = new ConcurrentDictionary<Guid, IMethodSymbol>();
         var methodSymbol = (IMethodSymbol)context.Symbol;
-        AnalyzeGuidAttribute(context, guidMap, methodSymbol, "MethodGuidAttribute",
+        AnalyzeGuidAttribute(context, map, methodSymbol, "MethodGuidAttribute",
             DiagnosticDescriptors.DuplicateMethodGuid);
     }
 

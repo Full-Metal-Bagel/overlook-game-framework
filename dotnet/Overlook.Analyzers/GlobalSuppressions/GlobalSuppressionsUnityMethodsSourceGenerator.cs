@@ -8,7 +8,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 
-namespace CodeGen.GlobalSuppressions;
+namespace Overlook.Analyzers;
 
 [Generator]
 public class GlobalSuppressionsUnityMethodsSourceGenerator : IIncrementalGenerator

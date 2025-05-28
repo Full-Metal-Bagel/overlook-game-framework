@@ -3,7 +3,7 @@ using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace CodeGen.DisallowConstructor;
+namespace Overlook.Analyzers;
 
 [Generator]
 public class DisallowDefaultConstructor : ISourceGenerator

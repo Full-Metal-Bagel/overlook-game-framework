@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 
-namespace CodeGen.PartialConstructor;
+namespace Overlook.Analyzers;
 
 [Generator]
 public class PartialConstructorAndDispose : ISourceGenerator

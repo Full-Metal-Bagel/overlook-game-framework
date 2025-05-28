@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 
-namespace CodeGen.GlobalSuppressions;
+namespace Overlook.Analyzers;
 
 [Generator]
 public class GlobalSuppressionsSerializeFieldSourceGenerator : IIncrementalGenerator
