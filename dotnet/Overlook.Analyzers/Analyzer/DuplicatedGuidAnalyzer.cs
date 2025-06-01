@@ -22,32 +22,18 @@ public sealed class DuplicatedGuidAnalyzer : DiagnosticAnalyzer
 
     private static void OnCompilationStart(CompilationStartAnalysisContext context)
     {
-        context.RegisterSymbolAction(AnalyzeNamedTypeGuid, SymbolKind.NamedType);
-        context.RegisterSymbolAction(AnalyzeMethodGuid, SymbolKind.Method);
-    }
-
-    private static void AnalyzeNamedTypeGuid(SymbolAnalysisContext context)
-    {
         {
             var map = new ConcurrentDictionary<Guid, INamedTypeSymbol>();
-            var namedTypeSymbol = (INamedTypeSymbol)context.Symbol;
-            AnalyzeGuidAttribute(context, map, namedTypeSymbol, "TypeGuidAttribute",
-                DiagnosticDescriptors.DuplicateTypeGuid);
+            context.RegisterSymbolAction(ctx => AnalyzeGuidAttribute(ctx, map, (INamedTypeSymbol)ctx.Symbol, "TypeGuidAttribute", DiagnosticDescriptors.DuplicateTypeGuid), SymbolKind.NamedType);
         }
         {
             var map = new ConcurrentDictionary<Guid, INamedTypeSymbol>();
-            var namedTypeSymbol = (INamedTypeSymbol)context.Symbol;
-            AnalyzeGuidAttribute(context, map, namedTypeSymbol, "GuidAttribute",
-                DiagnosticDescriptors.DuplicateTypeGuid);
+            context.RegisterSymbolAction(ctx => AnalyzeGuidAttribute(ctx, map, (INamedTypeSymbol)ctx.Symbol, "GuidAttribute", DiagnosticDescriptors.DuplicateTypeGuid), SymbolKind.NamedType);
         }
-    }
-
-    private static void AnalyzeMethodGuid(SymbolAnalysisContext context)
-    {
-        var map = new ConcurrentDictionary<Guid, IMethodSymbol>();
-        var methodSymbol = (IMethodSymbol)context.Symbol;
-        AnalyzeGuidAttribute(context, map, methodSymbol, "MethodGuidAttribute",
-            DiagnosticDescriptors.DuplicateMethodGuid);
+        {
+            var map = new ConcurrentDictionary<Guid, IMethodSymbol>();
+            context.RegisterSymbolAction(ctx => AnalyzeGuidAttribute(ctx, map, (IMethodSymbol)ctx.Symbol, "MethodGuidAttribute", DiagnosticDescriptors.DuplicateMethodGuid), SymbolKind.Method);
+        }
     }
 
     private static void AnalyzeGuidAttribute<T>(
