@@ -53,8 +53,8 @@ public class DuplicatedGuidAnalyzerTests
                    """;
         // Use diagnostic descriptors from the analyzer itself and specify the line/column based on test observation
         var expected = new DiagnosticResult(DiagnosticDescriptors.DuplicateTypeGuid.Id, DiagnosticSeverity.Error)
-            .WithSpan(12, 7, 12, 8) // Line 11, column 7, class A declaration
-            .WithArguments("A", "B", "00000000-0000-0000-0000-000000000001");
+            .WithSpan(12, 7, 12, 8) // Line 12, column 7, class B declaration
+            .WithArguments("B", "A", "00000000-0000-0000-0000-000000000001");
 
         await new CSharpAnalyzerTest<DuplicatedGuidAnalyzer, MSTestVerifier>
         {
