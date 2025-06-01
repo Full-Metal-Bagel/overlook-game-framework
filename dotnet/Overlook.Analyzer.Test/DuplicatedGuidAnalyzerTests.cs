@@ -51,15 +51,16 @@ public class DuplicatedGuidAnalyzerTests
                    [TypeGuid("00000000-0000-0000-0000-000000000001")]
                    class B {}
                    """;
-        // Only validate diagnostic ID, ignore arguments
+        // Only validate diagnostic ID (GUID001) - location is required by framework but not important for test
         var expected = new DiagnosticResult("GUID001", DiagnosticSeverity.Error)
             .WithSpan(12, 7, 12, 8);
-
+        
         await new CSharpAnalyzerTest<DuplicatedGuidAnalyzer, MSTestVerifier>
         {
             TestCode = test,
-            ExpectedDiagnostics = { expected },
-            ReferenceAssemblies = ReferenceAssemblies.Net.Net60
+            ReferenceAssemblies = ReferenceAssemblies.Net.Net60,
+            CompilerDiagnostics = CompilerDiagnostics.Errors,
+            ExpectedDiagnostics = { expected }
         }.RunAsync();
     }
 
@@ -108,15 +109,16 @@ public class DuplicatedGuidAnalyzerTests
                        void M2() {}
                    }
                    """;
-        // Only validate diagnostic ID, ignore arguments  
+        // Only validate diagnostic ID (GUID002) - location is required by framework but not important for test
         var expected = new DiagnosticResult("GUID002", DiagnosticSeverity.Error)
             .WithSpan(13, 10, 13, 12);
-
+        
         await new CSharpAnalyzerTest<DuplicatedGuidAnalyzer, MSTestVerifier>
         {
             TestCode = test,
-            ExpectedDiagnostics = { expected },
-            ReferenceAssemblies = ReferenceAssemblies.Net.Net60
+            ReferenceAssemblies = ReferenceAssemblies.Net.Net60,
+            CompilerDiagnostics = CompilerDiagnostics.Errors,
+            ExpectedDiagnostics = { expected }
         }.RunAsync();
     }
 }
