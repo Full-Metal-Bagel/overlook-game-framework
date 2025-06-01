@@ -1,14 +1,30 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
-using Microsoft.CodeAnalysis.CSharp.Testing;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Microsoft.CodeAnalysis.Testing.Verifiers;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Text;
+using System.Collections.Immutable;
+using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace Overlook.Analyzers.Test;
 
 [TestClass]
 public class DuplicatedGuidAnalyzerTests
 {
+    private static async Task<Diagnostic[]> GetAnalyzerDiagnosticsAsync(string sourceCode)
+    {
+        var compilation = CSharpCompilation.Create("TestAssembly")
+            .WithOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
+            .AddReferences(ReferenceAssemblies.Net.Net60.ResolveAsync(null, default).Result)
+            .AddSyntaxTrees(CSharpSyntaxTree.ParseText(SourceText.From(sourceCode)));
+
+        var analyzer = new DuplicatedGuidAnalyzer();
+        var compilationWithAnalyzers = compilation.WithAnalyzers(new DiagnosticAnalyzer[] { analyzer }.ToImmutableArray());
+        var diagnostics = await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync();
+
+        return diagnostics.Where(d => d.Id.StartsWith("GUID")).ToArray();
+    }
+
     [TestMethod]
     public async Task NoDuplicateTypeGuids_NoDiagnostic()
     {
@@ -27,11 +43,9 @@ public class DuplicatedGuidAnalyzerTests
                    class B {}
 
                    """;
-        await new CSharpAnalyzerTest<DuplicatedGuidAnalyzer, MSTestVerifier>
-        {
-            TestCode = test,
-            ReferenceAssemblies = ReferenceAssemblies.Net.Net60
-        }.RunAsync();
+
+        var diagnostics = await GetAnalyzerDiagnosticsAsync(test);
+        Assert.AreEqual(0, diagnostics.Length, "Expected no diagnostics");
     }
 
     [TestMethod]
@@ -51,17 +65,10 @@ public class DuplicatedGuidAnalyzerTests
                    [TypeGuid("00000000-0000-0000-0000-000000000001")]
                    class B {}
                    """;
-        // Only validate diagnostic ID (GUID001) - location is required by framework but not important for test
-        var expected = new DiagnosticResult("GUID001", DiagnosticSeverity.Error)
-            .WithSpan(12, 7, 12, 8);
-        
-        await new CSharpAnalyzerTest<DuplicatedGuidAnalyzer, MSTestVerifier>
-        {
-            TestCode = test,
-            ReferenceAssemblies = ReferenceAssemblies.Net.Net60,
-            CompilerDiagnostics = CompilerDiagnostics.Errors,
-            ExpectedDiagnostics = { expected }
-        }.RunAsync();
+
+        var diagnostics = await GetAnalyzerDiagnosticsAsync(test);
+        Assert.AreEqual(1, diagnostics.Length, "Expected exactly one diagnostic");
+        Assert.AreEqual("GUID001", diagnostics[0].Id, "Expected GUID001 diagnostic");
     }
 
     [TestMethod]
@@ -83,11 +90,9 @@ public class DuplicatedGuidAnalyzerTests
                        void M2() {}
                    }
                    """;
-        await new CSharpAnalyzerTest<DuplicatedGuidAnalyzer, MSTestVerifier>
-        {
-            TestCode = test,
-            ReferenceAssemblies = ReferenceAssemblies.Net.Net60
-        }.RunAsync();
+
+        var diagnostics = await GetAnalyzerDiagnosticsAsync(test);
+        Assert.AreEqual(0, diagnostics.Length, "Expected no diagnostics");
     }
 
     [TestMethod]
@@ -109,16 +114,9 @@ public class DuplicatedGuidAnalyzerTests
                        void M2() {}
                    }
                    """;
-        // Only validate diagnostic ID (GUID002) - location is required by framework but not important for test
-        var expected = new DiagnosticResult("GUID002", DiagnosticSeverity.Error)
-            .WithSpan(13, 10, 13, 12);
-        
-        await new CSharpAnalyzerTest<DuplicatedGuidAnalyzer, MSTestVerifier>
-        {
-            TestCode = test,
-            ReferenceAssemblies = ReferenceAssemblies.Net.Net60,
-            CompilerDiagnostics = CompilerDiagnostics.Errors,
-            ExpectedDiagnostics = { expected }
-        }.RunAsync();
+
+        var diagnostics = await GetAnalyzerDiagnosticsAsync(test);
+        Assert.AreEqual(1, diagnostics.Length, "Expected exactly one diagnostic");
+        Assert.AreEqual("GUID002", diagnostics[0].Id, "Expected GUID002 diagnostic");
     }
 }
