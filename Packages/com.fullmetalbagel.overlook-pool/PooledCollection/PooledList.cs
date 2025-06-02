@@ -6,7 +6,6 @@ using static Overlook.Pool.StaticPools;
 namespace Overlook.Pool;
 
 [SuppressMessage("Design", "CA1002:Do not expose generic lists")]
-[DisallowDefaultConstructor]
 public readonly ref struct PooledList<T>
 {
     public List<T> Value { get; }

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Linq;
+using System;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -47,7 +48,8 @@ public class OptionalInit : DiagnosticAnalyzer
                 property.SetMethod != null &&
                 (property.SetMethod.IsInitOnly || IsRequiredProperty(property)) &&
                 property.SetMethod.DeclaredAccessibility == Accessibility.Public &&
-                !IsOptionalProperty(property)
+                !IsOptionalProperty(property) &&
+                !HasDefaultValueInRecord(property, typeSymbol)
             )
             {
                 if (creation is ObjectCreationExpressionSyntax objectCreation)
@@ -103,5 +105,33 @@ public class OptionalInit : DiagnosticAnalyzer
     private static bool IsRequiredProperty(IPropertySymbol property)
     {
         return property.GetAttributes().Any(attr => attr.AttributeClass?.ToDisplayString() == "Overlook.RequiredOnInitAttribute");
+    }
+
+    private static bool HasDefaultValueInRecord(IPropertySymbol property, INamedTypeSymbol typeSymbol)
+    {
+        // Check if this is a record type and if the corresponding parameter has a default value
+        if (!typeSymbol.IsRecord)
+            return false;
+
+        // For records, look through all constructors (primary constructor may not be marked as implicitly declared)
+        // The primary constructor typically has the most parameters
+        var constructors = typeSymbol.Constructors
+            .Where(c => !c.IsStatic)
+            .OrderByDescending(c => c.Parameters.Length)
+            .ToList();
+
+        foreach (var constructor in constructors)
+        {
+            // Find the parameter that corresponds to this property
+            var correspondingParameter = constructor.Parameters
+                .FirstOrDefault(p => string.Equals(p.Name, property.Name, StringComparison.OrdinalIgnoreCase));
+
+            if (correspondingParameter?.HasExplicitDefaultValue == true)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

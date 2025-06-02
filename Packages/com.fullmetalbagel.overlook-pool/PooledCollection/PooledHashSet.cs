@@ -3,7 +3,6 @@ using static Overlook.Pool.StaticPools;
 
 namespace Overlook.Pool;
 
-[DisallowDefaultConstructor]
 public readonly ref struct PooledHashSet<T>
 {
     public HashSet<T> Value { get; }

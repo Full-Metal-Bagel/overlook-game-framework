@@ -4,7 +4,6 @@ using static Overlook.Pool.StaticPools;
 
 namespace Overlook.Pool;
 
-[DisallowDefaultConstructor]
 public readonly ref struct PooledStringBuilder
 {
     public StringBuilder Value { get; }

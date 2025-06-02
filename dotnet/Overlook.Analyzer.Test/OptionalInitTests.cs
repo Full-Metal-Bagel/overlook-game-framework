@@ -129,4 +129,52 @@ namespace Overlook {
         var diagnostics = await GetAnalyzerDiagnosticsAsync(test);
         Assert.AreEqual(0, diagnostics.Length, "Expected no diagnostics when property is set to zero");
     }
+
+    [TestMethod]
+    public async Task RecordWithDefaultParameter_NoDiagnostic()
+    {
+        var test = @"
+using System;
+namespace System.Runtime.CompilerServices { public class IsExternalInit {} }
+namespace Overlook {
+    public class RequiredOnInitAttribute : Attribute {}
+    public class OptionalOnInitAttribute : Attribute {}
+    
+    record R(int X, int Y = 0);
+    
+    class C { 
+        void M() { 
+            var r1 = new R { X = 1 }; // Y should be optional since it has default value
+            var r2 = new R { X = 1, Y = 2 }; // Explicit Y assignment should also work
+        } 
+    }
+}
+";
+        var diagnostics = await GetAnalyzerDiagnosticsAsync(test);
+        Assert.AreEqual(0, diagnostics.Length, "Expected no diagnostics when record parameter has default value");
+    }
+
+    [TestMethod]
+    public async Task RecordWithRequiredParameter_ReportsDiagnostic()
+    {
+        var test = @"
+using System;
+namespace System.Runtime.CompilerServices { public class IsExternalInit {} }
+namespace Overlook {
+    public class RequiredOnInitAttribute : Attribute {}
+    public class OptionalOnInitAttribute : Attribute {}
+    
+    record R(int X, int Y = 0);
+    
+    class C { 
+        void M() { 
+            var r = new R(); // X is required, should report diagnostic
+        } 
+    }
+}
+";
+        var diagnostics = await GetAnalyzerDiagnosticsAsync(test);
+        Assert.AreEqual(1, diagnostics.Length, "Expected one diagnostic for missing required parameter X");
+        Assert.AreEqual("SG001", diagnostics[0].Id, "Expected SG001 diagnostic");
+    }
 }
