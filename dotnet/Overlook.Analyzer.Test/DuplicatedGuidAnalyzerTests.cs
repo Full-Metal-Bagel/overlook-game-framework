@@ -31,17 +31,18 @@ public class DuplicatedGuidAnalyzerTests
         var test = """
                    using System;
 
-                   [AttributeUsage(AttributeTargets.Class)]
-                   public class TypeGuidAttribute : Attribute
-                   {
-                       public TypeGuidAttribute(string guid) {}
+                   namespace Overlook {
+                       [AttributeUsage(AttributeTargets.Class)]
+                       public class TypeGuidAttribute : Attribute
+                       {
+                           public TypeGuidAttribute(string guid) {}
+                       }
+
+                       [TypeGuid("00000000-0000-0000-0000-000000000001")]
+                       class A {}
+                       [TypeGuid("00000000-0000-0000-0000-000000000002")]
+                       class B {}
                    }
-
-                   [TypeGuid("00000000-0000-0000-0000-000000000001")]
-                   class A {}
-                   [TypeGuid("00000000-0000-0000-0000-000000000002")]
-                   class B {}
-
                    """;
 
         var diagnostics = await GetAnalyzerDiagnosticsAsync(test);
@@ -54,16 +55,18 @@ public class DuplicatedGuidAnalyzerTests
         var test = """
                    using System;
 
-                   [AttributeUsage(AttributeTargets.Class)]
-                   public class TypeGuidAttribute : Attribute
-                   {
-                       public TypeGuidAttribute(string guid) {}
-                   }
+                   namespace Overlook {
+                       [AttributeUsage(AttributeTargets.Class)]
+                       public class TypeGuidAttribute : Attribute
+                       {
+                           public TypeGuidAttribute(string guid) {}
+                       }
 
-                   [TypeGuid("00000000-0000-0000-0000-000000000001")]
-                   class A {}
-                   [TypeGuid("00000000-0000-0000-0000-000000000001")]
-                   class B {}
+                       [TypeGuid("00000000-0000-0000-0000-000000000001")]
+                       class A {}
+                       [TypeGuid("00000000-0000-0000-0000-000000000001")]
+                       class B {}
+                   }
                    """;
 
         var diagnostics = await GetAnalyzerDiagnosticsAsync(test);
@@ -77,17 +80,19 @@ public class DuplicatedGuidAnalyzerTests
         var test = """
                    using System;
 
-                   [AttributeUsage(AttributeTargets.Method)]
-                   public class MethodGuidAttribute : Attribute
-                   {
-                       public MethodGuidAttribute(string guid) {}
-                   }
+                   namespace Overlook {
+                       [AttributeUsage(AttributeTargets.Method)]
+                       public class MethodGuidAttribute : Attribute
+                       {
+                           public MethodGuidAttribute(string guid) {}
+                       }
 
-                   class A {
-                       [MethodGuid("00000000-0000-0000-0000-000000000011")]
-                       void M1() {}
-                       [MethodGuid("00000000-0000-0000-0000-000000000012")]
-                       void M2() {}
+                       class A {
+                           [MethodGuid("00000000-0000-0000-0000-000000000011")]
+                           void M1() {}
+                           [MethodGuid("00000000-0000-0000-0000-000000000012")]
+                           void M2() {}
+                       }
                    }
                    """;
 
@@ -101,17 +106,19 @@ public class DuplicatedGuidAnalyzerTests
         var test = """
                    using System;
 
-                   [AttributeUsage(AttributeTargets.Method)]
-                   public class MethodGuidAttribute : Attribute
-                   {
-                       public MethodGuidAttribute(string guid) {}
-                   }
+                   namespace Overlook {
+                       [AttributeUsage(AttributeTargets.Method)]
+                       public class MethodGuidAttribute : Attribute
+                       {
+                           public MethodGuidAttribute(string guid) {}
+                       }
 
-                   class A {
-                       [MethodGuid("00000000-0000-0000-0000-000000000011")]
-                       void M1() {}
-                       [MethodGuid("00000000-0000-0000-0000-000000000011")]
-                       void M2() {}
+                       class A {
+                           [MethodGuid("00000000-0000-0000-0000-000000000011")]
+                           void M1() {}
+                           [MethodGuid("00000000-0000-0000-0000-000000000011")]
+                           void M2() {}
+                       }
                    }
                    """;
 

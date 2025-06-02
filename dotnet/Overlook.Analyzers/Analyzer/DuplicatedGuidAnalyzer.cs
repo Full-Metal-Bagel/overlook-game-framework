@@ -24,15 +24,15 @@ public sealed class DuplicatedGuidAnalyzer : DiagnosticAnalyzer
     {
         {
             var map = new ConcurrentDictionary<Guid, INamedTypeSymbol>();
-            context.RegisterSymbolAction(ctx => AnalyzeGuidAttribute(ctx, map, (INamedTypeSymbol)ctx.Symbol, "TypeGuidAttribute", DiagnosticDescriptors.DuplicateTypeGuid), SymbolKind.NamedType);
+            context.RegisterSymbolAction(ctx => AnalyzeGuidAttribute(ctx, map, (INamedTypeSymbol)ctx.Symbol, "Overlook.TypeGuidAttribute", DiagnosticDescriptors.DuplicateTypeGuid), SymbolKind.NamedType);
         }
         {
             var map = new ConcurrentDictionary<Guid, INamedTypeSymbol>();
-            context.RegisterSymbolAction(ctx => AnalyzeGuidAttribute(ctx, map, (INamedTypeSymbol)ctx.Symbol, "GuidAttribute", DiagnosticDescriptors.DuplicateTypeGuid), SymbolKind.NamedType);
+            context.RegisterSymbolAction(ctx => AnalyzeGuidAttribute(ctx, map, (INamedTypeSymbol)ctx.Symbol, "System.GuidAttribute", DiagnosticDescriptors.DuplicateTypeGuid), SymbolKind.NamedType);
         }
         {
             var map = new ConcurrentDictionary<Guid, IMethodSymbol>();
-            context.RegisterSymbolAction(ctx => AnalyzeGuidAttribute(ctx, map, (IMethodSymbol)ctx.Symbol, "MethodGuidAttribute", DiagnosticDescriptors.DuplicateMethodGuid), SymbolKind.Method);
+            context.RegisterSymbolAction(ctx => AnalyzeGuidAttribute(ctx, map, (IMethodSymbol)ctx.Symbol, "Overlook.MethodGuidAttribute", DiagnosticDescriptors.DuplicateMethodGuid), SymbolKind.Method);
         }
     }
 
@@ -44,7 +44,7 @@ public sealed class DuplicatedGuidAnalyzer : DiagnosticAnalyzer
         DiagnosticDescriptor descriptor) where T : ISymbol
     {
         var guidAttribute = symbol.GetAttributes()
-            .FirstOrDefault(attr => attr.AttributeClass?.Name == attributeName);
+            .FirstOrDefault(attr => attr.AttributeClass?.ToDisplayString() == attributeName);
 
         if (guidAttribute == null)
             return;

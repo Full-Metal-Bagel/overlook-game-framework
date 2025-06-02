@@ -1,86 +1,107 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace Overlook.Analyzers;
 
-[Generator]
-public class OptionalInit : ISourceGenerator
+[DiagnosticAnalyzer(LanguageNames.CSharp)]
+public class OptionalInit : DiagnosticAnalyzer
 {
-    public void Initialize(GeneratorInitializationContext context)
+    public static readonly DiagnosticDescriptor MissingInitialization = new(
+        "SG001",
+        "Missing initialization",
+        "The property '{0}' must be initialized in struct '{1}'",
+        "Usage",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
+        ImmutableArray.Create(MissingInitialization);
+
+    public override void Initialize(AnalysisContext context)
     {
-        // Register a syntax receiver to find struct declarations and constructor usages
-        context.RegisterForSyntaxNotifications(() => new SyntaxReceiver());
+        context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
+        context.EnableConcurrentExecution();
+        context.RegisterSyntaxNodeAction(AnalyzeObjectCreation, SyntaxKind.ObjectCreationExpression);
+        context.RegisterSyntaxNodeAction(AnalyzeObjectCreation, SyntaxKind.ImplicitObjectCreationExpression);
     }
 
-    // https://chatgpt.com/share/62b1ec87-ec70-4d84-aca2-4a3b693a53c2
-    public void Execute(GeneratorExecutionContext context)
+    private static void AnalyzeObjectCreation(SyntaxNodeAnalysisContext context)
     {
-        if (context.SyntaxReceiver is not SyntaxReceiver receiver)
+        var creation = (BaseObjectCreationExpressionSyntax)context.Node;
+
+        // Only analyze object creations with no constructor arguments
+        if (creation.ArgumentList != null && creation.ArgumentList.Arguments.Count > 0)
             return;
 
-        var compilation = context.Compilation;
+        var typeInfo = context.SemanticModel.GetTypeInfo(creation);
+        if (typeInfo.Type is not INamedTypeSymbol typeSymbol)
+            return;
 
-        foreach (var creation in receiver.Creations)
+        foreach (var member in typeSymbol.GetMembers())
         {
-            var model = compilation.GetSemanticModel(creation.SyntaxTree);
-            var typeInfo = model.GetTypeInfo(creation);
-            if (typeInfo.Type is not INamedTypeSymbol typeSymbol)
-                continue;
-
-            foreach (var member in typeSymbol.GetMembers())
+            if (member is IPropertySymbol property &&
+                property.SetMethod != null &&
+                (property.SetMethod.IsInitOnly || IsRequiredProperty(property)) &&
+                property.SetMethod.DeclaredAccessibility == Accessibility.Public &&
+                !IsOptionalProperty(property)
+            )
             {
-                if (member is IPropertySymbol property &&
-                    property.SetMethod != null &&
-                    (property.SetMethod.IsInitOnly || IsRequiredProperty(property)) &&
-                    property.SetMethod.DeclaredAccessibility == Accessibility.Public &&
-                    !IsOptionalProperty(property)
-                )
+                if (creation is ObjectCreationExpressionSyntax objectCreation)
                 {
-                    if (creation is ObjectCreationExpressionSyntax objectCreation &&
-                        (objectCreation.Initializer == null ||
-                         objectCreation.Initializer.Expressions.OfType<AssignmentExpressionSyntax>().All(e => e.Left.ToString() != property.Name))
-                    )
+                    // If there's no initializer, report missing initialization
+                    if (objectCreation.Initializer == null)
                     {
-                        // Report diagnostic for missing initialization
-                        var diagnostic = Diagnostic.Create(
-                            new DiagnosticDescriptor(
-                                "SG001",
-                                "Missing initialization",
-                                $"The property '{property.Name}' must be initialized in struct '{typeSymbol.Name}'",
-                                "Usage",
-                                DiagnosticSeverity.Error,
-                                isEnabledByDefault: true),
-                            creation.GetLocation());
+                        ReportMissingInitialization(context, creation, property, typeSymbol);
+                        continue;
+                    }
 
-                        context.ReportDiagnostic(diagnostic);
+                    // Check if the property is assigned in the initializer (any value including default is acceptable)
+                    var isPropertyAssigned = objectCreation.Initializer.Expressions
+                        .OfType<AssignmentExpressionSyntax>()
+                        .Any(assignment => IsPropertyAssignment(assignment, property.Name));
+
+                    if (!isPropertyAssigned)
+                    {
+                        ReportMissingInitialization(context, creation, property, typeSymbol);
                     }
                 }
             }
         }
-
-        bool IsOptionalProperty(IPropertySymbol property)
-        {
-            return property.GetAttributes().Any(attr => attr.AttributeClass?.ToDisplayString() == "Game.OptionalOnInitAttribute");
-        }
-
-        bool IsRequiredProperty(IPropertySymbol property)
-        {
-            return property.GetAttributes().Any(attr => attr.AttributeClass?.ToDisplayString() == "Game.RequiredOnInitAttribute");
-        }
     }
 
-    class SyntaxReceiver : ISyntaxReceiver
+    private static bool IsPropertyAssignment(AssignmentExpressionSyntax assignment, string propertyName)
     {
-        private readonly List<BaseObjectCreationExpressionSyntax> _creations = [];
-        public IReadOnlyList<BaseObjectCreationExpressionSyntax> Creations => _creations;
-
-        public void OnVisitSyntaxNode(SyntaxNode syntaxNode)
+        // Handle both simple property names and qualified property names
+        return assignment.Left switch
         {
-            if (syntaxNode is BaseObjectCreationExpressionSyntax creation &&
-                (creation.ArgumentList == null || creation.ArgumentList.Arguments.Count == 0)
-            ) _creations.Add(creation);
-        }
+            IdentifierNameSyntax identifier => identifier.Identifier.ValueText == propertyName,
+            MemberAccessExpressionSyntax memberAccess => memberAccess.Name.Identifier.ValueText == propertyName,
+            _ => assignment.Left.ToString() == propertyName
+        };
+    }
+
+    private static void ReportMissingInitialization(SyntaxNodeAnalysisContext context, SyntaxNode creation, IPropertySymbol property, INamedTypeSymbol typeSymbol)
+    {
+        var diagnostic = Diagnostic.Create(
+            MissingInitialization,
+            creation.GetLocation(),
+            property.Name,
+            typeSymbol.Name);
+
+        context.ReportDiagnostic(diagnostic);
+    }
+
+    private static bool IsOptionalProperty(IPropertySymbol property)
+    {
+        return property.GetAttributes().Any(attr => attr.AttributeClass?.ToDisplayString() == "Overlook.OptionalOnInitAttribute");
+    }
+
+    private static bool IsRequiredProperty(IPropertySymbol property)
+    {
+        return property.GetAttributes().Any(attr => attr.AttributeClass?.ToDisplayString() == "Overlook.RequiredOnInitAttribute");
     }
 }

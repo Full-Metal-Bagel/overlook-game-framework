@@ -19,5 +19,12 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.3.0"/>
     <Link Include="..\..\.editorconfig" />
   </ItemGroup>
+
+  <Target Name="PostPublish" AfterTargets="Publish">
+    <ItemGroup>
+      <PublishedFiles Include="$(PublishDir)/$(ProjectName).dll"/>
+    </ItemGroup>
+    <Copy SourceFiles="@(PublishedFiles)" DestinationFolder="$(SolutionDir)/../Packages/com.fullmetalbagel.overlook-analyzer/" />
+  </Target>
 </Project>
 
