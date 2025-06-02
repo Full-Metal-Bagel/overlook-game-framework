@@ -26,7 +26,7 @@ public class DisallowDefaultConstructorTests
         var compilationWithAnalyzers = compilation.WithAnalyzers(new DiagnosticAnalyzer[] { analyzer }.ToImmutableArray());
         var diagnostics = await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync();
         
-        return diagnostics.Where(d => d.Id.StartsWith("STRUCT")).ToArray();
+        return diagnostics.Where(d => d.Id.StartsWith("OVL")).ToArray();
     }
 
     [TestMethod]
@@ -44,7 +44,7 @@ namespace Overlook {
 ";
         var diagnostics = await GetAnalyzerDiagnosticsAsync(test);
         Assert.AreEqual(1, diagnostics.Length, "Expected exactly one diagnostic");
-        Assert.AreEqual("STRUCT001", diagnostics[0].Id, "Expected STRUCT001 diagnostic");
+        Assert.AreEqual("OVL004", diagnostics[0].Id, "Expected OVL004 diagnostic");
     }
 
     [TestMethod]

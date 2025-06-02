@@ -11,7 +11,7 @@ namespace Overlook.Analyzers;
 public class DisallowDefaultConstructor : DiagnosticAnalyzer
 {
     public static readonly DiagnosticDescriptor StructInstantiationWithoutParameters = new(
-        "STRUCT001",
+        "OVL004",
         "Struct Instantiation Without Parameters",
         "Struct '{0}' annotated with 'DisallowDefaultConstructor' must be instantiated with parameters.",
         "Usage",

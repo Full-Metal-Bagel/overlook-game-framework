@@ -26,7 +26,7 @@ public class OptionalInitTests
         var compilationWithAnalyzers = compilation.WithAnalyzers(new DiagnosticAnalyzer[] { analyzer }.ToImmutableArray());
         var diagnostics = await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync();
         
-        return diagnostics.Where(d => d.Id.StartsWith("SG")).ToArray();
+        return diagnostics.Where(d => d.Id.StartsWith("OVL")).ToArray();
     }
 
     [TestMethod]
@@ -47,7 +47,7 @@ namespace Overlook {
 ";
         var diagnostics = await GetAnalyzerDiagnosticsAsync(test);
         Assert.AreEqual(1, diagnostics.Length, "Expected exactly one diagnostic");
-        Assert.AreEqual("SG001", diagnostics[0].Id, "Expected SG001 diagnostic");
+        Assert.AreEqual("OVL001", diagnostics[0].Id, "Expected OVL001 diagnostic");
     }
 
     [TestMethod]
@@ -175,6 +175,6 @@ namespace Overlook {
 ";
         var diagnostics = await GetAnalyzerDiagnosticsAsync(test);
         Assert.AreEqual(1, diagnostics.Length, "Expected one diagnostic for missing required parameter X");
-        Assert.AreEqual("SG001", diagnostics[0].Id, "Expected SG001 diagnostic");
+        Assert.AreEqual("OVL001", diagnostics[0].Id, "Expected OVL001 diagnostic");
     }
 }

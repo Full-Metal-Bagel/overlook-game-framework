@@ -18,6 +18,7 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.3.0"/>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.3.0"/>
     <Link Include="..\..\.editorconfig" />
+    <None Include="..\..\Packages\com.fullmetalbagel.overlook-analyzer\DIAGNOSTIC_IDS.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
   <Target Name="PostPublish" AfterTargets="Publish">

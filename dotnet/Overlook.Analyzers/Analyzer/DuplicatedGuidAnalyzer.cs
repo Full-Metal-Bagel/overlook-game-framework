@@ -73,7 +73,7 @@ public sealed class DuplicatedGuidAnalyzer : DiagnosticAnalyzer
 public static class DiagnosticDescriptors
 {
     public static readonly DiagnosticDescriptor DuplicateTypeGuid = new(
-        id: "GUID001",
+        id: "OVL002",
         title: "Duplicate TypeGuid detected",
         messageFormat: "Type '{0}' has the same TypeGuid as '{1}': {2}",
         category: "Design",
@@ -82,7 +82,7 @@ public static class DiagnosticDescriptors
         description: "Each type with a TypeGuidAttribute should have a unique GUID.");
 
     public static readonly DiagnosticDescriptor DuplicateMethodGuid = new(
-        id: "GUID002",
+        id: "OVL003",
         title: "Duplicate MethodGuid detected",
         messageFormat: "Method '{0}' has the same MethodGuid as '{1}': {2}",
         category: "Design",

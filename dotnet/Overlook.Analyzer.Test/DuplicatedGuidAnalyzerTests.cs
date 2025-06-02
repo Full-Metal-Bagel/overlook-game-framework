@@ -22,7 +22,7 @@ public class DuplicatedGuidAnalyzerTests
         var compilationWithAnalyzers = compilation.WithAnalyzers(new DiagnosticAnalyzer[] { analyzer }.ToImmutableArray());
         var diagnostics = await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync();
 
-        return diagnostics.Where(d => d.Id.StartsWith("GUID")).ToArray();
+        return diagnostics.Where(d => d.Id.StartsWith("OVL")).ToArray();
     }
 
     [TestMethod]
@@ -71,7 +71,7 @@ public class DuplicatedGuidAnalyzerTests
 
         var diagnostics = await GetAnalyzerDiagnosticsAsync(test);
         Assert.AreEqual(1, diagnostics.Length, "Expected exactly one diagnostic");
-        Assert.AreEqual("GUID001", diagnostics[0].Id, "Expected GUID001 diagnostic");
+        Assert.AreEqual("OVL002", diagnostics[0].Id, "Expected OVL002 diagnostic");
     }
 
     [TestMethod]
@@ -124,6 +124,6 @@ public class DuplicatedGuidAnalyzerTests
 
         var diagnostics = await GetAnalyzerDiagnosticsAsync(test);
         Assert.AreEqual(1, diagnostics.Length, "Expected exactly one diagnostic");
-        Assert.AreEqual("GUID002", diagnostics[0].Id, "Expected GUID002 diagnostic");
+        Assert.AreEqual("OVL003", diagnostics[0].Id, "Expected OVL003 diagnostic");
     }
 }

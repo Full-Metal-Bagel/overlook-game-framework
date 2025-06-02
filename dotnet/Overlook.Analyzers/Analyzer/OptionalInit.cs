@@ -12,7 +12,7 @@ namespace Overlook.Analyzers;
 public class OptionalInit : DiagnosticAnalyzer
 {
     public static readonly DiagnosticDescriptor MissingInitialization = new(
-        "SG001",
+        "OVL001",
         "Missing initialization",
         "The property '{0}' must be initialized in struct '{1}'",
         "Usage",
