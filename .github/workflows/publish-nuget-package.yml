@@ -25,6 +25,7 @@ jobs:
           dotnet pack -c Release -o ./nuget-packages ./dotnet/Overlook.Ecs
           dotnet pack -c Release -o ./nuget-packages ./dotnet/Overlook.Core
           dotnet pack -c Release -o ./nuget-packages ./dotnet/Overlook.Pool
+          dotnet pack -c Release -o ./nuget-packages ./dotnet/Overlook.Analyzers
       - name: Publish packages
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
