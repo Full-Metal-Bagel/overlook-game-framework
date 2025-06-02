@@ -63,7 +63,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           target: main
-          upm_tag_prefix: overlook-pool/v
+          upm_tag_prefix: overlook-analyzer/v
           upm_package_path: Packages/com.fullmetalbagel.overlook-analyzer
           create_unitypackage: true
           unitypackage_name: Overlook
