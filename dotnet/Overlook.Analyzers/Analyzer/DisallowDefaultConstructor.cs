@@ -1,60 +1,60 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace Overlook.Analyzers;
 
-[Generator]
-public class DisallowDefaultConstructor : ISourceGenerator
+[DiagnosticAnalyzer(LanguageNames.CSharp)]
+public class DisallowDefaultConstructor : DiagnosticAnalyzer
 {
-    public void Initialize(GeneratorInitializationContext context)
+    public static readonly DiagnosticDescriptor StructInstantiationWithoutParameters = new(
+        "OVL004",
+        "Struct Instantiation Without Parameters",
+        "Struct '{0}' annotated with 'DisallowDefaultConstructor' must be instantiated with parameters.",
+        "Usage",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
+        ImmutableArray.Create(StructInstantiationWithoutParameters);
+
+    public override void Initialize(AnalysisContext context)
     {
-        // Register a syntax receiver to find struct declarations and constructor usages
-        context.RegisterForSyntaxNotifications(() => new SyntaxReceiver());
+        context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
+        context.EnableConcurrentExecution();
+        context.RegisterSyntaxNodeAction(AnalyzeObjectCreation, SyntaxKind.ObjectCreationExpression);
+        context.RegisterSyntaxNodeAction(AnalyzeObjectCreation, SyntaxKind.ImplicitObjectCreationExpression);
     }
 
-    public void Execute(GeneratorExecutionContext context)
+    private static void AnalyzeObjectCreation(SyntaxNodeAnalysisContext context)
     {
-        // The SyntaxReceiver will have collected potential diagnostics
-        if (context.SyntaxReceiver is not SyntaxReceiver receiver) return;
+        var creation = (BaseObjectCreationExpressionSyntax)context.Node;
 
-        foreach (var creation in receiver.Creations)
-        {
-            var model = context.Compilation.GetSemanticModel(creation.SyntaxTree);
-            var typeInfo = model.GetTypeInfo(creation);
+        // Only analyze object creations with no constructor arguments
+        if (creation.ArgumentList != null && creation.ArgumentList.Arguments.Count > 0)
+            return;
 
-            if (typeInfo.Type is not INamedTypeSymbol typeSymbol) continue;
-            if (!typeSymbol.IsValueType) continue;
+        var typeInfo = context.SemanticModel.GetTypeInfo(creation);
+        if (typeInfo.Type is not INamedTypeSymbol typeSymbol)
+            return;
 
-            // Check for attribute by fully-qualified name
-            var hasAttribute = typeSymbol.GetAttributes().Select(attributes => attributes).Any(attr => attr.AttributeClass?.ToDisplayString() == "Game.DisallowDefaultConstructorAttribute");
-            if (!hasAttribute) continue;
+        if (!typeSymbol.IsValueType)
+            return;
 
-            var diagnostic = Diagnostic.Create(new DiagnosticDescriptor(
-                    "STRUCT001",
-                    "Struct Instantiation Without Parameters",
-                    "Struct '{0}' annotated with 'DisallowDefaultConstructor' must be instantiated with parameters.",
-                    "Usage",
-                    DiagnosticSeverity.Error,
-                    isEnabledByDefault: true),
-                creation.GetLocation(),
-                typeSymbol.Name);
+        // Check for attribute by fully-qualified name
+        var hasAttribute = typeSymbol.GetAttributes()
+            .Any(attr => attr.AttributeClass?.ToDisplayString() == "Overlook.DisallowDefaultConstructorAttribute");
+        if (!hasAttribute)
+            return;
 
-            context.ReportDiagnostic(diagnostic);
-        }
-    }
+        var diagnostic = Diagnostic.Create(
+            StructInstantiationWithoutParameters,
+            creation.GetLocation(),
+            typeSymbol.Name);
 
-    class SyntaxReceiver : ISyntaxReceiver
-    {
-        private readonly List<BaseObjectCreationExpressionSyntax> _creations = [];
-        public IReadOnlyList<BaseObjectCreationExpressionSyntax> Creations => _creations;
-
-        public void OnVisitSyntaxNode(SyntaxNode syntaxNode)
-        {
-            if (syntaxNode is BaseObjectCreationExpressionSyntax creation &&
-                (creation.ArgumentList == null || creation.ArgumentList.Arguments.Count == 0)
-            ) _creations.Add(creation);
-        }
+        context.ReportDiagnostic(diagnostic);
     }
 }

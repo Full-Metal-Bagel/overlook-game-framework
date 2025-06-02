@@ -24,15 +24,15 @@ public sealed class DuplicatedGuidAnalyzer : DiagnosticAnalyzer
     {
         {
             var map = new ConcurrentDictionary<Guid, INamedTypeSymbol>();
-            context.RegisterSymbolAction(ctx => AnalyzeGuidAttribute(ctx, map, (INamedTypeSymbol)ctx.Symbol, "TypeGuidAttribute", DiagnosticDescriptors.DuplicateTypeGuid), SymbolKind.NamedType);
+            context.RegisterSymbolAction(ctx => AnalyzeGuidAttribute(ctx, map, (INamedTypeSymbol)ctx.Symbol, "Overlook.TypeGuidAttribute", DiagnosticDescriptors.DuplicateTypeGuid), SymbolKind.NamedType);
         }
         {
             var map = new ConcurrentDictionary<Guid, INamedTypeSymbol>();
-            context.RegisterSymbolAction(ctx => AnalyzeGuidAttribute(ctx, map, (INamedTypeSymbol)ctx.Symbol, "GuidAttribute", DiagnosticDescriptors.DuplicateTypeGuid), SymbolKind.NamedType);
+            context.RegisterSymbolAction(ctx => AnalyzeGuidAttribute(ctx, map, (INamedTypeSymbol)ctx.Symbol, "System.GuidAttribute", DiagnosticDescriptors.DuplicateTypeGuid), SymbolKind.NamedType);
         }
         {
             var map = new ConcurrentDictionary<Guid, IMethodSymbol>();
-            context.RegisterSymbolAction(ctx => AnalyzeGuidAttribute(ctx, map, (IMethodSymbol)ctx.Symbol, "MethodGuidAttribute", DiagnosticDescriptors.DuplicateMethodGuid), SymbolKind.Method);
+            context.RegisterSymbolAction(ctx => AnalyzeGuidAttribute(ctx, map, (IMethodSymbol)ctx.Symbol, "Overlook.MethodGuidAttribute", DiagnosticDescriptors.DuplicateMethodGuid), SymbolKind.Method);
         }
     }
 
@@ -44,7 +44,7 @@ public sealed class DuplicatedGuidAnalyzer : DiagnosticAnalyzer
         DiagnosticDescriptor descriptor) where T : ISymbol
     {
         var guidAttribute = symbol.GetAttributes()
-            .FirstOrDefault(attr => attr.AttributeClass?.Name == attributeName);
+            .FirstOrDefault(attr => attr.AttributeClass?.ToDisplayString() == attributeName);
 
         if (guidAttribute == null)
             return;
@@ -73,7 +73,7 @@ public sealed class DuplicatedGuidAnalyzer : DiagnosticAnalyzer
 public static class DiagnosticDescriptors
 {
     public static readonly DiagnosticDescriptor DuplicateTypeGuid = new(
-        id: "GUID001",
+        id: "OVL002",
         title: "Duplicate TypeGuid detected",
         messageFormat: "Type '{0}' has the same TypeGuid as '{1}': {2}",
         category: "Design",
@@ -82,7 +82,7 @@ public static class DiagnosticDescriptors
         description: "Each type with a TypeGuidAttribute should have a unique GUID.");
 
     public static readonly DiagnosticDescriptor DuplicateMethodGuid = new(
-        id: "GUID002",
+        id: "OVL003",
         title: "Duplicate MethodGuid detected",
         messageFormat: "Method '{0}' has the same MethodGuid as '{1}': {2}",
         category: "Design",

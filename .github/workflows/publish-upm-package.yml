@@ -52,3 +52,18 @@ jobs:
         upm_package_path: Packages/com.fullmetalbagel.overlook-pool
         create_unitypackage: true
         unitypackage_name: Overlook
+  upm-release-analyzer:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v2
+      - uses: quabug/create-upm-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          target: main
+          upm_tag_prefix: overlook-pool/v
+          upm_package_path: Packages/com.fullmetalbagel.overlook-analyzer
+          create_unitypackage: true
+          unitypackage_name: Overlook

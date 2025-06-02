@@ -6,7 +6,6 @@ using static Overlook.Pool.StaticPools;
 
 namespace Overlook.Pool;
 
-[DisallowDefaultConstructor]
 public readonly record struct PooledMemoryList<T> : IDisposable
 {
     public List<T> Value { get; }

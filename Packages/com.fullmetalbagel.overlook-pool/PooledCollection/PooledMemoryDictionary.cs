@@ -6,7 +6,6 @@ using static Overlook.Pool.StaticPools;
 namespace Overlook.Pool;
 
 [SuppressMessage("Naming", "CA1711:Identifiers should not have incorrect suffix")]
-[DisallowDefaultConstructor]
 public readonly record struct PooledMemoryDictionary<TKey, TValue> : IDisposable
 {
     public Dictionary<TKey, TValue> Value { get; }

@@ -1,5 +1,11 @@
 {
   "dependencies": {
+    "com.fullmetalbagel.overlook-analyzer": {
+      "version": "file:com.fullmetalbagel.overlook-analyzer",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {}
+    },
     "com.fullmetalbagel.overlook-core": {
       "version": "file:com.fullmetalbagel.overlook-core",
       "depth": 0,
@@ -31,7 +37,7 @@
       "url": "https://package.openupm.com"
     },
     "com.unity.burst": {
-      "version": "1.8.21",
+      "version": "1.8.19",
       "depth": 1,
       "source": "registry",
       "dependencies": {
@@ -90,7 +96,7 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.settings-manager": {
-      "version": "2.1.0",
+      "version": "2.0.1",
       "depth": 1,
       "source": "registry",
       "dependencies": {},
