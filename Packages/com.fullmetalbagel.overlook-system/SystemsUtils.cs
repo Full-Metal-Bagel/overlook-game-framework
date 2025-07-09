@@ -1,23 +1,20 @@
-﻿#nullable enable
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 
-namespace Game
-{
-    public static class SystemsUtils
-    {
-        public static IReadOnlyDictionary<Guid, Type> IdTypeMap { get; }
+namespace Overlook.System;
 
-        static SystemsUtils()
+public static class SystemsUtils
+{
+    public static IReadOnlyDictionary<Guid, Type> IdTypeMap { get; }
+
+    static SystemsUtils()
+    {
+        Dictionary<Guid, Type> dict = new();
+        foreach (var (guid, type) in TypeGuidUtils.IdTypeMap)
         {
-            Dictionary<Guid, Type> dict = new();
-            foreach (var (guid, type) in TypeGuidUtils.IdTypeMap)
-            {
-                if (typeof(IGameSystem).IsAssignableFrom(type))
-                    dict[guid] = type;
-            }
-            IdTypeMap = dict;
+            if (typeof(IGameSystem).IsAssignableFrom(type))
+                dict[guid] = type;
         }
+        IdTypeMap = dict;
     }
 }

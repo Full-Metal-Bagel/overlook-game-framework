@@ -1,18 +1,16 @@
-﻿#nullable enable
-
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace Game
-{
-    [CreateAssetMenu(menuName = "KGP/Systems", fileName = "Systems")]
-    public class SystemsConfig : ScriptableObject
-    {
-        public IReadOnlyList<SystemGroup> Systems => _systems;
+namespace Overlook.System;
 
-        [SerializeField, ListDrawerSettings(ShowPaging = false, ShowIndexLabels = true, DefaultExpandedState = true, ShowItemCount = true)]
-        private SystemGroup[] _systems = default!;
+[CreateAssetMenu(menuName = "KGP/Systems", fileName = "Systems")]
+public class SystemsConfig : ScriptableObject
+{
+    public IReadOnlyList<SystemGroup> Systems => _systems;
+
+    [SerializeField, ListDrawerSettings(ShowPaging = false, ShowIndexLabels = true, DefaultExpandedState = true, ShowItemCount = true)]
+    private SystemGroup[] _systems = default!;
 
 #if UNITY_EDITOR
         [ShowInInspector, HideLabel, PropertyOrder(-1)]
@@ -64,5 +62,4 @@ namespace Game
             Debug.LogWarning($"No matching SystemData found for query: {_searchQuery}");
         }
 #endif
-    }
 }

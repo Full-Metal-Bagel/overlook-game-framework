@@ -1,5 +1,4 @@
-#nullable enable
-namespace Game;
+namespace Overlook.System;
 
 public sealed class EmptySystem : IGameSystem
 {

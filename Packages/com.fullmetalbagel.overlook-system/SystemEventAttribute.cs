@@ -1,12 +1,9 @@
-﻿#nullable enable
+﻿using System;
 
-using System;
+namespace Overlook.System;
 
-namespace Game
+[AttributeUsage(AttributeTargets.Struct | AttributeTargets.Class)]
+public sealed class SystemEventAttribute : Attribute
 {
-    [AttributeUsage(AttributeTargets.Struct | AttributeTargets.Class)]
-    public sealed class SystemEventAttribute : Attribute
-    {
-        public int InitCapacity { get; set; }
-    }
+    public int InitCapacity { get; set; }
 }

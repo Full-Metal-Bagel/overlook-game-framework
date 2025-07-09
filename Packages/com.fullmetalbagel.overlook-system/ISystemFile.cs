@@ -1,4 +1,3 @@
-#nullable enable
 using OneShot;
 
 #if UNITY_EDITOR
@@ -7,7 +6,7 @@ using Sirenix.OdinInspector;
 using UnityEngine;
 #endif
 
-namespace Game;
+namespace Overlook.System;
 
 public interface ISystemFile
 {

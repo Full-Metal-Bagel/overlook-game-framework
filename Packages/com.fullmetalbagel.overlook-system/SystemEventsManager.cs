@@ -1,32 +1,29 @@
-﻿#nullable enable
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 
-namespace Game
+namespace Overlook.System;
+
+public class SystemEventsManager
 {
-    public class SystemEventsManager
+    private readonly Dictionary<Type, ISystemEvents> _typeEventsMap = new();
+
+    public void Append<T>(T @event, int lastingFrames = 1)
     {
-        private readonly Dictionary<Type, ISystemEvents> _typeEventsMap = new();
+        GetOrCreateSystemEvents<T>().Append(@event, lastingFrames);
+    }
 
-        public void Append<T>(T @event, int lastingFrames = 1)
+    public SystemEvents<T> GetOrCreateSystemEvents<T>()
+    {
+        if (!_typeEventsMap.TryGetValue(typeof(T), out var events))
         {
-            GetOrCreateSystemEvents<T>().Append(@event, lastingFrames);
+            events = new SystemEvents<T>();
+            _typeEventsMap[typeof(T)] = events;
         }
+        return (SystemEvents<T>)events;
+    }
 
-        public SystemEvents<T> GetOrCreateSystemEvents<T>()
-        {
-            if (!_typeEventsMap.TryGetValue(typeof(T), out var events))
-            {
-                events = new SystemEvents<T>();
-                _typeEventsMap[typeof(T)] = events;
-            }
-            return (SystemEvents<T>)events;
-        }
-
-        public void Tick(int systemIndex, int currentFrame)
-        {
-            foreach (var events in _typeEventsMap.Values) events.Tick(systemIndex, currentFrame);
-        }
+    public void Tick(int systemIndex, int currentFrame)
+    {
+        foreach (var events in _typeEventsMap.Values) events.Tick(systemIndex, currentFrame);
     }
 }

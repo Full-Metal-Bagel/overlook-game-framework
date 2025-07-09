@@ -1,5 +1,3 @@
-#nullable enable
-
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -12,105 +10,104 @@ using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 
-namespace Game
+namespace Overlook.System;
+
+[Serializable]
+public class SystemGroup
 {
+    [field: SerializeField, HorizontalGroup, HideLabel] public string Name { get; private set; } = "Update";
+    [field: SerializeField, HorizontalGroup, HideLabel] public TickStage TickStage { get; private set; } = TickStage.Update;
+    [field: SerializeField, HorizontalGroup, HideLabel] public int TickTimes { get; set; } = -1;
+    public IReadOnlyList<SystemData> Systems => _systems;
+    public int Count => _systems.Length;
+
+    [SerializeField, ListDrawerSettings(DefaultExpandedState = true)]
+    private SystemData[] _systems = default!;
+
     [Serializable]
-    public class SystemGroup
+    [SuppressMessage("Design", "CA1034:Nested types should not be visible")]
+    public class SystemData
     {
-        [field: SerializeField, HorizontalGroup, HideLabel] public string Name { get; private set; } = "Update";
-        [field: SerializeField, HorizontalGroup, HideLabel] public TickStage TickStage { get; private set; } = TickStage.Update;
-        [field: SerializeField, HorizontalGroup, HideLabel] public int TickTimes { get; set; } = -1;
-        public IReadOnlyList<SystemData> Systems => _systems;
-        public int Count => _systems.Length;
+        [field: SerializeField, HideLabel, HorizontalGroup, TypeConstraint(BaseType = typeof(IGameSystem))]
+        public GuidTypeReference Type { get; private set; } = default!;
 
-        [SerializeField, ListDrawerSettings(DefaultExpandedState = true)]
-        private SystemData[] _systems = default!;
+        [field: SerializeField, HideLabel, HorizontalGroup, ShowIf(nameof(IsGraphSystem)), AssetReferenceUILabelRestriction("system")]
+        public GameAssetReference<Graph> Graph { get; private set; } = default!;
 
-        [Serializable]
-        [SuppressMessage("Design", "CA1034:Nested types should not be visible")]
-        public class SystemData
+        private bool IsGraphSystem => Type is { Type: not null } && Type.Type.GetCustomAttribute<GraphSystemAttribute>() != null;
+
+        public void Deconstruct(out GuidTypeReference type, out AssetReferenceT<Graph> graph)
         {
-            [field: SerializeField, HideLabel, HorizontalGroup, TypeConstraint(BaseType = typeof(IGameSystem))]
-            public GuidTypeReference Type { get; private set; } = default!;
+            type = Type;
+            graph = Graph;
+        }
+    }
+}
 
-            [field: SerializeField, HideLabel, HorizontalGroup, ShowIf(nameof(IsGraphSystem)), AssetReferenceUILabelRestriction("system")]
-            public GameAssetReference<Graph> Graph { get; private set; } = default!;
-
-            private bool IsGraphSystem => Type is { Type: not null } && Type.Type.GetCustomAttribute<GraphSystemAttribute>() != null;
-
-            public void Deconstruct(out GuidTypeReference type, out AssetReferenceT<Graph> graph)
+public static class SystemGroupExtension
+{
+    public static void RegisterGroupSystems(this Container container, IReadOnlyList<SystemGroup> groups)
+    {
+        foreach (var (group, system, graph) in from g in groups
+                 from t in g.Systems
+                 select (g, t.Type, t.Graph)
+                )
+        {
+            var systemType = system.Type;
+            if (systemType == null)
             {
-                type = Type;
-                graph = Graph;
+                Debug.LogError($"invalid system: {group.Name}.{system.IdAndName}");
+                continue;
+            }
+
+            if (!container.IsRegisteredInHierarchy(systemType))
+            {
+                container.Register(systemType).Singleton().AsInterfaces().AsSelf();
             }
         }
     }
 
-    public static class SystemGroupExtension
+    [Pure, MustUseReturnValue]
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types")]
+    public static IEnumerable<(SystemGroup group, object system)> ResolveGroupSystems(this Container container, IReadOnlyList<SystemGroup> groups)
     {
-        public static void RegisterGroupSystems(this Container container, IReadOnlyList<SystemGroup> groups)
-        {
-            foreach (var (group, system, graph) in from g in groups
-                                                   from t in g.Systems
-                                                   select (g, t.Type, t.Graph)
-            )
-            {
-                var systemType = system.Type;
-                if (systemType == null)
-                {
-                    Debug.LogError($"invalid system: {group.Name}.{system.IdAndName}");
-                    continue;
-                }
-
-                if (!container.IsRegisteredInHierarchy(systemType))
-                {
-                    container.Register(systemType).Singleton().AsInterfaces().AsSelf();
-                }
-            }
-        }
-
-        [Pure, MustUseReturnValue]
-        [SuppressMessage("Design", "CA1031:Do not catch general exception types")]
-        public static IEnumerable<(SystemGroup group, object system)> ResolveGroupSystems(this Container container, IReadOnlyList<SystemGroup> groups)
-        {
-            var systemGroupAndTypes =
+        var systemGroupAndTypes =
                 from @group in groups
                 from t in @group.Systems
                 select (@group, t.Type.Type, t.Graph)
             ;
 
-            var systemIndex = 0;
-            foreach (var (group, systemType, graph) in systemGroupAndTypes)
+        var systemIndex = 0;
+        foreach (var (group, systemType, graph) in systemGroupAndTypes)
+        {
+            if (systemType == null)
             {
-                if (systemType == null)
-                {
-                    Debug.LogError($"Skip processing null system in group {group.Name}");
-                    continue;
-                }
+                Debug.LogError($"Skip processing null system in group {group.Name}");
+                continue;
+            }
 
-                Debug.Assert(systemType.GetCustomAttribute<GraphSystemAttribute>() == null || graph != null);
-                var systemContainer = container.CreateChildContainer();
-                systemContainer.Register(systemType).With(graph, systemIndex).AsSelf();
-                systemIndex++;
-                (SystemGroup group, object system) ret;
-                try
-                {
-                    ret = (group, systemContainer.Resolve(systemType));
-                }
-                catch (Exception e)
-                {
-                    var graphName = "";
+            Debug.Assert(systemType.GetCustomAttribute<GraphSystemAttribute>() == null || graph != null);
+            var systemContainer = container.CreateChildContainer();
+            systemContainer.Register(systemType).With(graph, systemIndex).AsSelf();
+            systemIndex++;
+            (SystemGroup group, object system) ret;
+            try
+            {
+                ret = (group, systemContainer.Resolve(systemType));
+            }
+            catch (Exception e)
+            {
+                var graphName = "";
 #if UNITY_EDITOR
                     graphName = graph?.editorAsset?.name;
                     graphName = string.IsNullOrEmpty(graphName) ? "" : $" ({graphName})";
 #endif
-                    Debug.LogError($"Skip adding system {group.Name}.{systemType.Name}{graphName} to {nameof(SystemManager)}" +
-                                   " because an exception was thrown during its initialization\n" + e);
-                    Debug.LogException(e);
-                    continue;
-                }
-                yield return ret;
+                Debug.LogError($"Skip adding system {group.Name}.{systemType.Name}{graphName} to {nameof(SystemManager)}" +
+                               " because an exception was thrown during its initialization\n" + e);
+                Debug.LogException(e);
+                continue;
             }
+            yield return ret;
         }
     }
 }
