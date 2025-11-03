@@ -98,7 +98,7 @@ var entity = EntityBuilder.Create()
     .Add<Velocity>(new Velocity { X = 1, Y = 0 })
     .Build(world);
 
-// Using WorldEntity (new convenience wrapper)
+// Using WorldEntity (convenience wrapper)
 var worldEntity = new WorldEntity(world, entity);
 worldEntity.Add<Health>(new Health { Value = 100 });
 ```
@@ -149,7 +149,7 @@ The project uses GitHub Actions for automated testing and publishing:
   - Archetypes.cs - Archetype system
 
 - **Tests**:
-  - Unity: `Assets/Test/ECS/`
+  - Unity: `Assets/Test/`
   - .NET: `dotnet/Overlook.*.Tests/`
 
 - **Build Configuration**:
@@ -161,7 +161,3 @@ The project uses GitHub Actions for automated testing and publishing:
 - `OVERLOOK_DEBUG`: Enables debug assertions and leak tracking
 - `OVERLOOK_ECS_USE_UNITY_COLLECTION`: Switches to Unity Collections backend
 - `UNITY_5_3_OR_NEWER`: Conditional Unity API usage
-
-## Recent Changes
-
-Current branch `world-entity` adds the `WorldEntity` struct, providing a more ergonomic API for entity operations without repeatedly passing the world reference.
