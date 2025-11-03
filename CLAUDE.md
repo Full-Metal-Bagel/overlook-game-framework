@@ -42,14 +42,12 @@ Key design patterns:
 
 ### Building the Project
 
-```bash
-# .NET solution (from /dotnet directory)
-dotnet restore
-dotnet build
+# .NET solution (from repository root)
+dotnet restore dotnet/OverlookGameFramework.sln
+dotnet build dotnet/OverlookGameFramework.sln
 
 # For release builds
-dotnet build -c Release
-```
+dotnet build dotnet/OverlookGameFramework.sln -c Release
 
 ### Running Tests
 
