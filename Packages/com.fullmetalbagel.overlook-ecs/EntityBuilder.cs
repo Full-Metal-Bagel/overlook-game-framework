@@ -339,11 +339,6 @@ public static class EntityBuilderExtension
         return entity;
     }
 
-    public static Entity Build<T>(this T builder, World world) where T : IComponentsBuilder
-    {
-        return Build(builder, world.Archetypes);
-    }
-
     public static Entity Build<T>(this T builder, Archetypes archetypes) where T : IComponentsBuilder
     {
         var entity = archetypes.Spawn();
