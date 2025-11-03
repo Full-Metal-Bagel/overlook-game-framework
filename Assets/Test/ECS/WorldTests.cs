@@ -51,7 +51,7 @@ namespace Overlook.Ecs.Tests
             var b = EntityBuilder.Create().Add(new Position()).Add(new Velocity()).Build(_world);
             var c = EntityBuilder.Create().Add(new Health()).Build(_world);
             var query = QueryBuilder.Create().Any<Velocity>().Any<Health>().Build(_world);
-            Assert.That(query.AsEnumerable(), Is.EquivalentTo(new [] { b, c }));
+            Assert.That(query.AsEnumerable(), Is.EquivalentTo(new [] { b.Entity, c.Entity }));
         }
 
         [Test]
@@ -298,7 +298,7 @@ namespace Overlook.Ecs.Tests
             var entity1 = EntityBuilder.Create().Add(new Position(1, 1)).Add(new Velocity(2, 2)).Build(_world);
             var entity2 = EntityBuilder.Create().Add(new Position(1, 1)).Build(_world);
             var results = QueryBuilder.Create().Has<Position>().Has<Velocity>().Build(_world).AsEnumerable();
-            Assert.That(results, Is.EquivalentTo(new [] { entity1 }));
+            Assert.That(results, Is.EquivalentTo(new [] { entity1.Entity }));
         }
 
         [Test]
@@ -307,7 +307,7 @@ namespace Overlook.Ecs.Tests
             var entity1 = EntityBuilder.Create().Add(new Position(1, 1)).Add(new Velocity(2, 2)).Build(_world);
             var entity2 = EntityBuilder.Create().Add(new Position(1, 1)).Build(_world);
             var results = QueryBuilder.Create().Has<Position>().Not<Velocity>().Build(_world).AsEnumerable();
-            Assert.That(results, Is.EquivalentTo(new [] { entity2 }));
+            Assert.That(results, Is.EquivalentTo(new [] { entity2.Entity }));
         }
 
         [Test]
@@ -326,19 +326,19 @@ namespace Overlook.Ecs.Tests
             var entity2 = EntityBuilder.Create().Add(new Position(1, 2)).Build(_world);
             Assert.That(
                 QueryBuilder.Create().Has<Position>().Build(_world).Where<Position>(pos => pos.X == 1).AsEnumerable(),
-                Is.EquivalentTo(new [] { entity1, entity2 })
+                Is.EquivalentTo(new [] { entity1.Entity, entity2.Entity })
             );
             Assert.That(
                 QueryBuilder.Create().Has<Position>().Build(_world).Where<Position>(pos => pos.Y == 1).AsEnumerable(),
-                Is.EquivalentTo(new [] { entity1 })
+                Is.EquivalentTo(new [] { entity1.Entity })
             );
             Assert.That(
                 QueryBuilder.Create().Has<Velocity>().Build(_world).Where<Velocity>(velocity => velocity.Y == 2).AsEnumerable(),
-                Is.EquivalentTo(new [] { entity1 })
+                Is.EquivalentTo(new [] { entity1.Entity })
             );
             Assert.That(
                 QueryBuilder.Create().Build(_world).Where<Position>(pos => pos.X == 1).Where<Position>(pos => pos.Y == 2).AsEnumerable(),
-                Is.EquivalentTo(new [] { entity2 })
+                Is.EquivalentTo(new [] { entity2.Entity })
             );
             Assert.That(
                 QueryBuilder.Create().Build(_world).Where<Position>(pos => pos.X == 1).Where<Velocity>(vel => vel.Y == 1).AsEnumerable(),
@@ -367,13 +367,13 @@ namespace Overlook.Ecs.Tests
             {
                 processedEntities++;
 
-                if (entity == entity1)
+                if (entity.Entity == entity1.Entity)
                 {
                     // Add component to existing entity
                     _world.AddComponent(entity2, new Velocity());
                     Assert.That(queryV.Count(), Is.EqualTo(1));
                 }
-                else if (entity == entity2)
+                else if (entity.Entity == entity2.Entity)
                 {
                     // Remove component from existing entity
                     _world.RemoveComponent<Position>(entity3);
