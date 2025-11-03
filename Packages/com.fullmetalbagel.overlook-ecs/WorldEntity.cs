@@ -41,12 +41,12 @@ public readonly record struct WorldEntity(World World, Entity Entity)
 
     public void Add(Type componentType) => World.AddDefaultComponent(Entity, componentType);
 
-    public void TryRemove<T>(T component = default) where T : unmanaged
+    public void TryRemove<T>() where T : unmanaged
     {
         if (!Has<T>()) return;
-        Remove(component);
+        Remove<T>();
     }
-    public void Remove<T>(T component = default) where T : unmanaged => World.RemoveComponent<T>(Entity);
+    public void Remove<T>() where T : unmanaged => World.RemoveComponent<T>(Entity);
     public void Remove(Type componentType) => World.RemoveComponent(Entity, componentType);
     public T AddMultipleObject<T>() where T : class, new() => World.AddMultipleObjectComponent<T>(Entity);
     public T AddMultipleObject<T>(T component) where T : class => World.AddMultipleObjectComponent(Entity, component);
