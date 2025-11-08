@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 using OneShot;
 using Overlook.Pool;
@@ -55,7 +56,7 @@ public sealed partial class SystemManager : IDisposable
             LogSystemFactoryInfo(_logger, "Creating system", factory.SystemName);
             var system = factory.Resolve(Container, index);
             systemData.Value.Add((system, factory.SystemName, factory.TickStage, factory.TickTimes));
-            for (var i = stageCountsList.Value.Count; i < factory.TickStage; i++)
+            for (var i = stageCountsList.Value.Count; i <= factory.TickStage; i++)
             {
                 stageCountsList.Value.Add(0);
             }
@@ -102,10 +103,12 @@ public sealed partial class SystemManager : IDisposable
         _remainedTimes = remainedTimes;
     }
 
-    public void Tick(int tickStage)
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types",
+        Justification = "System tick failures should not crash the entire manager. All exceptions are logged.")]
+    public void Tick(byte tickStage)
     {
         // Validate tick stage
-        if (tickStage < 0 || tickStage >= _tickStagesBeginIndices.Length - 1)
+        if (tickStage >= _tickStagesBeginIndices.Length - 1)
         {
             return; // No systems for this stage
         }
@@ -134,6 +137,8 @@ public sealed partial class SystemManager : IDisposable
         }
     }
 
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types",
+        Justification = "Disposal failures should not prevent other systems from being disposed. All exceptions are logged.")]
     public void Dispose()
     {
         foreach (var system in _systems)

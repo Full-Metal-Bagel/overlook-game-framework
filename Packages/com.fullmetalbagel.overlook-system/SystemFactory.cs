@@ -19,7 +19,7 @@ public sealed partial class CsvFileSystemFactory : ISystemFactory
 
     public string SystemName { get; }
     public bool Enable { get; }
-    public int TickStage { get; }
+    public byte TickStage { get; }
     public int TickTimes { get; }
 
     public CsvFileSystemFactory(string row, ILogger<CsvFileSystemFactory> logger)
@@ -52,7 +52,7 @@ public sealed partial class CsvFileSystemFactory : ISystemFactory
 
         // Parse tick stage
         var tickStageStr = parts[3].Trim();
-        if (!int.TryParse(tickStageStr, out var tickStage))
+        if (!byte.TryParse(tickStageStr, out var tickStage))
         {
             LogInvalidTickStage(_logger, tickStageStr, SystemName);
             TickStage = 0; // Default to 0 if parsing fails
