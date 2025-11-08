@@ -1,0 +1,10 @@
+{
+  "name": "com.fullmetalbagel.overlook-system",
+  "version": "1.0.0",
+  "displayName": "Overlook System",
+  "description": "A Unity package providing a flexible system management framework for game development, featuring system groups, event handling, and runtime system management.",
+  "unity": "2022.3",
+  "dependencies": {
+    "com.unity.addressables": "1.21.14"
+  }
+}
