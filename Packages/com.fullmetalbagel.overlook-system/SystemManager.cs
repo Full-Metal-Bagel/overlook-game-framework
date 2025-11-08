@@ -2,8 +2,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using Microsoft.Extensions.Logging;
 using OneShot;
 using Overlook.Pool;
@@ -22,11 +20,7 @@ public sealed partial class SystemManager : IDisposable
     public IReadOnlyList<ISystem> Systems => _systems;
     public IReadOnlyList<string> SystemNames { get; private set; } = Array.Empty<string>();
 
-    /// <summary>
-    /// Number of systems per tick stage. Index is the tick stage, value is the count.
-    /// Systems are sorted by tick stage, so stage 0 systems come first, then stage 1, etc.
-    /// </summary>
-    public IReadOnlyList<int> SystemCountsPerStage { get; private set; } = Array.Empty<int>();
+    private int[] _tickStagesBeginIndices = Array.Empty<int>();
 
     public IReadOnlyList<int> RemainedTimes => _remainedTimes;
     public int Count => Systems.Count;
@@ -46,6 +40,7 @@ public sealed partial class SystemManager : IDisposable
     public void CreateSystems()
     {
         using var systemData = new PooledList<(ISystem System, string Name, int TickStage, int TickTimes)>(128);
+        using var stageCountsList = new PooledList<int>(32);
 
         // Create all enabled systems
         for (var index = 0; index < _systemFactories.Count; index++)
@@ -60,12 +55,20 @@ public sealed partial class SystemManager : IDisposable
             LogSystemFactoryInfo(_logger, "Creating system", factory.SystemName);
             var system = factory.Resolve(Container, index);
             systemData.Value.Add((system, factory.SystemName, factory.TickStage, factory.TickTimes));
+            for (var i = stageCountsList.Value.Count; i < factory.TickStage; i++)
+            {
+                stageCountsList.Value.Add(0);
+            }
+            stageCountsList.Value[factory.TickStage]++;
         }
 
-        // Sort by tick stage
-        systemData.Value.Sort((a, b) => a.TickStage.CompareTo(b.TickStage));
+        var tickStagesBeginIndices = new int[stageCountsList.Value.Count + 1];
+        tickStagesBeginIndices[0] = 0;
+        for (var i = 0; i < stageCountsList.Value.Count; i++)
+        {
+            tickStagesBeginIndices[i + 1] = tickStagesBeginIndices[i] + stageCountsList.Value[i];
+        }
 
-        // Extract sorted data
         var systems = new ISystem[systemData.Value.Count];
         var systemNames = new string[systemData.Value.Count];
         var systemTickStages = new int[systemData.Value.Count];
@@ -73,10 +76,16 @@ public sealed partial class SystemManager : IDisposable
 
         for (var i = 0; i < systemData.Value.Count; i++)
         {
-            systems[i] = systemData.Value[i].System;
-            systemNames[i] = systemData.Value[i].Name;
-            systemTickStages[i] = systemData.Value[i].TickStage;
-            remainedTimes[i] = systemData.Value[i].TickTimes;
+            var data = systemData.Value[i];
+            var index = tickStagesBeginIndices[data.TickStage];
+            var length = tickStagesBeginIndices[data.TickStage + 1] - index;
+            index += (length - stageCountsList.Value[data.TickStage]);
+            stageCountsList.Value[data.TickStage]--;
+
+            systems[index] = data.System;
+            systemNames[index] = data.Name;
+            systemTickStages[index] = data.TickStage;
+            remainedTimes[index] = data.TickTimes;
         }
 
         // Calculate counts per stage
@@ -86,39 +95,24 @@ public sealed partial class SystemManager : IDisposable
             countsPerStage[stage] = countsPerStage.GetValueOrDefault(stage) + 1;
         }
 
-        // Convert to array indexed by stage (fill gaps with 0)
-        var maxStage = countsPerStage.Count > 0 ? countsPerStage.Keys.Max() : -1;
-        var stageCountsArray = new int[maxStage + 1];
-        foreach (var (stage, count) in countsPerStage)
-        {
-            stageCountsArray[stage] = count;
-        }
-
         _systems = systems;
         SystemNames = systemNames;
         _systemTickStages = systemTickStages;
-        SystemCountsPerStage = stageCountsArray;
+        _tickStagesBeginIndices = tickStagesBeginIndices;
         _remainedTimes = remainedTimes;
     }
 
-    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "System tick failures should not crash the application")]
     public void Tick(int tickStage)
     {
         // Validate tick stage
-        if (tickStage < 0 || tickStage >= SystemCountsPerStage.Count)
+        if (tickStage < 0 || tickStage >= _tickStagesBeginIndices.Length - 1)
         {
             return; // No systems for this stage
         }
 
-        // Calculate the range of systems for this tick stage
-        var startIndex = 0;
-        for (var i = 0; i < tickStage; i++)
-        {
-            startIndex += SystemCountsPerStage[i];
-        }
-
-        var count = SystemCountsPerStage[tickStage];
-        var endIndex = startIndex + count;
+        // Get the range of systems for this tick stage using pre-calculated indices
+        var startIndex = _tickStagesBeginIndices[tickStage];
+        var endIndex = _tickStagesBeginIndices[tickStage + 1];
 
         // Tick all systems in this stage
         for (var systemIndex = startIndex; systemIndex < endIndex; systemIndex++)
@@ -140,7 +134,6 @@ public sealed partial class SystemManager : IDisposable
         }
     }
 
-    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Dispose failures should not prevent cleanup of other systems")]
     public void Dispose()
     {
         foreach (var system in _systems)
