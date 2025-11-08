@@ -42,6 +42,8 @@
 
     <ItemGroup>
         <PackageReference Include="JetBrains.Annotations" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+        <PackageReference Include="OneShot" />
         <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
     </ItemGroup>
 

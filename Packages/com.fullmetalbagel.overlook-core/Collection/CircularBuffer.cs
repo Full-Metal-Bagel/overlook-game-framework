@@ -154,12 +154,12 @@ public sealed unsafe class CircularBuffer<T> : IDisposable where T : unmanaged
     /// </summary>
     /// <returns>The oldest item</returns>
     /// <exception cref="InvalidOperationException">Thrown when buffer is empty</exception>
-    public T Peek()
+    public ref T Peek()
     {
         if (_count == 0)
             throw new InvalidOperationException("Buffer is empty");
 
-        return _buffer[_head];
+        return ref _buffer[_head];
     }
 
     /// <summary>
@@ -188,12 +188,21 @@ public sealed unsafe class CircularBuffer<T> : IDisposable where T : unmanaged
     {
         get
         {
-            if (index < 0 || index >= _count)
-                throw new ArgumentOutOfRangeException(nameof(index));
-
-            int actualIndex = (_head + index) % _capacity;
+            var actualIndex = GetActualIndex(index);
             return _buffer[actualIndex];
         }
+        set
+        {
+            var actualIndex = GetActualIndex(index);
+            _buffer[actualIndex] = value;
+        }
+    }
+
+    private int GetActualIndex(int index)
+    {
+        if (index < 0 || index >= _count)
+            throw new ArgumentOutOfRangeException(nameof(index));
+        return (_head + index) % _capacity;
     }
 
     /// <summary>

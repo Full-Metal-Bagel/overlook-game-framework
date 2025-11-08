@@ -1,4 +1,6 @@
-﻿using System;
+﻿#nullable enable
+
+using System;
 using System.Collections.Generic;
 
 namespace Overlook.System;
@@ -12,7 +14,7 @@ public static class SystemsUtils
         Dictionary<Guid, Type> dict = new();
         foreach (var (guid, type) in TypeGuidUtils.IdTypeMap)
         {
-            if (typeof(IGameSystem).IsAssignableFrom(type))
+            if (typeof(ISystem).IsAssignableFrom(type))
                 dict[guid] = type;
         }
         IdTypeMap = dict;

@@ -1,10 +1,13 @@
-﻿using System;
+#nullable enable
+
+using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using Cathei.LinqGen;
+#if OVERLOOK_DEBUG
+using System.Diagnostics;
+#endif
 
 namespace Overlook.System;
 
@@ -13,29 +16,29 @@ public interface ISystemEvents
     void Tick(int systemIndex, int currentFrame);
 }
 
-public sealed class SystemEvents<T> : ISystemEvents, IStructEnumerable<T, SystemEvents<T>.Enumerator>
+public sealed class SystemEvents<T> : ISystemEvents, IDisposable where T : unmanaged
 {
     private readonly record struct EventData(
         T Event
         , int MaxLastingFrames
         , int StartFrame = 0
         , int SystemIndex = 0
-#if KGP_DEBUG
-            , StackTrace StackTrace = default!
+#if OVERLOOK_DEBUG
+        , Guid StackTraceId = default
 #endif
-    )
+    );
+
+#if OVERLOOK_DEBUG
+    private readonly Dictionary<Guid, StackTrace> _stackTraces = new();
+#endif
+
+    private string GetStackTraceInfo(Guid id)
     {
-        public string StackTraceInfo
-        {
-            get
-            {
-#if KGP_DEBUG
-                    return StackTrace?.ToString() ?? "";
+#if OVERLOOK_DEBUG
+        return _stackTraces.TryGetValue(id, out var stackTrace) ? stackTrace.ToString() : "";
 #else
-                return "";
+        return "";
 #endif
-            }
-        }
     }
 
     private readonly CircularBuffer<EventData> _events;
@@ -64,33 +67,24 @@ public sealed class SystemEvents<T> : ISystemEvents, IStructEnumerable<T, System
         }
     }
 
-    public void Append(T @event, int lastingFrames = 1)
+    public void Append(T @event, int tickStage = 0, int lastingFrames = 1)
     {
         Debug.Assert(lastingFrames >= 1);
         Debug.Assert(Environment.CurrentManagedThreadId == _threadId.Value);
+#if OVERLOOK_DEBUG
+        var stackTraceId = Guid.NewGuid();
+        _stackTraces.Add(stackTraceId, new StackTrace(fNeedFileInfo: true));
+#endif
         var data = new EventData
         (
             Event: @event
             , MaxLastingFrames: lastingFrames
-#if KGP_DEBUG
-                , StackTrace: new StackTrace(fNeedFileInfo: true)
+#if OVERLOOK_DEBUG
+            , StackTraceId: stackTraceId
 #endif
         );
         _events.Push(data);
         PendingCount++;
-    }
-
-    public IEnumerable<T> GetAllExcluding(int excludedSystemIndex)
-    {
-        Debug.Assert(Environment.CurrentManagedThreadId == _threadId.Value);
-
-        for (int i = 0; i < Count; i++)
-        {
-            if (_events[i].SystemIndex != excludedSystemIndex)
-            {
-                yield return _events[i].Event;
-            }
-        }
     }
 
     public void Tick(int systemIndex, int currentFrame)
@@ -114,14 +108,12 @@ public sealed class SystemEvents<T> : ISystemEvents, IStructEnumerable<T, System
             _events.Pop();
             var lastingFrames = currentFrame - data.StartFrame;
             if (lastingFrames < data.MaxLastingFrames) _events.Push(data);
+#if OVERLOOK_DEBUG
+            else _stackTraces.Remove(data.StackTraceId);
+#endif
             popCount++;
         }
         PendingCount = 0;
-    }
-
-    public void ForEach(Action<T, string/*stack trace info*/> action)
-    {
-        ForEachEvents(action, static (action, e) => action(e.Event, e.StackTraceInfo));
     }
 
     public void ForEach<TData>(TData data, Action<TData, T> action)
@@ -145,7 +137,7 @@ public sealed class SystemEvents<T> : ISystemEvents, IStructEnumerable<T, System
             }
             catch
             {
-                Debug.LogError(e.StackTraceInfo);
+                Debug.LogError(GetStackTraceInfo(e.StackTraceId));
                 throw;
             }
         }
@@ -156,6 +148,8 @@ public sealed class SystemEvents<T> : ISystemEvents, IStructEnumerable<T, System
         Debug.Assert(Environment.CurrentManagedThreadId == _threadId.Value);
         return new Enumerator(this);
     }
+
+    public void Dispose() => _events.Dispose();
 
     [SuppressMessage("Design", "CA1034:Nested types should not be visible")]
     public struct Enumerator : IEnumerator<T>

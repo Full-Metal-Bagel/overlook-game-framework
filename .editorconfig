@@ -212,6 +212,9 @@ indent_size = 2
 # https://github.com/dotnet/aspnetcore/blob/main/.editorconfig
 [*.{cs,vb}]
 
+# CA1000: Do not declare static members on generic types
+dotnet_diagnostic.CA1000.severity = suggestion
+
 # CA1002: Do not expose generic lists
 dotnet_diagnostic.CA1002.severity = suggestion
 

@@ -1,18 +1,20 @@
-﻿using System;
+﻿#nullable enable
+
+using System;
 using System.Collections.Generic;
 
 namespace Overlook.System;
 
-public class SystemEventsManager
+public sealed class SystemEventsManager
 {
     private readonly Dictionary<Type, ISystemEvents> _typeEventsMap = new();
 
-    public void Append<T>(T @event, int lastingFrames = 1)
+    public void Append<T>(T @event, int lastingFrames = 1) where T : unmanaged
     {
         GetOrCreateSystemEvents<T>().Append(@event, lastingFrames);
     }
 
-    public SystemEvents<T> GetOrCreateSystemEvents<T>()
+    public SystemEvents<T> GetOrCreateSystemEvents<T>() where T : unmanaged
     {
         if (!_typeEventsMap.TryGetValue(typeof(T), out var events))
         {
