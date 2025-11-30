@@ -21,6 +21,12 @@
         "com.fullmetalbagel.overlook-pool": "1.0.1"
       }
     },
+    "com.fullmetalbagel.overlook-logging": {
+      "version": "file:com.fullmetalbagel.overlook-logging",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {}
+    },
     "com.fullmetalbagel.overlook-pool": {
       "version": "file:com.fullmetalbagel.overlook-pool",
       "depth": 0,
@@ -34,11 +40,20 @@
       "depth": 0,
       "source": "embedded",
       "dependencies": {
-        "com.unity.addressables": "1.21.14"
+        "com.unity.addressables": "1.21.14",
+        "com.fullmetalbagel.overlook-logging": "1.0.0",
+        "com.fullmetalbagel.overlook-pool": "1.0.1"
       }
     },
     "com.fullmetalbagel.unity-lang-version": {
       "version": "1.0.0",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {},
+      "url": "https://package.openupm.com"
+    },
+    "com.quabug.one-shot-injection": {
+      "version": "3.1.0",
       "depth": 0,
       "source": "registry",
       "dependencies": {},
@@ -59,7 +74,7 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.burst": {
-      "version": "1.8.19",
+      "version": "1.8.21",
       "depth": 1,
       "source": "registry",
       "dependencies": {
@@ -125,7 +140,7 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.settings-manager": {
-      "version": "2.0.1",
+      "version": "2.1.0",
       "depth": 1,
       "source": "registry",
       "dependencies": {},

@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "com.fullmetalbagel.unity-lang-version": "1.0.0",
+    "com.quabug.one-shot-injection": "3.1.0",
     "com.unity.collections": "2.5.1",
     "com.unity.ide.rider": "3.0.36",
     "com.unity.ide.vscode": "1.2.5",
@@ -43,7 +44,9 @@
       "name": "package.openupm.com",
       "url": "https://package.openupm.com",
       "scopes": [
-        "com.fullmetalbagel.unity-lang-version"
+        "com.fullmetalbagel",
+        "com.quabug",
+        "org.nuget.microsoft.extensions.logging"
       ]
     }
   ]

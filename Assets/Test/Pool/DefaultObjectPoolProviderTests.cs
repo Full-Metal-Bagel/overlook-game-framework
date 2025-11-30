@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -92,7 +93,7 @@ public class DefaultObjectPoolProviderTests
         var results = new List<IObjectPoolProvider>();
 
         // Use a thread-safe collection to avoid race conditions
-        var syncResults = new System.Collections.Concurrent.ConcurrentBag<IObjectPoolProvider>();
+        var syncResults = new ConcurrentBag<IObjectPoolProvider>();
 
         // Run in parallel to ensure thread safety
         Parallel.For(0, 10, _ => {
