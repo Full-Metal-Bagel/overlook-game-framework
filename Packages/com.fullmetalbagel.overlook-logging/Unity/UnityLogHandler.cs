@@ -112,13 +112,20 @@ public sealed class UnityLogHandler : ILogger
         if (!string.IsNullOrEmpty(_categoryName))
         {
             if (eventId.Id != 0)
-                return $"{levelPrefix} [{_categoryName}] [{eventId}] {message}";
+                return $"{levelPrefix} [{_categoryName}] [{FormatEventId(eventId)}] {message}";
             return $"{levelPrefix} [{_categoryName}] {message}";
         }
 
         if (eventId.Id != 0)
-            return $"{levelPrefix} [{eventId}] {message}";
+            return $"{levelPrefix} [{FormatEventId(eventId)}] {message}";
         return $"{levelPrefix} {message}";
+    }
+
+    private string FormatEventId(EventId eventId)
+    {
+        if (string.IsNullOrWhiteSpace(eventId.Name))
+            return eventId.Id.ToString();
+        return $"{eventId.Name}({eventId.Id})";
     }
 
     /// <summary>
