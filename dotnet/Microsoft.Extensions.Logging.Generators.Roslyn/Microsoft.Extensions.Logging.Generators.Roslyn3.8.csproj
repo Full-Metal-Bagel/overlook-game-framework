@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+      <TargetFramework>netstandard2.0</TargetFramework>
+      <AssemblyName>$(MSBuildThisFileName)</AssemblyName>
+      <RootNamespace>$(MSBuildThisFileName)</RootNamespace>
+      <StringResourcesClassName>SR</StringResourcesClassName>
+      <StringResourcesName>FxResources.$(RootNamespace).$(StringResourcesClassName)</StringResourcesName>
+      <EnableDefaultItems>true</EnableDefaultItems>
+      <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
+      <UsingToolXliff>true</UsingToolXliff>
+      <CLSCompliant>false</CLSCompliant>
+      <AnalyzerLanguage>cs</AnalyzerLanguage>
+      <LangVersion>9</LangVersion>
+      <Nullable>enable</Nullable>
+      <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.CodeAnalysis" Version="3.8.0" />
+      <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="3.8.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Remove="LoggerMessageGenerator.Roslyn4.0.cs" />
+      <Compile Remove="LoggerMessageGenerator.Roslyn3.11.cs" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Include="Resources\Strings.resx" />
+    </ItemGroup>
+
+</Project>

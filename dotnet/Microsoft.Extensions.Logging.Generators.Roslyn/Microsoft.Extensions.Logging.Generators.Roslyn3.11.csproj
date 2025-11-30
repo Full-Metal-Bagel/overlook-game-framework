@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AnalyzerRoslynVersion>3.11</AnalyzerRoslynVersion>
+    <RoslynApiVersion>$(MicrosoftCodeAnalysisVersion_3_11)</RoslynApiVersion>
+    <LangVersion>9</LangVersion>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <Import Project="Microsoft.Extensions.Logging.Generators.targets" />
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis" Version="3.11.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="3.11.0" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="LoggerMessageGenerator.Roslyn4.0.cs" />
+    <Compile Remove="LoggerMessageGenerator.Roslyn3.8.cs" />
+  </ItemGroup>
+
+</Project>
