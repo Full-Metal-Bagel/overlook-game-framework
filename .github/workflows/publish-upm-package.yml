@@ -21,7 +21,6 @@ jobs:
           upm_tag_prefix: overlook-core/v
           upm_package_path: Packages/com.fullmetalbagel.overlook-core
           create_unitypackage: true
-          unitypackage_name: Overlook
   upm-release-ecs:
     runs-on: ubuntu-latest
     permissions:
@@ -36,7 +35,6 @@ jobs:
           upm_tag_prefix: overlook-ecs/v
           upm_package_path: Packages/com.fullmetalbagel.overlook-ecs
           create_unitypackage: true
-          unitypackage_name: Overlook
   upm-release-pool:
     runs-on: ubuntu-latest
     permissions:
@@ -51,7 +49,6 @@ jobs:
         upm_tag_prefix: overlook-pool/v
         upm_package_path: Packages/com.fullmetalbagel.overlook-pool
         create_unitypackage: true
-        unitypackage_name: Overlook
   upm-release-analyzer:
     runs-on: ubuntu-latest
     permissions:
@@ -66,4 +63,18 @@ jobs:
           upm_tag_prefix: overlook-analyzer/v
           upm_package_path: Packages/com.fullmetalbagel.overlook-analyzer
           create_unitypackage: true
-          unitypackage_name: Overlook
+
+  upm-release-logging:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v2
+      - uses: quabug/create-upm-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          target: main
+          upm_tag_prefix: overlook-logging/v
+          upm_package_path: Packages/com.fullmetalbagel.overlook-logging
+          create_unitypackage: true
