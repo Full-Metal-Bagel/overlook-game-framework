@@ -1,0 +1,7 @@
+{
+  "name": "com.fullmetalbagel.overlook-logging",
+  "version": "1.0.0",
+  "displayName": "Overlook Logging (Microsoft.Extensions.Logging)",
+  "description": "Microsoft.Extensions.Logging abstractions for Unity. Provides ILogger, LogLevel, and LoggerMessage attribute for structured logging.",
+  "unity": "2022.3"
+}
