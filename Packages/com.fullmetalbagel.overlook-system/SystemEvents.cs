@@ -67,7 +67,7 @@ public sealed class SystemEvents<T> : ISystemEvents, IDisposable where T : unman
         }
     }
 
-    public void Append(T @event, int tickStage = 0, int lastingFrames = 1)
+    public void Append(T @event, int lastingFrames = 1)
     {
         Debug.Assert(lastingFrames >= 1);
         Debug.Assert(Environment.CurrentManagedThreadId == _threadId.Value);

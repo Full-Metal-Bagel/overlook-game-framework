@@ -9,12 +9,17 @@ public sealed class SystemEventsManager
 {
     private readonly Dictionary<Type, ISystemEvents> _typeEventsMap = new();
 
-    public void Append<T>(T @event, int lastingFrames = 1) where T : unmanaged
+    public void AppendEvent<T>(T @event, int lastingFrames = 1) where T : unmanaged
     {
         GetOrCreateSystemEvents<T>().Append(@event, lastingFrames);
     }
 
-    public SystemEvents<T> GetOrCreateSystemEvents<T>() where T : unmanaged
+    public SystemEvents<T> GetEvents<T>() where T : unmanaged
+    {
+        return GetOrCreateSystemEvents<T>();
+    }
+
+    private SystemEvents<T> GetOrCreateSystemEvents<T>() where T : unmanaged
     {
         if (!_typeEventsMap.TryGetValue(typeof(T), out var events))
         {
