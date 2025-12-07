@@ -22,14 +22,23 @@ public sealed partial class SystemManager : IDisposable
     public IReadOnlyList<string> SystemNames { get; private set; } = Array.Empty<string>();
 
     private int[] _tickStagesBeginIndices = Array.Empty<int>();
+    private SystemEventsManager[] _stageEvents = Array.Empty<SystemEventsManager>();
 
     public IReadOnlyList<int> RemainedTimes => _remainedTimes;
     public int Count => Systems.Count;
 
     private int[] _systemTickStages = Array.Empty<int>();
     private int[] _remainedTimes = Array.Empty<int>();
+    private int[] _stageFrames = Array.Empty<int>();
 
     public RuntimeSystem GetSystem(int index) => new(Systems[index], SystemNames[index], _systemTickStages[index], RemainedTimes[index]);
+
+    public SystemEventsManager GetStageEvents(int tickStage)
+    {
+        if (tickStage < 0 || tickStage >= _stageEvents.Length)
+            throw new ArgumentOutOfRangeException(nameof(tickStage));
+        return _stageEvents[tickStage];
+    }
 
     public SystemManager(Container container, IReadOnlyList<ISystemFactory> systemFactories, ILogger<SystemManager> logger)
     {
@@ -63,11 +72,20 @@ public sealed partial class SystemManager : IDisposable
             stageCountsList.Value[factory.TickStage]++;
         }
 
-        var tickStagesBeginIndices = new int[stageCountsList.Value.Count + 1];
+        var stageCount = stageCountsList.Value.Count;
+        var tickStagesBeginIndices = new int[stageCount + 1];
         tickStagesBeginIndices[0] = 0;
-        for (var i = 0; i < stageCountsList.Value.Count; i++)
+        for (var i = 0; i < stageCount; i++)
         {
             tickStagesBeginIndices[i + 1] = tickStagesBeginIndices[i] + stageCountsList.Value[i];
+        }
+
+        var stageEvents = new SystemEventsManager[stageCount];
+        var stageFrames = new int[stageCount];
+        for (var i = 0; i < stageCount; i++)
+        {
+            stageEvents[i] = new SystemEventsManager();
+            stageFrames[i] = 0;
         }
 
         var systems = new ISystem[systemData.Value.Count];
@@ -101,6 +119,8 @@ public sealed partial class SystemManager : IDisposable
         _systemTickStages = systemTickStages;
         _tickStagesBeginIndices = tickStagesBeginIndices;
         _remainedTimes = remainedTimes;
+        _stageEvents = stageEvents;
+        _stageFrames = stageFrames;
     }
 
     [SuppressMessage("Design", "CA1031:Do not catch general exception types",
@@ -135,6 +155,10 @@ public sealed partial class SystemManager : IDisposable
                 }
             }
         }
+
+        // Tick stage events after all systems in this stage have ticked
+        var currentFrame = _stageFrames[tickStage]++;
+        _stageEvents[tickStage].Tick(tickStage, currentFrame);
     }
 
     [SuppressMessage("Design", "CA1031:Do not catch general exception types",

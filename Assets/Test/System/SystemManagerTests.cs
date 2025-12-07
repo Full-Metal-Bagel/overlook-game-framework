@@ -682,6 +682,330 @@ namespace Overlook.System.Tests
 
         #endregion
 
+        #region GetStageEvents Tests
+
+        [Test]
+        public void GetStageEvents_WithValidStage_ReturnsSystemEventsManager()
+        {
+            // Arrange
+            var mockSystem = new MockSystem();
+            var factory = new InstanceSystemFactory(mockSystem, TickStage: 0, TickTimes: -1, Name: "TestSystem", Enable: true);
+            var systemManager = new SystemManager(_container, new[] { factory }, _logger);
+            systemManager.CreateSystems();
+
+            // Act
+            var stageEvents = systemManager.GetStageEvents(0);
+
+            // Assert
+            Assert.That(stageEvents, Is.Not.Null);
+            Assert.That(stageEvents, Is.InstanceOf<SystemEventsManager>());
+        }
+
+        [Test]
+        public void GetStageEvents_WithMultipleStages_ReturnsDifferentManagers()
+        {
+            // Arrange
+            var system0 = new MockSystem();
+            var system1 = new MockSystem();
+            var factories = new ISystemFactory[]
+            {
+                new InstanceSystemFactory(system0, TickStage: 0, TickTimes: -1, Name: "Stage0", Enable: true),
+                new InstanceSystemFactory(system1, TickStage: 1, TickTimes: -1, Name: "Stage1", Enable: true)
+            };
+            var systemManager = new SystemManager(_container, factories, _logger);
+            systemManager.CreateSystems();
+
+            // Act
+            var events0 = systemManager.GetStageEvents(0);
+            var events1 = systemManager.GetStageEvents(1);
+
+            // Assert
+            Assert.That(events0, Is.Not.Null);
+            Assert.That(events1, Is.Not.Null);
+            Assert.That(events0, Is.Not.SameAs(events1));
+        }
+
+        [Test]
+        public void GetStageEvents_WithInvalidStage_ThrowsException()
+        {
+            // Arrange
+            var mockSystem = new MockSystem();
+            var factory = new InstanceSystemFactory(mockSystem, TickStage: 0, TickTimes: -1, Name: "TestSystem", Enable: true);
+            var systemManager = new SystemManager(_container, new[] { factory }, _logger);
+            systemManager.CreateSystems();
+
+            // Act & Assert
+            Assert.Throws<ArgumentOutOfRangeException>(() => systemManager.GetStageEvents(-1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => systemManager.GetStageEvents(1));
+        }
+
+        [Test]
+        public void GetStageEvents_EventsAreTickedAfterStageTick()
+        {
+            // Arrange
+            var mockSystem = new MockSystem();
+            var factory = new InstanceSystemFactory(mockSystem, TickStage: 0, TickTimes: -1, Name: "TestSystem", Enable: true);
+            var systemManager = new SystemManager(_container, new[] { factory }, _logger);
+            systemManager.CreateSystems();
+
+            var stageEvents = systemManager.GetStageEvents(0);
+            stageEvents.AppendEvent(new TestEvent { Value = 42 });
+
+            // Assert - Event is pending before tick
+            Assert.That(stageEvents.GetEvents<TestEvent>().Count, Is.EqualTo(0));
+
+            // Act - Tick the stage
+            systemManager.Tick(0);
+
+            // Assert - Event is available after tick
+            Assert.That(stageEvents.GetEvents<TestEvent>().Count, Is.EqualTo(1));
+            Assert.That(stageEvents.GetEvents<TestEvent>()[0].Value, Is.EqualTo(42));
+        }
+
+        [Test]
+        public void GetStageEvents_EventsAreIsolatedBetweenStages()
+        {
+            // Arrange
+            var system0 = new MockSystem();
+            var system1 = new MockSystem();
+            var factories = new ISystemFactory[]
+            {
+                new InstanceSystemFactory(system0, TickStage: 0, TickTimes: -1, Name: "Stage0", Enable: true),
+                new InstanceSystemFactory(system1, TickStage: 1, TickTimes: -1, Name: "Stage1", Enable: true)
+            };
+            var systemManager = new SystemManager(_container, factories, _logger);
+            systemManager.CreateSystems();
+
+            var events0 = systemManager.GetStageEvents(0);
+            var events1 = systemManager.GetStageEvents(1);
+
+            // Act - Append event to stage 0 only
+            events0.AppendEvent(new TestEvent { Value = 100 });
+            systemManager.Tick(0);
+            systemManager.Tick(1);
+
+            // Assert - Event is only in stage 0
+            Assert.That(events0.GetEvents<TestEvent>().Count, Is.EqualTo(1));
+            Assert.That(events1.GetEvents<TestEvent>().Count, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void GetStageEvents_MultipleEventsInSameStage()
+        {
+            // Arrange
+            var mockSystem = new MockSystem();
+            var factory = new InstanceSystemFactory(mockSystem, TickStage: 0, TickTimes: -1, Name: "TestSystem", Enable: true);
+            var systemManager = new SystemManager(_container, new[] { factory }, _logger);
+            systemManager.CreateSystems();
+
+            var stageEvents = systemManager.GetStageEvents(0);
+
+            // Act - Append multiple events
+            stageEvents.AppendEvent(new TestEvent { Value = 1 });
+            stageEvents.AppendEvent(new TestEvent { Value = 2 });
+            stageEvents.AppendEvent(new TestEvent { Value = 3 });
+            systemManager.Tick(0);
+
+            // Assert
+            var events = stageEvents.GetEvents<TestEvent>();
+            Assert.That(events.Count, Is.EqualTo(3));
+            Assert.That(events[0].Value, Is.EqualTo(1));
+            Assert.That(events[1].Value, Is.EqualTo(2));
+            Assert.That(events[2].Value, Is.EqualTo(3));
+        }
+
+        [Test]
+        public void GetStageEvents_EventExpiresAfterLastingFrames()
+        {
+            // Arrange
+            var mockSystem = new MockSystem();
+            var factory = new InstanceSystemFactory(mockSystem, TickStage: 0, TickTimes: -1, Name: "TestSystem", Enable: true);
+            var systemManager = new SystemManager(_container, new[] { factory }, _logger);
+            systemManager.CreateSystems();
+
+            var stageEvents = systemManager.GetStageEvents(0);
+
+            // Act - Append event with lasting frames = 1 (default)
+            stageEvents.AppendEvent(new TestEvent { Value = 42 }, lastingFrames: 1);
+            systemManager.Tick(0); // Frame 0: event becomes available
+
+            // Assert - Event is available
+            Assert.That(stageEvents.GetEvents<TestEvent>().Count, Is.EqualTo(1));
+
+            // Act - Tick again
+            systemManager.Tick(0); // Frame 1: event expires
+
+            // Assert - Event has expired
+            Assert.That(stageEvents.GetEvents<TestEvent>().Count, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void GetStageEvents_EventLastsMultipleFrames()
+        {
+            // Arrange
+            var mockSystem = new MockSystem();
+            var factory = new InstanceSystemFactory(mockSystem, TickStage: 0, TickTimes: -1, Name: "TestSystem", Enable: true);
+            var systemManager = new SystemManager(_container, new[] { factory }, _logger);
+            systemManager.CreateSystems();
+
+            var stageEvents = systemManager.GetStageEvents(0);
+
+            // Act - Append event with lasting frames = 3
+            stageEvents.AppendEvent(new TestEvent { Value = 42 }, lastingFrames: 3);
+            systemManager.Tick(0); // Frame 0: event becomes available
+
+            // Assert - Event is available for 3 frames
+            Assert.That(stageEvents.GetEvents<TestEvent>().Count, Is.EqualTo(1));
+
+            systemManager.Tick(0); // Frame 1
+            Assert.That(stageEvents.GetEvents<TestEvent>().Count, Is.EqualTo(1));
+
+            systemManager.Tick(0); // Frame 2
+            Assert.That(stageEvents.GetEvents<TestEvent>().Count, Is.EqualTo(1));
+
+            systemManager.Tick(0); // Frame 3: event expires
+            Assert.That(stageEvents.GetEvents<TestEvent>().Count, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void GetStageEvents_MultipleEventTypes()
+        {
+            // Arrange
+            var mockSystem = new MockSystem();
+            var factory = new InstanceSystemFactory(mockSystem, TickStage: 0, TickTimes: -1, Name: "TestSystem", Enable: true);
+            var systemManager = new SystemManager(_container, new[] { factory }, _logger);
+            systemManager.CreateSystems();
+
+            var stageEvents = systemManager.GetStageEvents(0);
+
+            // Act - Append different event types
+            stageEvents.AppendEvent(new TestEvent { Value = 42 });
+            stageEvents.AppendEvent(new AnotherTestEvent { Name = 123 });
+            systemManager.Tick(0);
+
+            // Assert - Both event types are available
+            Assert.That(stageEvents.GetEvents<TestEvent>().Count, Is.EqualTo(1));
+            Assert.That(stageEvents.GetEvents<TestEvent>()[0].Value, Is.EqualTo(42));
+            Assert.That(stageEvents.GetEvents<AnotherTestEvent>().Count, Is.EqualTo(1));
+            Assert.That(stageEvents.GetEvents<AnotherTestEvent>()[0].Name, Is.EqualTo(123));
+        }
+
+        [Test]
+        public void GetStageEvents_SystemCanAppendEventsDuringTick()
+        {
+            // Arrange
+            SystemEventsManager capturedEvents = null!;
+            var eventAppendingSystem = new EventAppendingSystem(() =>
+            {
+                capturedEvents.AppendEvent(new TestEvent { Value = 999 });
+            });
+            var factory = new InstanceSystemFactory(eventAppendingSystem, TickStage: 0, TickTimes: -1, Name: "EventSystem", Enable: true);
+            var systemManager = new SystemManager(_container, new[] { factory }, _logger);
+            systemManager.CreateSystems();
+
+            capturedEvents = systemManager.GetStageEvents(0);
+
+            // Assert - No events before tick
+            Assert.That(capturedEvents.GetEvents<TestEvent>().Count, Is.EqualTo(0));
+
+            // Act - First tick: system appends event, events tick at end of stage
+            systemManager.Tick(0);
+
+            // Assert - Event is available immediately (events tick happens after systems tick)
+            Assert.That(capturedEvents.GetEvents<TestEvent>().Count, Is.EqualTo(1));
+            Assert.That(capturedEvents.GetEvents<TestEvent>()[0].Value, Is.EqualTo(999));
+
+            // Act - Second tick: first event expires, new event appended
+            systemManager.Tick(0);
+
+            // Assert - Still one event (old expired, new available)
+            Assert.That(capturedEvents.GetEvents<TestEvent>().Count, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void GetStageEvents_EventsCanBeIteratedWithForeach()
+        {
+            // Arrange
+            var mockSystem = new MockSystem();
+            var factory = new InstanceSystemFactory(mockSystem, TickStage: 0, TickTimes: -1, Name: "TestSystem", Enable: true);
+            var systemManager = new SystemManager(_container, new[] { factory }, _logger);
+            systemManager.CreateSystems();
+
+            var stageEvents = systemManager.GetStageEvents(0);
+            stageEvents.AppendEvent(new TestEvent { Value = 10 });
+            stageEvents.AppendEvent(new TestEvent { Value = 20 });
+            stageEvents.AppendEvent(new TestEvent { Value = 30 });
+            systemManager.Tick(0);
+
+            // Act
+            var sum = 0;
+            foreach (var e in stageEvents.GetEvents<TestEvent>())
+            {
+                sum += e.Value;
+            }
+
+            // Assert
+            Assert.That(sum, Is.EqualTo(60));
+        }
+
+        [Test]
+        public void GetStageEvents_IndependentFrameCountersPerStage()
+        {
+            // Arrange
+            var system0 = new MockSystem();
+            var system1 = new MockSystem();
+            var factories = new ISystemFactory[]
+            {
+                new InstanceSystemFactory(system0, TickStage: 0, TickTimes: -1, Name: "Stage0", Enable: true),
+                new InstanceSystemFactory(system1, TickStage: 1, TickTimes: -1, Name: "Stage1", Enable: true)
+            };
+            var systemManager = new SystemManager(_container, factories, _logger);
+            systemManager.CreateSystems();
+
+            var events0 = systemManager.GetStageEvents(0);
+            var events1 = systemManager.GetStageEvents(1);
+
+            // Act - Tick stage 0 multiple times, stage 1 once
+            events0.AppendEvent(new TestEvent { Value = 1 }, lastingFrames: 2);
+            systemManager.Tick(0); // Stage 0: frame 0
+            systemManager.Tick(0); // Stage 0: frame 1
+
+            events1.AppendEvent(new TestEvent { Value = 2 }, lastingFrames: 2);
+            systemManager.Tick(1); // Stage 1: frame 0
+
+            // Assert - Stage 0 event expired, Stage 1 event still valid
+            Assert.That(events0.GetEvents<TestEvent>().Count, Is.EqualTo(1)); // Still frame 1, expires at frame 2
+            Assert.That(events1.GetEvents<TestEvent>().Count, Is.EqualTo(1));
+
+            systemManager.Tick(0); // Stage 0: frame 2 - event expires
+            Assert.That(events0.GetEvents<TestEvent>().Count, Is.EqualTo(0));
+            Assert.That(events1.GetEvents<TestEvent>().Count, Is.EqualTo(1)); // Stage 1 still at frame 0
+        }
+
+        private struct TestEvent
+        {
+            public int Value;
+        }
+
+        private struct AnotherTestEvent
+        {
+            public int Name;
+        }
+
+        private class EventAppendingSystem : ISystem
+        {
+            private readonly Action _onTick;
+
+            public EventAppendingSystem(Action onTick)
+            {
+                _onTick = onTick;
+            }
+
+            public void Tick() => _onTick();
+        }
+
+        #endregion
+
         #region Mock Classes
 
         // Public class that can be resolved by DI container
