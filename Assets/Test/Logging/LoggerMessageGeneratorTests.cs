@@ -233,7 +233,7 @@ public class LoggerMessageGeneratorTests
 internal static partial class TestLogMessages
 {
     // Basic log messages
-    [LoggerMessage(LogLevel.Information, "Application started")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Application started")]
     public static partial void LogStartup(this ILogger logger);
 
     [LoggerMessage(LogLevel.Information, "User {userName} logged in")]
@@ -260,7 +260,7 @@ internal static partial class TestLogMessages
     public static partial void LogError(ILogger logger, string message, Exception exception);
 
     // With explicit EventId
-    [LoggerMessage(1001, LogLevel.Information, "Important event: {data}", EventName = "ImportantEvent")]
+    [LoggerMessage(EventId = 1001, EventName = "ImportantEvent", Level = LogLevel.Information, Message = "Important event: {data}")]
     public static partial void LogWithEventId(ILogger logger, string data);
 
     // With SkipEnabledCheck
