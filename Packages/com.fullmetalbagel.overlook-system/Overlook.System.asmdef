@@ -3,12 +3,9 @@
     "rootNamespace": "",
     "references": [
         "GUID:0236c215bc7864b95a54f8ee59b23f13",
-        "GUID:21dfccbfb0dc84c83af7737ee89b0fde",
         "GUID:95793bf93d92468db194e5979796cdd7",
         "GUID:a61875c202ec041f48b061c6e00013ad",
-        "Overlook.Logging",
-        "Overlook.Pool",
-        "Overlook.Core"
+        "GUID:21dfccbfb0dc84c83af7737ee89b0fde"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
