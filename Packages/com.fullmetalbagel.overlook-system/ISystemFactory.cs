@@ -1,9 +1,10 @@
 #nullable enable
+using System;
 using OneShot;
 
 namespace Overlook.System;
 
-public interface ISystemFactory
+public interface ISystemFactory : IDisposable
 {
     string SystemName { get; }
     bool Enable { get; }

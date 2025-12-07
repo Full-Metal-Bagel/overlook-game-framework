@@ -62,7 +62,7 @@ namespace Overlook.System.Tests
         {
             // Arrange
             var mockSystem = new MockSystem();
-            var factory = new MockSystemFactory("TestSystem", mockSystem, enable: true, tickStage: 0, tickTimes: -1);
+            var factory = new InstanceSystemFactory(mockSystem, TickStage: 0, TickTimes: -1, Name: "TestSystem", Enable: true);
             var systemManager = new SystemManager(_container, new[] { factory }, _logger);
 
             // Act
@@ -79,7 +79,7 @@ namespace Overlook.System.Tests
         {
             // Arrange
             var mockSystem = new MockSystem();
-            var factory = new MockSystemFactory("DisabledSystem", mockSystem, enable: false, tickStage: 0, tickTimes: -1);
+            var factory = new InstanceSystemFactory(mockSystem, TickStage: 0, TickTimes: -1, Name: "DisabledSystem", Enable: false);
             var systemManager = new SystemManager(_container, new[] { factory }, _logger);
 
             // Act
@@ -98,9 +98,9 @@ namespace Overlook.System.Tests
             var system3 = new MockSystem();
             var factories = new ISystemFactory[]
             {
-                new MockSystemFactory("System1", system1, enable: true, tickStage: 0, tickTimes: -1),
-                new MockSystemFactory("System2", system2, enable: true, tickStage: 1, tickTimes: -1),
-                new MockSystemFactory("System3", system3, enable: true, tickStage: 0, tickTimes: -1)
+                new InstanceSystemFactory(system1, TickStage: 0, TickTimes: -1, Name: "System1", Enable: true),
+                new InstanceSystemFactory(system2, TickStage: 1, TickTimes: -1, Name: "System2", Enable: true),
+                new InstanceSystemFactory(system3, TickStage: 0, TickTimes: -1, Name: "System3", Enable: true)
             };
             var systemManager = new SystemManager(_container, factories, _logger);
 
@@ -120,9 +120,9 @@ namespace Overlook.System.Tests
             var system3 = new MockSystem();
             var factories = new ISystemFactory[]
             {
-                new MockSystemFactory("Enabled1", system1, enable: true, tickStage: 0, tickTimes: -1),
-                new MockSystemFactory("Disabled", system2, enable: false, tickStage: 1, tickTimes: -1),
-                new MockSystemFactory("Enabled2", system3, enable: true, tickStage: 2, tickTimes: -1)
+                new InstanceSystemFactory(system1, TickStage: 0, TickTimes: -1, Name: "Enabled1", Enable: true),
+                new InstanceSystemFactory(system2, TickStage: 1, TickTimes: -1, Name: "Disabled", Enable: false),
+                new InstanceSystemFactory(system3, TickStage: 2, TickTimes: -1, Name: "Enabled2", Enable: true)
             };
             var systemManager = new SystemManager(_container, factories, _logger);
 
@@ -144,9 +144,9 @@ namespace Overlook.System.Tests
             var system3 = new MockSystem();
             var factories = new ISystemFactory[]
             {
-                new MockSystemFactory("Stage2System", system1, enable: true, tickStage: 2, tickTimes: -1),
-                new MockSystemFactory("Stage0System", system2, enable: true, tickStage: 0, tickTimes: -1),
-                new MockSystemFactory("Stage1System", system3, enable: true, tickStage: 1, tickTimes: -1)
+                new InstanceSystemFactory(system1, TickStage: 2, TickTimes: -1, Name: "Stage2System", Enable: true),
+                new InstanceSystemFactory(system2, TickStage: 0, TickTimes: -1, Name: "Stage0System", Enable: true),
+                new InstanceSystemFactory(system3, TickStage: 1, TickTimes: -1, Name: "Stage1System", Enable: true)
             };
             var systemManager = new SystemManager(_container, factories, _logger);
 
@@ -185,7 +185,7 @@ namespace Overlook.System.Tests
         {
             // Arrange
             var mockSystem = new MockSystem();
-            var factory = new MockSystemFactory("TestSystem", mockSystem, enable: true, tickStage: 0, tickTimes: -1);
+            var factory = new InstanceSystemFactory(mockSystem, TickStage: 0, TickTimes: -1, Name: "TestSystem", Enable: true);
             var systemManager = new SystemManager(_container, new[] { factory }, _logger);
             systemManager.CreateSystems();
 
@@ -205,9 +205,9 @@ namespace Overlook.System.Tests
             var system3 = new MockSystem();
             var factories = new ISystemFactory[]
             {
-                new MockSystemFactory("System1", system1, enable: true, tickStage: 0, tickTimes: -1),
-                new MockSystemFactory("System2", system2, enable: true, tickStage: 0, tickTimes: -1),
-                new MockSystemFactory("System3", system3, enable: true, tickStage: 1, tickTimes: -1)
+                new InstanceSystemFactory(system1, TickStage: 0, TickTimes: -1, Name: "System1", Enable: true),
+                new InstanceSystemFactory(system2, TickStage: 0, TickTimes: -1, Name: "System2", Enable: true),
+                new InstanceSystemFactory(system3, TickStage: 1, TickTimes: -1, Name: "System3", Enable: true)
             };
             var systemManager = new SystemManager(_container, factories, _logger);
             systemManager.CreateSystems();
@@ -230,9 +230,9 @@ namespace Overlook.System.Tests
             var system2 = new MockSystem();
             var factories = new ISystemFactory[]
             {
-                new MockSystemFactory("Stage0", system0, enable: true, tickStage: 0, tickTimes: -1),
-                new MockSystemFactory("Stage1", system1, enable: true, tickStage: 1, tickTimes: -1),
-                new MockSystemFactory("Stage2", system2, enable: true, tickStage: 2, tickTimes: -1)
+                new InstanceSystemFactory(system0, TickStage: 0, TickTimes: -1, Name: "Stage0", Enable: true),
+                new InstanceSystemFactory(system1, TickStage: 1, TickTimes: -1, Name: "Stage1", Enable: true),
+                new InstanceSystemFactory(system2, TickStage: 2, TickTimes: -1, Name: "Stage2", Enable: true)
             };
             var systemManager = new SystemManager(_container, factories, _logger);
             systemManager.CreateSystems();
@@ -251,7 +251,7 @@ namespace Overlook.System.Tests
         {
             // Arrange
             var mockSystem = new MockSystem();
-            var factory = new MockSystemFactory("TestSystem", mockSystem, enable: true, tickStage: 0, tickTimes: -1);
+            var factory = new InstanceSystemFactory(mockSystem, TickStage: 0, TickTimes: -1, Name: "TestSystem", Enable: true);
             var systemManager = new SystemManager(_container, new[] { factory }, _logger);
             systemManager.CreateSystems();
 
@@ -268,8 +268,8 @@ namespace Overlook.System.Tests
             var normalSystem = new MockSystem();
             var factories = new ISystemFactory[]
             {
-                new MockSystemFactory("ThrowingSystem", throwingSystem, enable: true, tickStage: 0, tickTimes: -1),
-                new MockSystemFactory("NormalSystem", normalSystem, enable: true, tickStage: 0, tickTimes: -1)
+                new InstanceSystemFactory(throwingSystem, TickStage: 0, TickTimes: -1, Name: "ThrowingSystem", Enable: true),
+                new InstanceSystemFactory(normalSystem, TickStage: 0, TickTimes: -1, Name: "NormalSystem", Enable: true)
             };
             var systemManager = new SystemManager(_container, factories, _logger);
             systemManager.CreateSystems();
@@ -288,7 +288,7 @@ namespace Overlook.System.Tests
         {
             // Arrange
             var mockSystem = new MockSystem();
-            var factory = new MockSystemFactory("TestSystem", mockSystem, enable: true, tickStage: 0, tickTimes: 0);
+            var factory = new InstanceSystemFactory(mockSystem, TickStage: 0, TickTimes: 0, Name: "TestSystem", Enable: true);
             var systemManager = new SystemManager(_container, new[] { factory }, _logger);
             systemManager.CreateSystems();
 
@@ -304,7 +304,7 @@ namespace Overlook.System.Tests
         {
             // Arrange
             var mockSystem = new MockSystem();
-            var factory = new MockSystemFactory("TestSystem", mockSystem, enable: true, tickStage: 0, tickTimes: 3);
+            var factory = new InstanceSystemFactory(mockSystem, TickStage: 0, TickTimes: 3, Name: "TestSystem", Enable: true);
             var systemManager = new SystemManager(_container, new[] { factory }, _logger);
             systemManager.CreateSystems();
 
@@ -334,7 +334,7 @@ namespace Overlook.System.Tests
         {
             // Arrange
             var mockSystem = new MockSystem();
-            var factory = new MockSystemFactory("TestSystem", mockSystem, enable: true, tickStage: 0, tickTimes: -1);
+            var factory = new InstanceSystemFactory(mockSystem, TickStage: 0, TickTimes: -1, Name: "TestSystem", Enable: true);
             var systemManager = new SystemManager(_container, new[] { factory }, _logger);
             systemManager.CreateSystems();
 
@@ -369,7 +369,7 @@ namespace Overlook.System.Tests
         {
             // Arrange
             var mockSystem = new MockSystem();
-            var factory = new MockSystemFactory("TestSystem", mockSystem, enable: true, tickStage: 0, tickTimes: -1);
+            var factory = new InstanceSystemFactory(mockSystem, TickStage: 0, TickTimes: -1, Name: "TestSystem", Enable: true);
             var systemManager = new SystemManager(_container, new[] { factory }, _logger);
             systemManager.CreateSystems();
 
@@ -382,7 +382,7 @@ namespace Overlook.System.Tests
         {
             // Arrange
             var disposableSystem = new DisposableMockSystem();
-            var factory = new MockSystemFactory("DisposableSystem", disposableSystem, enable: true, tickStage: 0, tickTimes: -1);
+            var factory = new InstanceSystemFactory(disposableSystem, TickStage: 0, TickTimes: -1, Name: "DisposableSystem", Enable: true);
             var systemManager = new SystemManager(_container, new[] { factory }, _logger);
             systemManager.CreateSystems();
 
@@ -402,9 +402,9 @@ namespace Overlook.System.Tests
             var system3 = new DisposableMockSystem();
             var factories = new ISystemFactory[]
             {
-                new MockSystemFactory("System1", system1, enable: true, tickStage: 0, tickTimes: -1),
-                new MockSystemFactory("System2", system2, enable: true, tickStage: 1, tickTimes: -1),
-                new MockSystemFactory("System3", system3, enable: true, tickStage: 2, tickTimes: -1)
+                new InstanceSystemFactory(system1, TickStage: 0, TickTimes: -1, Name: "System1", Enable: true),
+                new InstanceSystemFactory(system2, TickStage: 1, TickTimes: -1, Name: "System2", Enable: true),
+                new InstanceSystemFactory(system3, TickStage: 2, TickTimes: -1, Name: "System3", Enable: true)
             };
             var systemManager = new SystemManager(_container, factories, _logger);
             systemManager.CreateSystems();
@@ -424,7 +424,7 @@ namespace Overlook.System.Tests
             // Arrange
             var disposableSystem = new DisposableMockSystem();
             disposableSystem.Dispose(); // Pre-dispose
-            var factory = new MockSystemFactory("DisposableSystem", disposableSystem, enable: true, tickStage: 0, tickTimes: -1);
+            var factory = new InstanceSystemFactory(disposableSystem, TickStage: 0, TickTimes: -1, Name: "DisposableSystem", Enable: true);
             var systemManager = new SystemManager(_container, new[] { factory }, _logger);
             systemManager.CreateSystems();
 
@@ -440,8 +440,8 @@ namespace Overlook.System.Tests
             var normalSystem = new DisposableMockSystem();
             var factories = new ISystemFactory[]
             {
-                new MockSystemFactory("ThrowingSystem", throwingSystem, enable: true, tickStage: 0, tickTimes: -1),
-                new MockSystemFactory("NormalSystem", normalSystem, enable: true, tickStage: 1, tickTimes: -1)
+                new InstanceSystemFactory(throwingSystem, TickStage: 0, TickTimes: -1, Name: "ThrowingSystem", Enable: true),
+                new InstanceSystemFactory(normalSystem, TickStage: 1, TickTimes: -1, Name: "NormalSystem", Enable: true)
             };
             var systemManager = new SystemManager(_container, factories, _logger);
             systemManager.CreateSystems();
@@ -459,7 +459,7 @@ namespace Overlook.System.Tests
         {
             // Arrange
             var mockSystem = new MockSystem();
-            var factory = new MockSystemFactory("TestSystem", mockSystem, enable: true, tickStage: 0, tickTimes: -1);
+            var factory = new InstanceSystemFactory(mockSystem, TickStage: 0, TickTimes: -1, Name: "TestSystem", Enable: true);
             var systemManager = new SystemManager(_container, new[] { factory }, _logger);
             systemManager.CreateSystems();
 
@@ -479,7 +479,7 @@ namespace Overlook.System.Tests
         {
             // Arrange
             var mockSystem = new MockSystem();
-            var factory = new MockSystemFactory("TestSystem", mockSystem, enable: true, tickStage: 1, tickTimes: 5);
+            var factory = new InstanceSystemFactory(mockSystem, TickStage: 1, TickTimes: 5, Name: "TestSystem", Enable: true);
             var systemManager = new SystemManager(_container, new[] { factory }, _logger);
             systemManager.CreateSystems();
 
@@ -507,10 +507,10 @@ namespace Overlook.System.Tests
             var stage2System = new MockSystem();
             var factories = new ISystemFactory[]
             {
-                new MockSystemFactory("Stage0_Sys1", stage0System1, enable: true, tickStage: 0, tickTimes: 2),
-                new MockSystemFactory("Stage0_Sys2", stage0System2, enable: true, tickStage: 0, tickTimes: -1),
-                new MockSystemFactory("Stage1_Sys", stage1System, enable: true, tickStage: 1, tickTimes: 1),
-                new MockSystemFactory("Stage2_Sys", stage2System, enable: true, tickStage: 2, tickTimes: 0)
+                new InstanceSystemFactory(stage0System1, TickStage: 0, TickTimes: 2, Name: "Stage0_Sys1", Enable: true),
+                new InstanceSystemFactory(stage0System2, TickStage: 0, TickTimes: -1, Name: "Stage0_Sys2", Enable: true),
+                new InstanceSystemFactory(stage1System, TickStage: 1, TickTimes: 1, Name: "Stage1_Sys", Enable: true),
+                new InstanceSystemFactory(stage2System, TickStage: 2, TickTimes: 0, Name: "Stage2_Sys", Enable: true)
             };
             var systemManager = new SystemManager(_container, factories, _logger);
             systemManager.CreateSystems();
@@ -536,7 +536,164 @@ namespace Overlook.System.Tests
 
         #endregion
 
+        #region SystemFactory Tests
+
+        [Test]
+        public void SystemFactory_WithType_ResolvesSystem()
+        {
+            // Arrange
+            var factory = new SystemFactory(typeof(ResolvableMockSystem), TickStage: 0, TickTimes: -1, Name: "TestSystem", Enable: true);
+            var systemManager = new SystemManager(_container, new[] { factory }, _logger);
+
+            // Act
+            systemManager.CreateSystems();
+
+            // Assert
+            Assert.That(systemManager.Count, Is.EqualTo(1));
+            Assert.That(systemManager.Systems[0], Is.InstanceOf<ResolvableMockSystem>());
+            Assert.That(systemManager.SystemNames[0], Is.EqualTo("TestSystem"));
+        }
+
+        [Test]
+        public void SystemFactory_WithoutName_UsesTypeName()
+        {
+            // Arrange
+            var factory = new SystemFactory(typeof(ResolvableMockSystem));
+            var systemManager = new SystemManager(_container, new[] { factory }, _logger);
+
+            // Act
+            systemManager.CreateSystems();
+
+            // Assert
+            Assert.That(systemManager.SystemNames[0], Is.EqualTo("ResolvableMockSystem"));
+        }
+
+        [Test]
+        public void SystemFactory_WithDisabled_SkipsSystem()
+        {
+            // Arrange
+            var factory = new SystemFactory(typeof(ResolvableMockSystem), Enable: false);
+            var systemManager = new SystemManager(_container, new[] { factory }, _logger);
+
+            // Act
+            systemManager.CreateSystems();
+
+            // Assert
+            Assert.That(systemManager.Count, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void SystemFactory_Tick_CallsResolvedSystem()
+        {
+            // Arrange
+            var factory = new SystemFactory(typeof(ResolvableMockSystem), TickStage: 0, TickTimes: -1);
+            var systemManager = new SystemManager(_container, new[] { factory }, _logger);
+            systemManager.CreateSystems();
+
+            // Act
+            systemManager.Tick(0);
+
+            // Assert
+            var system = (ResolvableMockSystem)systemManager.Systems[0];
+            Assert.That(system.TickCount, Is.EqualTo(1));
+        }
+
+        #endregion
+
+        #region SystemFactory<T> Tests
+
+        [Test]
+        public void SystemFactoryGeneric_ResolvesSystem()
+        {
+            // Arrange
+            var factory = new SystemFactory<ResolvableMockSystem>(TickStage: 0, TickTimes: -1, Name: "GenericTestSystem", Enable: true);
+            var systemManager = new SystemManager(_container, new[] { factory }, _logger);
+
+            // Act
+            systemManager.CreateSystems();
+
+            // Assert
+            Assert.That(systemManager.Count, Is.EqualTo(1));
+            Assert.That(systemManager.Systems[0], Is.InstanceOf<ResolvableMockSystem>());
+            Assert.That(systemManager.SystemNames[0], Is.EqualTo("GenericTestSystem"));
+        }
+
+        [Test]
+        public void SystemFactoryGeneric_WithoutName_UsesTypeName()
+        {
+            // Arrange
+            var factory = new SystemFactory<ResolvableMockSystem>();
+            var systemManager = new SystemManager(_container, new[] { factory }, _logger);
+
+            // Act
+            systemManager.CreateSystems();
+
+            // Assert
+            Assert.That(systemManager.SystemNames[0], Is.EqualTo("ResolvableMockSystem"));
+        }
+
+        [Test]
+        public void SystemFactoryGeneric_WithDisabled_SkipsSystem()
+        {
+            // Arrange
+            var factory = new SystemFactory<ResolvableMockSystem>(Enable: false);
+            var systemManager = new SystemManager(_container, new[] { factory }, _logger);
+
+            // Act
+            systemManager.CreateSystems();
+
+            // Assert
+            Assert.That(systemManager.Count, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void SystemFactoryGeneric_Tick_CallsResolvedSystem()
+        {
+            // Arrange
+            var factory = new SystemFactory<ResolvableMockSystem>(TickStage: 0, TickTimes: -1);
+            var systemManager = new SystemManager(_container, new[] { factory }, _logger);
+            systemManager.CreateSystems();
+
+            // Act
+            systemManager.Tick(0);
+
+            // Assert
+            var system = (ResolvableMockSystem)systemManager.Systems[0];
+            Assert.That(system.TickCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void SystemFactoryGeneric_WithTickTimes_RespectsLimit()
+        {
+            // Arrange
+            var factory = new SystemFactory<ResolvableMockSystem>(TickStage: 0, TickTimes: 2);
+            var systemManager = new SystemManager(_container, new[] { factory }, _logger);
+            systemManager.CreateSystems();
+
+            // Act
+            systemManager.Tick(0);
+            systemManager.Tick(0);
+            systemManager.Tick(0); // Should not tick
+
+            // Assert
+            var system = (ResolvableMockSystem)systemManager.Systems[0];
+            Assert.That(system.TickCount, Is.EqualTo(2));
+        }
+
+        #endregion
+
         #region Mock Classes
+
+        // Public class that can be resolved by DI container
+        public class ResolvableMockSystem : ISystem
+        {
+            public int TickCount { get; private set; }
+
+            public void Tick()
+            {
+                TickCount++;
+            }
+        }
 
         private class MockSystem : ISystem
         {
@@ -584,30 +741,6 @@ namespace Overlook.System.Tests
             public void Dispose()
             {
                 throw new InvalidOperationException("Simulated dispose error");
-            }
-        }
-
-        private class MockSystemFactory : ISystemFactory
-        {
-            private readonly ISystem _system;
-
-            public string SystemName { get; }
-            public bool Enable { get; }
-            public byte TickStage { get; }
-            public int TickTimes { get; }
-
-            public MockSystemFactory(string systemName, ISystem system, bool enable, byte tickStage, int tickTimes)
-            {
-                SystemName = systemName;
-                _system = system;
-                Enable = enable;
-                TickStage = tickStage;
-                TickTimes = tickTimes;
-            }
-
-            public ISystem Resolve(Container container, int systemIndex)
-            {
-                return _system;
             }
         }
 
