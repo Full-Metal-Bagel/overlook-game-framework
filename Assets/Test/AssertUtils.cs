@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
 using NUnit.Framework;
 
-namespace Overlook.Ecs.Tests
+namespace Overlook
 {
     internal static class AssertUtils
     {

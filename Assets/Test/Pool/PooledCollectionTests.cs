@@ -1,6 +1,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Text;
 using NUnit.Framework;
 
 namespace Overlook.Pool.Tests
@@ -276,7 +277,7 @@ namespace Overlook.Pool.Tests
             }
 
             // After disposal, verify pool state
-            var pool = StaticPools.GetPool<System.Text.StringBuilder>();
+            var pool = StaticPools.GetPool<StringBuilder>();
             Assert.That(pool.RentedCount, Is.EqualTo(0), "StringBuilder should be recycled after disposal");
             Assert.That(pool.PooledCount, Is.GreaterThan(0), "StringBuilder should be back in pool");
         }
@@ -299,7 +300,7 @@ namespace Overlook.Pool.Tests
             }
 
             // Pool should have received the builder back
-            var pool = StaticPools.GetPool<System.Text.StringBuilder>();
+            var pool = StaticPools.GetPool<StringBuilder>();
             Assert.That(pool.RentedCount, Is.EqualTo(0));
             Assert.That(pool.PooledCount, Is.GreaterThan(0));
 
@@ -583,7 +584,7 @@ namespace Overlook.Pool.Tests
             var listPool = StaticPools.GetPool<List<int>>();
             var dictPool = StaticPools.GetPool<Dictionary<string, int>>();
             var setPool = StaticPools.GetPool<HashSet<double>>();
-            var sbPool = StaticPools.GetPool<System.Text.StringBuilder>();
+            var sbPool = StaticPools.GetPool<StringBuilder>();
             var memListPool = StaticPools.GetPool<List<byte>>();
             var memDictPool = StaticPools.GetPool<Dictionary<Guid, string>>();
 
