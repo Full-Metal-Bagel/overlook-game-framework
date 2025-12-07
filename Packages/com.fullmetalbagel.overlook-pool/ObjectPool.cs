@@ -130,7 +130,7 @@ public sealed class ObjectPool<T, TPolicy> : IObjectPool, IObjectPool<T>
     {
         private readonly StackTrace _stack = new(skipFrames: 2, fNeedFileInfo: true);
         private bool _disposed;
-        private Guid _id = Guid.NewGuid();
+        private readonly Guid _id = Guid.NewGuid();
 
         public void Dispose()
         {
