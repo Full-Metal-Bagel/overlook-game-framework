@@ -297,7 +297,7 @@ public class UnityLogHandlerTests
     #region BeginScope Tests
 
     [Test]
-    public void BeginScope_ReturnsNonNullDisposable()
+    public void BeginScope_WithNonObjectState_ReturnsNonNullDisposable()
     {
         var logger = new UnityLogHandler(_mockHandler);
 
@@ -318,14 +318,115 @@ public class UnityLogHandlerTests
     }
 
     [Test]
-    public void BeginScope_MultipleScopes_AllReturnSameInstance()
+    public void BeginScope_WithNonObjectState_ReturnsSameNullScopeInstance()
     {
         var logger = new UnityLogHandler(_mockHandler);
 
         using var scope1 = logger.BeginScope("scope1");
-        using var scope2 = logger.BeginScope("scope2");
+        using var scope2 = logger.BeginScope(123);
 
         Assert.That(scope1, Is.SameAs(scope2));
+    }
+
+    [Test]
+    public void BeginScope_WithUnityObject_OverridesContext()
+    {
+        var contextObject = new GameObject("TestContext");
+        try
+        {
+            var logger = new UnityLogHandler(_mockHandler);
+
+            using (logger.BeginScope(contextObject))
+            {
+                logger.Log(LogLevel.Information, new EventId(0), "test", null, (s, e) => s);
+            }
+
+            Assert.That(_mockHandler.LoggedMessages, Has.Count.EqualTo(1));
+            Assert.That(_mockHandler.LoggedMessages[0].context, Is.SameAs(contextObject));
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(contextObject);
+        }
+    }
+
+    [Test]
+    public void BeginScope_WithUnityObject_RestoresOriginalContextOnDispose()
+    {
+        var originalContext = new GameObject("OriginalContext");
+        var scopeContext = new GameObject("ScopeContext");
+        try
+        {
+            var logger = new UnityLogHandler(_mockHandler, context: originalContext);
+
+            using (logger.BeginScope(scopeContext))
+            {
+                logger.Log(LogLevel.Information, new EventId(0), "inside scope", null, (s, e) => s);
+            }
+
+            logger.Log(LogLevel.Information, new EventId(0), "outside scope", null, (s, e) => s);
+
+            Assert.That(_mockHandler.LoggedMessages, Has.Count.EqualTo(2));
+            Assert.That(_mockHandler.LoggedMessages[0].context, Is.SameAs(scopeContext));
+            Assert.That(_mockHandler.LoggedMessages[1].context, Is.SameAs(originalContext));
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(originalContext);
+            UnityEngine.Object.DestroyImmediate(scopeContext);
+        }
+    }
+
+    [Test]
+    public void BeginScope_WithUnityObject_SupportsNestedScopes()
+    {
+        var context1 = new GameObject("Context1");
+        var context2 = new GameObject("Context2");
+        try
+        {
+            var logger = new UnityLogHandler(_mockHandler);
+
+            using (logger.BeginScope(context1))
+            {
+                logger.Log(LogLevel.Information, new EventId(0), "level1", null, (s, e) => s);
+
+                using (logger.BeginScope(context2))
+                {
+                    logger.Log(LogLevel.Information, new EventId(0), "level2", null, (s, e) => s);
+                }
+
+                logger.Log(LogLevel.Information, new EventId(0), "back to level1", null, (s, e) => s);
+            }
+
+            Assert.That(_mockHandler.LoggedMessages, Has.Count.EqualTo(3));
+            Assert.That(_mockHandler.LoggedMessages[0].context, Is.SameAs(context1));
+            Assert.That(_mockHandler.LoggedMessages[1].context, Is.SameAs(context2));
+            Assert.That(_mockHandler.LoggedMessages[2].context, Is.SameAs(context1));
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(context1);
+            UnityEngine.Object.DestroyImmediate(context2);
+        }
+    }
+
+    [Test]
+    public void BeginScope_WithUnityObject_ReturnsDifferentInstanceThanNullScope()
+    {
+        var contextObject = new GameObject("TestContext");
+        try
+        {
+            var logger = new UnityLogHandler(_mockHandler);
+
+            using var nullScope = logger.BeginScope("string state");
+            using var contextScope = logger.BeginScope(contextObject);
+
+            Assert.That(contextScope, Is.Not.SameAs(nullScope));
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(contextObject);
+        }
     }
 
     #endregion

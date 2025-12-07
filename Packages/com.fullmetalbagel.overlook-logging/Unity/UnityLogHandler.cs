@@ -11,7 +11,7 @@ public sealed class UnityLogHandler : ILogger
     private readonly ILogHandler _logHandler;
     private readonly string _categoryName;
     private readonly LogLevel _minLevel;
-    private readonly UnityEngine.Object? _context;
+    private UnityEngine.Object? _context;
 
     /// <summary>
     /// Creates a new instance of <see cref="UnityLogHandler"/>.
@@ -79,6 +79,10 @@ public sealed class UnityLogHandler : ILogger
     /// <inheritdoc />
     public IDisposable? BeginScope<TState>(TState state) where TState : notnull
     {
+        if (state is UnityEngine.Object unityObject)
+        {
+            return new ContextScope(this, unityObject);
+        }
         return NullScope.Instance;
     }
 
@@ -141,6 +145,27 @@ public sealed class UnityLogHandler : ILogger
 
         public void Dispose()
         {
+        }
+    }
+
+    /// <summary>
+    /// A scope that temporarily overrides the Unity Object context.
+    /// </summary>
+    private sealed class ContextScope : IDisposable
+    {
+        private readonly UnityLogHandler _handler;
+        private readonly UnityEngine.Object? _previousContext;
+
+        public ContextScope(UnityLogHandler handler, UnityEngine.Object newContext)
+        {
+            _handler = handler;
+            _previousContext = handler._context;
+            handler._context = newContext;
+        }
+
+        public void Dispose()
+        {
+            _handler._context = _previousContext;
         }
     }
 }

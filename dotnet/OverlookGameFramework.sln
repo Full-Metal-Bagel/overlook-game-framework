@@ -14,7 +14,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Overlook.Analyzers", "Overl
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Overlook.Analyzer.Test", "Overlook.Analyzer.Test\Overlook.Analyzer.Test.csproj", "{D0283585-69BA-4ED0-B695-F8EF754CE39C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Extensions.Logging.Generators", "Microsoft.Extensions.Logging.Generators.Roslyn\Microsoft.Extensions.Logging.Generators.csproj", "{B5C1E1B2-19BA-4745-80E8-F09C1862212F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Extensions.Logging.Generators.Unity3D", "Microsoft.Extensions.Logging.Generators.Roslyn\Microsoft.Extensions.Logging.Generators.Unity3D.csproj", "{B5C1E1B2-19BA-4745-80E8-F09C1862212F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
