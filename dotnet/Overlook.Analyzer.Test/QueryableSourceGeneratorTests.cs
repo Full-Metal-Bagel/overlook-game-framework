@@ -379,4 +379,72 @@ public partial record struct SimpleEntity;
         Assert.IsTrue(generatedCode.Contains("public static SimpleEntity.ReadOnly AsSimpleEntityReadOnly"),
             "Should generate AsSimpleEntityReadOnly extension method");
     }
+
+    [TestMethod]
+    public void GeneratesToStringOverride()
+    {
+        const string source = @"
+using Overlook.Ecs;
+
+namespace TestNamespace;
+
+public struct Position { public float X; }
+
+[QueryComponent(typeof(Position))]
+public partial record struct TestEntity;
+";
+
+        var (generatedCode, diagnostics) = RunGenerator(source);
+
+        // Verify no errors
+        Assert.AreEqual(0, diagnostics.Count(d => d.Severity == DiagnosticSeverity.Error));
+
+        // Verify ToString is generated in outer type
+        Assert.IsTrue(generatedCode.Contains("public override string ToString()"),
+            "Should generate ToString method in outer type");
+        Assert.IsTrue(generatedCode.Contains("new global::System.Text.StringBuilder(\"TestEntity { \")"),
+            "Should start with type name");
+        Assert.IsTrue(generatedCode.Contains("builder.Append(\"Position = \")"),
+            "Should print Position component without ? marker for required component");
+        Assert.IsTrue(generatedCode.Contains("builder.Append(Position)"),
+            "Should append Position value");
+
+        // Verify ReadOnly struct overrides ToString to use proper type name
+        Assert.IsTrue(generatedCode.Contains("public override string ToString() => Entity.ToString().Insert(nameof(TestEntity).Length, \".ReadOnly\")"),
+            "Should generate ToString override in ReadOnly struct with proper type name");
+    }
+
+    [TestMethod]
+    public void GeneratesToStringWithOptionalMarker()
+    {
+        const string source = @"
+using Overlook.Ecs;
+
+namespace TestNamespace;
+
+public struct Position { public float X; }
+public struct Health { public float Value; }
+
+[QueryComponent(typeof(Position))]
+[QueryComponent(typeof(Health), IsOptional = true)]
+public partial record struct TestEntity;
+";
+
+        var (generatedCode, diagnostics) = RunGenerator(source);
+
+        // Verify no errors
+        Assert.AreEqual(0, diagnostics.Count(d => d.Severity == DiagnosticSeverity.Error));
+
+        // Verify required component doesn't have ? marker
+        Assert.IsTrue(generatedCode.Contains("builder.Append(\"Position = \")"),
+            "Required component should not have ? marker");
+
+        // Verify optional component has ? marker
+        Assert.IsTrue(generatedCode.Contains("builder.Append(\", Health? = \")"),
+            "Optional component should have ? marker");
+
+        // Verify optional component prints <none> or value
+        Assert.IsTrue(generatedCode.Contains("builder.Append(HasHealth ? TryGetHealth() : \"<none>\")"),
+            "Optional component should print <none> when missing");
+    }
 }

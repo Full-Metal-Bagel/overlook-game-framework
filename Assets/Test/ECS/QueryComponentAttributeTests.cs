@@ -625,6 +625,84 @@ namespace Overlook.Ecs.Tests
         }
 
         #endregion
+
+        #region ToString Tests
+
+        [Test]
+        public void ToString_ReturnsEntityString()
+        {
+            // Arrange
+            var worldEntity = EntityBuilder.Create().Add(new Position(1, 2)).Build(_world);
+            var testEntity = worldEntity.AsTestEntityWithSingleComponent();
+
+            // Act
+            var result = testEntity.ToString();
+
+            // Assert - Should contain the type name and component properties
+            Assert.That(result, Does.StartWith(nameof(TestEntityWithSingleComponent)));
+            Assert.That(result, Does.Contain("Position = Position { X = 1, Y = 2 }"));
+        }
+
+        [Test]
+        public void ReadOnly_ToString_ReturnsEntityString()
+        {
+            // Arrange
+            var worldEntity = EntityBuilder.Create().Add(new Position(1, 2)).Build(_world);
+            var testEntity = worldEntity.AsTestEntityWithSingleComponent();
+            var readOnly = testEntity.AsReadOnly;
+
+            // Act
+            var result = readOnly.ToString();
+
+            // Assert - ReadOnly ToString should have ".ReadOnly" after the type name
+            var expectedTypeName = nameof(TestEntityWithSingleComponent) + ".ReadOnly";
+            Assert.That(result, Does.StartWith(expectedTypeName));
+            Assert.That(result, Does.Contain("Position = Position { X = 1, Y = 2 }"));
+        }
+
+        [Test]
+        public void ToString_MultipleComponents_ReturnsEntityString()
+        {
+            // Arrange
+            var worldEntity = EntityBuilder.Create()
+                .Add(new Position(10, 20))
+                .Add(new Velocity(30, 40))
+                .Build(_world);
+            var testEntity = worldEntity.AsTestEntityWithMultipleComponents();
+
+            // Act
+            var result = testEntity.ToString();
+
+            // Assert - Should contain the type name and component properties
+            Assert.That(result, Does.StartWith(nameof(TestEntityWithMultipleComponents)));
+            Assert.That(result, Does.Contain("Position = Position { X = 10, Y = 20 }"));
+            Assert.That(result, Does.Contain("Velocity = Velocity { X = 30, Y = 40 }"));
+            Assert.That(result, Does.Contain("Health? = <none>"));
+        }
+
+        [Test]
+        public void ReadOnly_ToString_MultipleComponents_ReturnsEntityString()
+        {
+            // Arrange
+            var worldEntity = EntityBuilder.Create()
+                .Add(new Position(10, 20))
+                .Add(new Velocity(30, 40))
+                .Build(_world);
+            var testEntity = worldEntity.AsTestEntityWithMultipleComponents();
+            var readOnly = testEntity.AsReadOnly;
+
+            // Act
+            var result = readOnly.ToString();
+
+            // Assert - ReadOnly ToString should have ".ReadOnly" after the type name
+            var expectedTypeName = nameof(TestEntityWithMultipleComponents) + ".ReadOnly";
+            Assert.That(result, Does.StartWith(expectedTypeName));
+            Assert.That(result, Does.Contain("Position = Position { X = 10, Y = 20 }"));
+            Assert.That(result, Does.Contain("Velocity = Velocity { X = 30, Y = 40 }"));
+            Assert.That(result, Does.Contain("Health? = <none>"));
+        }
+
+        #endregion
     }
 
     #endregion

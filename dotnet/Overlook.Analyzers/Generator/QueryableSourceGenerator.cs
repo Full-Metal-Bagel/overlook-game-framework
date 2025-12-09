@@ -314,6 +314,9 @@ public class QueryableSourceGenerator : IIncrementalGenerator
         sb.AppendLine("    public ReadOnly AsReadOnly => new(this);");
         sb.AppendLine();
 
+        // Generate ToString override for the outer type
+        GenerateToString(sb, typeName, components);
+
         // Generate ReadOnly nested struct
         GenerateReadOnlyStruct(sb, typeName, components, pureMembers);
 
@@ -430,6 +433,10 @@ public class QueryableSourceGenerator : IIncrementalGenerator
 
         sb.AppendLine("        public static implicit operator global::Overlook.Ecs.Entity(ReadOnly entity) => entity.Entity;");
         sb.AppendLine("        public static implicit operator global::Overlook.Ecs.WorldEntity(ReadOnly entity) => entity.Entity;");
+        sb.AppendLine();
+
+        // Override ToString to use proper type name
+        sb.AppendLine($"        public override string ToString() => Entity.ToString().Insert(nameof({typeName}).Length, \".ReadOnly\");");
 
         sb.AppendLine("    }");
         sb.AppendLine();
@@ -454,6 +461,38 @@ public class QueryableSourceGenerator : IIncrementalGenerator
                 sb.AppendLine();
             }
         }
+    }
+
+    private static void GenerateToString(StringBuilder sb, string typeName, List<ComponentInfo> components)
+    {
+        sb.AppendLine("    public override string ToString()");
+        sb.AppendLine("    {");
+        sb.AppendLine($"        var builder = new global::System.Text.StringBuilder(\"{typeName} {{ \");");
+
+        var printableComponents = components.Where(c => !c.QueryOnly).ToList();
+        for (int i = 0; i < printableComponents.Count; i++)
+        {
+            var component = printableComponents[i];
+            var propertyName = component.PropertyName;
+            var optionalMarker = component.IsOptional ? "?" : "";
+            var separator = i > 0 ? ", " : "";
+
+            sb.AppendLine($"        builder.Append(\"{separator}{propertyName}{optionalMarker} = \");");
+
+            if (component.IsOptional)
+            {
+                sb.AppendLine($"        builder.Append(Has{propertyName} ? TryGet{propertyName}() : \"<none>\");");
+            }
+            else
+            {
+                sb.AppendLine($"        builder.Append({propertyName});");
+            }
+        }
+
+        sb.AppendLine("        builder.Append(\" }\");");
+        sb.AppendLine("        return builder.ToString();");
+        sb.AppendLine("    }");
+        sb.AppendLine();
     }
 
     private static void GenerateQueryStruct(StringBuilder sb, string typeName, bool isReadOnly)
