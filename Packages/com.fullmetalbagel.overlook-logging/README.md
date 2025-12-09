@@ -4,7 +4,7 @@ Microsoft.Extensions.Logging abstractions for Unity. Provides `ILogger`, `LogLev
 
 ## Installation
 
-Add the package to your Unity project via the Package Manager using the git URL:
+### Unity Package Manager
 
 ```
 https://github.com/fullmetalbagel/overlook-game-framework.git?path=Packages/com.fullmetalbagel.overlook-logging
@@ -253,5 +253,7 @@ var service = new GameService(new UnityLogHandler<GameService>());
 ```
 
 ## License
+
+MIT License - see the [LICENSE](../../LICENSE) file for details.
 
 This package includes code from the .NET Foundation licensed under the MIT license.

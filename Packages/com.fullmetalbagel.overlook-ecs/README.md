@@ -1,14 +1,28 @@
 # Overlook ECS
 
-`Overlook ECS` is a high-performance Entity Component System (ECS) designed for the Overlook Game Framework, built with C# and optimized for Unity development workflows.
+High-performance Entity Component System (ECS) for the Overlook Game Framework. Built with C# and optimized for Unity development workflows using data-oriented design principles.
+
+## Installation
+
+### Unity Package Manager
+
+```
+https://github.com/fullmetalbagel/overlook-game-framework.git?path=Packages/com.fullmetalbagel.overlook-ecs
+```
+
+### NuGet
+
+```bash
+dotnet add package Overlook.Ecs
+```
 
 ## Overview
 
 Entity Component System (ECS) is an architectural pattern that emphasizes data-oriented design by separating data (Components) from identity (Entities) and behavior (Systems). This approach promotes:
 
-*   **Improved Performance:** By organizing data in a way that's cache-friendly (often through archetypes).
-*   **Enhanced Code Reusability:** Components and systems can be more modular and independent.
-*   **Better Data Organization:** Clear separation of concerns makes complex game states easier to manage.
+*   **Improved Performance:** Cache-friendly data layout through archetype-based storage
+*   **Enhanced Code Reusability:** Components and systems are modular and independent
+*   **Better Data Organization:** Clear separation of concerns for complex game states
 
 `Overlook.Ecs` provides a robust implementation of these core principles.
 
@@ -176,4 +190,8 @@ This README provides a foundational understanding of `Overlook.Ecs`. For more in
 
 ## Acknowledgments
 
-- modified from [RelEcs](https://github.com/Byteron/RelEcs)
+- Modified from [RelEcs](https://github.com/Byteron/RelEcs)
+
+## License
+
+MIT License - see the [LICENSE](../../LICENSE) file for details.

@@ -1,15 +1,85 @@
 # Overlook Core
 
-`Overlook Core` is a foundational package for the Overlook Game Framework. It provides essential low-level utilities, data structures, and extensions designed to enhance game development within the Unity environment.
+Foundation package for the Overlook Game Framework. Provides essential low-level utilities, data structures, and C# extensions for Unity and .NET applications.
 
-## Key Features
+## Installation
 
-*   **Concurrent Collections:** Thread-safe collections like `ConcurrentHashSet` and `ConcurrentQueue` for robust multi-threaded operations.
-*   **Debugging Utilities:** Custom `Debug` class for enhanced logging and debugging capabilities.
-*   **Unmanaged Type Extensions:** Helper methods for working with unmanaged types, potentially for performance-critical scenarios.
-*   **Reference Equality Comparer:** A utility for comparing objects based on their reference, rather than value.
-*   **Compiler & Language Features:** Includes support for modern C# features like `IsExternalInit` for init-only properties and attributes like `DisallowDefaultConstructor`.
+### Unity Package Manager
 
-## Purpose
+```
+https://github.com/fullmetalbagel/overlook-game-framework.git?path=Packages/com.fullmetalbagel.overlook-core
+```
 
-This package serves as the bedrock for other Overlook Game Framework modules, offering a common set of tools and functionalities to ensure consistency, performance, and reliability across the framework.
+### NuGet
+
+```bash
+dotnet add package Overlook.Core
+```
+
+## Features
+
+### Concurrent Collections
+
+Thread-safe collections for multi-threaded game systems:
+
+```csharp
+// Thread-safe hash set
+var activeEntities = new ConcurrentHashSet<Entity>();
+activeEntities.Add(entity);
+if (activeEntities.Contains(entity)) { ... }
+
+// Thread-safe queue for job results
+var resultQueue = new ConcurrentQueue<JobResult>();
+resultQueue.Enqueue(result);
+while (resultQueue.TryDequeue(out var item)) { ... }
+```
+
+### Debugging Utilities
+
+Enhanced debugging with conditional compilation support:
+
+```csharp
+// Only executes in Debug builds
+Debug.Assert(entity.IsValid, "Entity must be valid");
+Debug.Log("Processing complete");
+```
+
+### Circular Buffer
+
+High-performance circular buffer for streaming data:
+
+```csharp
+var buffer = new CircularBuffer<float>(capacity: 256);
+buffer.Push(value);
+ref var oldest = ref buffer.Peek();
+buffer.Pop();
+```
+
+### Type Utilities
+
+Helper methods for working with unmanaged types and memory:
+
+```csharp
+// Reference equality comparison (avoids boxing)
+var comparer = new ReferenceEqualityComparer<MyClass>();
+
+// Unmanaged type extensions for direct memory access
+var size = UnmanagedExtensions.SizeOf<MyStruct>();
+```
+
+### Modern C# Support
+
+Includes polyfills for modern C# features in older Unity versions:
+
+- `IsExternalInit` for init-only properties
+- `DisallowDefaultConstructorAttribute` for struct validation
+- `CallerArgumentExpressionAttribute` for better error messages
+
+## Dependencies
+
+- Unity 2022.3 or later (for Unity)
+- .NET Standard 2.1 / .NET 6.0+ (for standalone .NET)
+
+## License
+
+MIT License - see the [LICENSE](../../LICENSE) file for details.
