@@ -18,8 +18,17 @@ namespace Overlook.Analyzers;
 /// </summary>
 [SuppressMessage("MicrosoftCodeAnalysisReleaseTracking", "RS2008:Enable analyzer release tracking")]
 [Generator]
-public class QueryableSourceGenerator : IIncrementalGenerator
+public sealed class QueryableSourceGenerator : IIncrementalGenerator
 {
+    private static readonly DiagnosticDescriptor MissingPartialModifierDiagnostic = new(
+        id: "OVL005",
+        title: "Type with QueryComponent must be partial",
+        messageFormat: "Type '{0}' has QueryComponent attribute(s) but is not declared as partial. Add the 'partial' modifier to enable code generation.",
+        category: "Overlook.Ecs",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "Types decorated with [QueryComponent] must be declared as partial so the source generator can extend them with additional members.");
+
     private sealed class ComponentInfo
     {
         public ITypeSymbol? ComponentType { get; set; }
@@ -40,6 +49,7 @@ public class QueryableSourceGenerator : IIncrementalGenerator
         public List<PureMemberInfo> PureMembers { get; set; } = new();
         public TypeDeclarationSyntax TypeDeclaration { get; set; } = null!;
         public bool HasToString { get; set; }
+        public bool IsPartial { get; set; }
     }
 
     private enum PureMemberKind
@@ -104,6 +114,9 @@ public class QueryableSourceGenerator : IIncrementalGenerator
         // Check if type already has ToString method
         var hasToString = HasToStringMethod(typeSymbol);
 
+        // Check if type is partial
+        var isPartial = typeDeclaration.Modifiers.Any(SyntaxKind.PartialKeyword);
+
         return new TypeWithComponents
         {
             TypeSymbol = typeSymbol,
@@ -111,7 +124,8 @@ public class QueryableSourceGenerator : IIncrementalGenerator
             TypeDeclaration = typeDeclaration,
             PureMembers = pureMembers,
             RequiredComponents = requiredComponents,
-            HasToString = hasToString
+            HasToString = hasToString,
+            IsPartial = isPartial
         };
     }
 
@@ -294,6 +308,17 @@ public class QueryableSourceGenerator : IIncrementalGenerator
 
     private static void Execute(SourceProductionContext context, TypeWithComponents typeInfo)
     {
+        // Check if type is partial - report diagnostic and skip generation if not
+        if (!typeInfo.IsPartial)
+        {
+            var diagnostic = Diagnostic.Create(
+                MissingPartialModifierDiagnostic,
+                typeInfo.TypeDeclaration.Identifier.GetLocation(),
+                typeInfo.TypeSymbol.Name);
+            context.ReportDiagnostic(diagnostic);
+            return;
+        }
+
         var source = GenerateQueryableEntity(typeInfo);
 
         if (!string.IsNullOrEmpty(source))

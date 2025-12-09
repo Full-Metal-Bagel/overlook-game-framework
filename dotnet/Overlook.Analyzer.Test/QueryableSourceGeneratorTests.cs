@@ -575,4 +575,117 @@ public partial record struct PlayerEntity;
         Assert.IsTrue(generatedCode.Contains("Health = "),
             "Regular component should appear in ToString");
     }
+
+    [TestMethod]
+    public void ReportsErrorForNonPartialType()
+    {
+        const string source = @"
+using Overlook.Ecs;
+
+namespace TestNamespace;
+
+public struct Position { public float X; }
+
+[QueryComponent(typeof(Position))]
+public record struct NonPartialEntity;
+";
+
+        var (generatedCode, diagnostics) = RunGenerator(source);
+
+        // Verify error diagnostic is reported
+        var errors = diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
+        Assert.AreEqual(1, errors.Count, "Should report exactly one error for non-partial type");
+
+        var error = errors[0];
+        Assert.AreEqual("OVL005", error.Id, "Should report OVL005 diagnostic");
+        Assert.IsTrue(error.GetMessage().Contains("NonPartialEntity"),
+            "Error message should mention the type name");
+        Assert.IsTrue(error.GetMessage().Contains("partial"),
+            "Error message should mention 'partial' modifier");
+
+        // Verify no code is generated
+        Assert.IsTrue(string.IsNullOrEmpty(generatedCode),
+            "Should not generate code for non-partial type");
+    }
+
+    [TestMethod]
+    public void ReportsErrorForNonPartialStruct()
+    {
+        const string source = @"
+using Overlook.Ecs;
+
+namespace TestNamespace;
+
+public struct Position { public float X; }
+
+[QueryComponent(typeof(Position))]
+public struct NonPartialStruct;
+";
+
+        var (generatedCode, diagnostics) = RunGenerator(source);
+
+        // Verify error diagnostic is reported
+        var errors = diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
+        Assert.AreEqual(1, errors.Count, "Should report exactly one error for non-partial struct");
+
+        var error = errors[0];
+        Assert.AreEqual("OVL005", error.Id, "Should report OVL005 diagnostic");
+
+        // Verify no code is generated
+        Assert.IsTrue(string.IsNullOrEmpty(generatedCode),
+            "Should not generate code for non-partial struct");
+    }
+
+    [TestMethod]
+    public void ReportsErrorForNonPartialClass()
+    {
+        const string source = @"
+using Overlook.Ecs;
+
+namespace TestNamespace;
+
+public struct Position { public float X; }
+
+[QueryComponent(typeof(Position))]
+public class NonPartialClass { }
+";
+
+        var (generatedCode, diagnostics) = RunGenerator(source);
+
+        // Verify error diagnostic is reported
+        var errors = diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
+        Assert.AreEqual(1, errors.Count, "Should report exactly one error for non-partial class");
+
+        var error = errors[0];
+        Assert.AreEqual("OVL005", error.Id, "Should report OVL005 diagnostic");
+
+        // Verify no code is generated
+        Assert.IsTrue(string.IsNullOrEmpty(generatedCode),
+            "Should not generate code for non-partial class");
+    }
+
+    [TestMethod]
+    public void NoErrorForPartialType()
+    {
+        const string source = @"
+using Overlook.Ecs;
+
+namespace TestNamespace;
+
+public struct Position { public float X; }
+
+[QueryComponent(typeof(Position))]
+public partial record struct PartialEntity;
+";
+
+        var (generatedCode, diagnostics) = RunGenerator(source);
+
+        // Verify no OVL005 errors
+        var ovl005Errors = diagnostics.Where(d => d.Id == "OVL005").ToList();
+        Assert.AreEqual(0, ovl005Errors.Count, "Should not report OVL005 for partial type");
+
+        // Verify code is generated
+        Assert.IsFalse(string.IsNullOrEmpty(generatedCode),
+            "Should generate code for partial type");
+    }
 }
