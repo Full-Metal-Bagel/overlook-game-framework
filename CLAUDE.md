@@ -9,12 +9,16 @@ Overlook Game Framework is a lightweight, modular game development framework for
 ## Architecture
 
 ### Package Structure
-The framework consists of four modular packages, each available as both Unity Package Manager (UPM) and NuGet packages:
+The framework consists of six modular packages with dual distribution (UPM and NuGet):
 
-1. **Overlook.Core** - Foundation utilities, concurrent collections, and debugging tools
-2. **Overlook.Pool** - Object pooling framework with thread-safe, policy-based pools
-3. **Overlook.ECS** - High-performance Entity Component System implementation
-4. **Overlook.Analyzers** - Roslyn analyzers for compile-time code quality checks
+| Package | UPM | NuGet | Description |
+|---------|-----|-------|-------------|
+| **Core** | `com.fullmetalbagel.overlook-core` | `Overlook.Core` | Foundation utilities, concurrent collections, debugging tools |
+| **Pool** | `com.fullmetalbagel.overlook-pool` | `Overlook.Pool` | Thread-safe, policy-based object pooling |
+| **ECS** | `com.fullmetalbagel.overlook-ecs` | `Overlook.Ecs` | High-performance Entity Component System |
+| **Analyzers** | `com.fullmetalbagel.overlook-analyzer` | `Overlook.Analyzers` | Roslyn analyzers (OVL001-OVL004) |
+| **Logging** | `com.fullmetalbagel.overlook-logging` | N/A | Microsoft.Extensions.Logging abstractions for Unity |
+| **System** | `com.fullmetalbagel.overlook-system` | `Overlook.System` | System management and event framework |
 
 ### ECS Architecture
 
@@ -42,12 +46,14 @@ Key design patterns:
 
 ### Building the Project
 
+```bash
 # .NET solution (from repository root)
 dotnet restore dotnet/OverlookGameFramework.sln
 dotnet build dotnet/OverlookGameFramework.sln
 
 # For release builds
 dotnet build dotnet/OverlookGameFramework.sln -c Release
+```
 
 ### Running Tests
 
@@ -58,35 +64,36 @@ dotnet test dotnet/OverlookGameFramework.sln
 # Run specific test project
 dotnet test dotnet/Overlook.Ecs.Tests/Overlook.Ecs.Tests.csproj
 dotnet test dotnet/Overlook.Pool.Tests/Overlook.Pool.Tests.csproj
+dotnet test dotnet/Overlook.Core.Tests/Overlook.Core.Tests.csproj
+dotnet test dotnet/Overlook.System.Tests/Overlook.System.Tests.csproj
 dotnet test dotnet/Overlook.Analyzer.Test/Overlook.Analyzer.Test.csproj
 
 # Run a single test by name
 dotnet test --filter "FullyQualifiedName~TestClassName.TestMethodName"
 
-# Unity tests (requires Unity installed)
-# These are typically run via Unity Test Runner in the Unity Editor
-# Located in: Assets/Test/ECS/ and Assets/Test/Pool/
+# Unity tests - run via Unity Test Runner in the Unity Editor
+# Located in: Assets/Test/{Core,ECS,Pool,System,Logging}/
 ```
 
 ### Package Management
 
 The project uses dual distribution:
-- **Unity packages**: Located in `/Packages/com.fullmetalbagel.overlook-*`
-- **.NET packages**: Located in `/dotnet/Overlook.*`
+- **Unity packages**: `/Packages/com.fullmetalbagel.overlook-*`
+- **.NET packages**: `/dotnet/Overlook.*`
 
 Version synchronization is critical - update both `package.json` and `.csproj` files when changing versions.
 
-### Debugging
+## Code Style
 
-Enable debug features by building in Debug configuration:
-```bash
-dotnet build -c Debug
-```
+See `.gemini/styleguide.md` for comprehensive coding standards. Key points:
 
-This enables:
-- `OVERLOOK_DEBUG` symbol for assertions and leak tracking
-- Detailed logging in object pools
-- Additional runtime checks
+- **C# 9.0+** with file-scoped namespaces
+- **Naming**: `_camelCase` (private), `s_camelCase` (static private), `PascalCase` (public)
+- **Sealed classes by default** unless inheritance is intended
+- **Performance-first**: Use `Span<T>`, unsafe code where justified, no LINQ in hot paths
+- **No regions** - organize code logically
+- **XML documentation required** for all public APIs
+- **Test naming**: `MethodName_Scenario_ExpectedBehavior`
 
 ## Code Patterns and Conventions
 
@@ -132,12 +139,10 @@ list.Add(2);
 
 ## CI/CD Workflows
 
-The project uses GitHub Actions for automated testing and publishing:
-
 - **dotnet-unit-test.yml**: Runs .NET tests on Ubuntu, macOS, and Windows
 - **unity-test.yml**: Runs Unity tests with Mono2x and IL2CPP backends
 - **publish-upm-package.yml**: Publishes UPM packages to GitHub Releases
-- **publish-nuget-package.yml**: Publishes NuGet packages to nuget.org
+- **publish-nuget-package.yml**: Publishes NuGet packages (manual workflow_dispatch only)
 
 ## Important Files and Locations
 
@@ -153,11 +158,24 @@ The project uses GitHub Actions for automated testing and publishing:
   - .NET: `dotnet/Overlook.*.Tests/`
 
 - **Build Configuration**:
-  - `dotnet/Directory.Build.props` - Common build settings
+  - `dotnet/Directory.Build.props` - Common build settings, defines `OVERLOOK_DEBUG` for Debug config
   - `dotnet/Directory.Packages.props` - Central package management
+
+- **Style Guide**: `.gemini/styleguide.md` - Comprehensive coding standards
 
 ## Compilation Symbols
 
-- `OVERLOOK_DEBUG`: Enables debug assertions and leak tracking
-- `OVERLOOK_ECS_USE_UNITY_COLLECTION`: Switches to Unity Collections backend
-- `UNITY_5_3_OR_NEWER`: Conditional Unity API usage
+- `OVERLOOK_DEBUG`: Enables debug assertions and leak tracking (auto-defined in Debug config)
+- `OVERLOOK_ECS_USE_UNITY_COLLECTION`: Switches to Unity Collections backend (NativeBitArrayMask)
+- `UNITY_5_3_OR_NEWER` / `UNITY_2020_1_OR_NEWER`: Conditional Unity API usage
+
+## Analyzer Diagnostics
+
+| ID | Description |
+|----|-------------|
+| OVL001 | Missing initialization - Property must be initialized in struct |
+| OVL002 | Duplicate TypeGuid detected |
+| OVL003 | Duplicate MethodGuid detected |
+| OVL004 | Struct must be instantiated with parameters |
+
+See `Packages/com.fullmetalbagel.overlook-analyzer/DIAGNOSTIC_IDS.md` for details

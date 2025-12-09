@@ -28,15 +28,16 @@ Overlook.Pool is a high-performance, flexible, and easy-to-use object pooling fr
 ## Installation
 
 ### Unity Package Manager
-1.  Open the Unity Package Manager (Window > Package Manager).
-2.  Click the "+" button in the top-left corner.
-3.  Select "Add package from git URL..."
-4.  Enter the Git URL for this repository. (Assuming this will be hosted on Git)
-    *Alternatively, if you have it as a local package:*
-5.  Select "Add package from disk..."
-6.  Navigate to the `package.json` file within the `Packages/com.fullmetalbagel.overlook-pool` directory.
 
-*(If not used as a Unity package, you can include the source code directly or build it as a DLL.)*
+```
+https://github.com/fullmetalbagel/overlook-game-framework.git?path=Packages/com.fullmetalbagel.overlook-pool
+```
+
+### NuGet
+
+```bash
+dotnet add package Overlook.Pool
+```
 
 ## Core Components
 
@@ -325,10 +326,6 @@ These `ref struct` types are designed to provide an `IDisposable`-like pattern f
 -   **`PooledMemoryList<T>`** and **`PooledMemoryDictionary<TKey, TValue>`**
     -   These are similar to `PooledList` and `PooledDictionary` but are named to indicate they are often used in contexts dealing with memory management or byte buffers (though they pool standard `List<T>` and `Dictionary<TKey, TValue>`). They also feature parameterless constructors and constructors accepting an initial capacity.
 
-## Contributing
-
-Contributions are welcome! Please feel free to submit issues or pull requests. (If applicable)
-
 ## License
 
-This project is licensed under the [XYZ License] - see the LICENSE.md file for details. (Replace XYZ with your chosen license, e.g., MIT)
+MIT License - see the [LICENSE](../../LICENSE) file for details.
