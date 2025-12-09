@@ -6,27 +6,12 @@
     public class CC : C, II {}
     public struct S : I {}
 
-    public struct Position
-    {
-        public int X { get; }
-        public int Y { get; }
-        public Position(int x, int y) { X = x; Y = y; }
-    }
-
-    public struct Velocity
-    {
-        public int X { get; }
-        public int Y { get; }
-        public Velocity(int x, int y) { X = x; Y = y; }
-    }
+    public readonly record struct Position(int X = 0, int Y = 0);
+    public readonly record struct Velocity(int X = 0, int Y = 0);
 
     public struct SomeNonExistentComponent { }
 
-    public struct Health
-    {
-        public int Value;
-        public Health(int value) { Value = value; }
-    }
+    public readonly record struct Health(int Value = 0);
 
     public struct UnmanagedComponent
     {
