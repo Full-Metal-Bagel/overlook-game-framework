@@ -399,19 +399,23 @@ public partial record struct TestEntity;
         // Verify no errors
         Assert.AreEqual(0, diagnostics.Count(d => d.Severity == DiagnosticSeverity.Error));
 
-        // Verify ToString is generated in outer type
+        // Verify ToString is generated in outer type with capacity estimation
         Assert.IsTrue(generatedCode.Contains("public override string ToString()"),
             "Should generate ToString method in outer type");
-        Assert.IsTrue(generatedCode.Contains("new global::System.Text.StringBuilder(\"TestEntity { \")"),
-            "Should start with type name");
-        Assert.IsTrue(generatedCode.Contains("builder.Append(\"Position = \")"),
-            "Should print Position component without ? marker for required component");
+        Assert.IsTrue(generatedCode.Contains("new global::System.Text.StringBuilder("),
+            "Should use StringBuilder with capacity");
+
+        // Verify format includes entity ID first
+        Assert.IsTrue(generatedCode.Contains("builder.Append(\"TestEntity { Id = \")"),
+            "Should start with type name and Id");
+        Assert.IsTrue(generatedCode.Contains("builder.Append(Entity.Entity.Identity)"),
+            "Should append entity identity");
+
+        // Verify component is printed with comma separator after Id
+        Assert.IsTrue(generatedCode.Contains("builder.Append(\", Position = \")"),
+            "Should print Position component with comma separator");
         Assert.IsTrue(generatedCode.Contains("builder.Append(Position)"),
             "Should append Position value");
-
-        // Verify ReadOnly struct overrides ToString to use proper type name
-        Assert.IsTrue(generatedCode.Contains("public override string ToString() => Entity.ToString().Insert(nameof(TestEntity).Length, \".ReadOnly\")"),
-            "Should generate ToString override in ReadOnly struct with proper type name");
     }
 
     [TestMethod]
@@ -435,8 +439,8 @@ public partial record struct TestEntity;
         // Verify no errors
         Assert.AreEqual(0, diagnostics.Count(d => d.Severity == DiagnosticSeverity.Error));
 
-        // Verify required component doesn't have ? marker
-        Assert.IsTrue(generatedCode.Contains("builder.Append(\"Position = \")"),
+        // Verify required component doesn't have ? marker (comes after Id with comma)
+        Assert.IsTrue(generatedCode.Contains("builder.Append(\", Position = \")"),
             "Required component should not have ? marker");
 
         // Verify optional component has ? marker
@@ -446,5 +450,129 @@ public partial record struct TestEntity;
         // Verify optional component prints <none> or value
         Assert.IsTrue(generatedCode.Contains("builder.Append(HasHealth ? TryGetHealth() : \"<none>\")"),
             "Optional component should print <none> when missing");
+    }
+
+    [TestMethod]
+    public void DoesNotGenerateToStringWhenTypeAlreadyHasOne()
+    {
+        const string source = @"
+using Overlook.Ecs;
+
+namespace TestNamespace;
+
+public struct Position { public float X; }
+
+[QueryComponent(typeof(Position))]
+public partial record struct TestEntity
+{
+    public override string ToString() => ""Custom ToString"";
+}
+";
+
+        var (generatedCode, diagnostics) = RunGenerator(source);
+
+        // Verify no errors
+        Assert.AreEqual(0, diagnostics.Count(d => d.Severity == DiagnosticSeverity.Error),
+            $"Expected no errors but got: {string.Join(", ", diagnostics.Select(d => d.GetMessage()))}");
+
+        // Verify ToString is NOT generated in outer type (only one occurrence should exist - in ReadOnly)
+        var toStringCount = System.Text.RegularExpressions.Regex.Matches(generatedCode, @"public override string ToString\(\)").Count;
+        Assert.AreEqual(1, toStringCount,
+            "Should only have one ToString (in ReadOnly struct), not generate one for outer type");
+
+        // Verify ReadOnly struct falls back to string manipulation since outer type has custom ToString
+        Assert.IsTrue(generatedCode.Contains("Entity.ToString().Insert(nameof(TestEntity).Length, \".ReadOnly\")"),
+            "ReadOnly struct should use string manipulation when outer type has custom ToString");
+    }
+
+    [TestMethod]
+    public void GeneratesProperToStringForReadOnlyStruct()
+    {
+        const string source = @"
+using Overlook.Ecs;
+
+namespace TestNamespace;
+
+public struct Position { public float X; }
+public struct Velocity { public float Y; }
+
+[QueryComponent(typeof(Position))]
+[QueryComponent(typeof(Velocity))]
+public partial record struct TestEntity;
+";
+
+        var (generatedCode, diagnostics) = RunGenerator(source);
+
+        // Verify no errors
+        Assert.AreEqual(0, diagnostics.Count(d => d.Severity == DiagnosticSeverity.Error));
+
+        // Verify ReadOnly struct has proper ToString with its own format
+        Assert.IsTrue(generatedCode.Contains("builder.Append(\"TestEntity.ReadOnly { Id = \")"),
+            "ReadOnly struct should have proper ToString with its own type name");
+
+        // Verify ReadOnly struct accesses entity through Entity.Entity path
+        Assert.IsTrue(generatedCode.Contains("builder.Append(Entity.Entity.Entity.Identity)"),
+            "ReadOnly struct should access identity through Entity.Entity.Entity.Identity path");
+    }
+
+    [TestMethod]
+    public void ToStringCapacityEstimation()
+    {
+        const string source = @"
+using Overlook.Ecs;
+
+namespace TestNamespace;
+
+public struct A { public int Value; }
+public struct B { public int Value; }
+public struct C { public int Value; }
+
+[QueryComponent(typeof(A))]
+[QueryComponent(typeof(B))]
+[QueryComponent(typeof(C))]
+public partial record struct MultiComponentEntity;
+";
+
+        var (generatedCode, diagnostics) = RunGenerator(source);
+
+        // Verify no errors
+        Assert.AreEqual(0, diagnostics.Count(d => d.Severity == DiagnosticSeverity.Error));
+
+        // Verify capacity is calculated based on component count
+        // Formula: displayName.Length + 15 + (componentCount * 45) + 3
+        // "MultiComponentEntity" = 20 chars, 3 components
+        // Expected: 20 + 15 + (3 * 45) + 3 = 173
+        Assert.IsTrue(generatedCode.Contains("new global::System.Text.StringBuilder(173)"),
+            "Should calculate StringBuilder capacity based on type name and component count");
+    }
+
+    [TestMethod]
+    public void ToStringExcludesQueryOnlyComponents()
+    {
+        const string source = @"
+using Overlook.Ecs;
+
+namespace TestNamespace;
+
+public struct TagPlayer { }
+public struct Health { public float Value; }
+
+[QueryComponent(typeof(TagPlayer), QueryOnly = true)]
+[QueryComponent(typeof(Health))]
+public partial record struct PlayerEntity;
+";
+
+        var (generatedCode, diagnostics) = RunGenerator(source);
+
+        // Verify no errors
+        Assert.AreEqual(0, diagnostics.Count(d => d.Severity == DiagnosticSeverity.Error));
+
+        // Verify QueryOnly component is NOT in ToString
+        Assert.IsFalse(generatedCode.Contains("TagPlayer = "),
+            "QueryOnly component should NOT appear in ToString");
+
+        // Verify regular component IS in ToString
+        Assert.IsTrue(generatedCode.Contains("Health = "),
+            "Regular component should appear in ToString");
     }
 }

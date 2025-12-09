@@ -39,6 +39,7 @@ public class QueryableSourceGenerator : IIncrementalGenerator
         public List<ComponentInfo> RequiredComponents { get; set; } = new();
         public List<PureMemberInfo> PureMembers { get; set; } = new();
         public TypeDeclarationSyntax TypeDeclaration { get; set; } = null!;
+        public bool HasToString { get; set; }
     }
 
     private enum PureMemberKind
@@ -100,13 +101,17 @@ public class QueryableSourceGenerator : IIncrementalGenerator
         // Compute required components (non-optional)
         var requiredComponents = components.Where(c => !c.IsOptional).ToList();
 
+        // Check if type already has ToString method
+        var hasToString = HasToStringMethod(typeSymbol);
+
         return new TypeWithComponents
         {
             TypeSymbol = typeSymbol,
             Components = components,
             TypeDeclaration = typeDeclaration,
             PureMembers = pureMembers,
-            RequiredComponents = requiredComponents
+            RequiredComponents = requiredComponents,
+            HasToString = hasToString
         };
     }
 
@@ -196,6 +201,22 @@ public class QueryableSourceGenerator : IIncrementalGenerator
         return typeSymbol.Name;
     }
 
+    private static bool HasToStringMethod(INamedTypeSymbol typeSymbol)
+    {
+        // Check if the type declares its own ToString method (not inherited from object)
+        foreach (var member in typeSymbol.GetMembers("ToString"))
+        {
+            if (member is IMethodSymbol method &&
+                method.Parameters.Length == 0 &&
+                method.DeclaredAccessibility == Accessibility.Public &&
+                !method.IsImplicitlyDeclared)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static List<PureMemberInfo> ExtractPureMembers(TypeDeclarationSyntax typeDeclaration, SemanticModel semanticModel)
     {
         var pureMembers = new List<PureMemberInfo>();
@@ -273,7 +294,7 @@ public class QueryableSourceGenerator : IIncrementalGenerator
 
     private static void Execute(SourceProductionContext context, TypeWithComponents typeInfo)
     {
-        var source = GenerateQueryableEntity(typeInfo.TypeSymbol, typeInfo.Components, typeInfo.PureMembers, typeInfo.RequiredComponents);
+        var source = GenerateQueryableEntity(typeInfo);
 
         if (!string.IsNullOrEmpty(source))
         {
@@ -282,9 +303,14 @@ public class QueryableSourceGenerator : IIncrementalGenerator
         }
     }
 
-    private static string GenerateQueryableEntity(INamedTypeSymbol typeSymbol, List<ComponentInfo> components, List<PureMemberInfo> pureMembers, List<ComponentInfo> requiredComponents)
+    private static string GenerateQueryableEntity(TypeWithComponents typeInfo)
     {
         var sb = new StringBuilder();
+        var typeSymbol = typeInfo.TypeSymbol;
+        var components = typeInfo.Components;
+        var pureMembers = typeInfo.PureMembers;
+        var requiredComponents = typeInfo.RequiredComponents;
+        var hasToString = typeInfo.HasToString;
         var namespaceName = typeSymbol.ContainingNamespace.ToDisplayString();
         var typeName = typeSymbol.Name;
 
@@ -314,11 +340,14 @@ public class QueryableSourceGenerator : IIncrementalGenerator
         sb.AppendLine("    public ReadOnly AsReadOnly => new(this);");
         sb.AppendLine();
 
-        // Generate ToString override for the outer type
-        GenerateToString(sb, typeName, components);
+        // Generate ToString override for the outer type (only if type doesn't already have one)
+        if (!hasToString)
+        {
+            GenerateToString(sb, typeName, components);
+        }
 
         // Generate ReadOnly nested struct
-        GenerateReadOnlyStruct(sb, typeName, components, pureMembers);
+        GenerateReadOnlyStruct(sb, typeName, components, pureMembers, hasToString);
 
         // Generate Query nested struct
         GenerateQueryStruct(sb, typeName, isReadOnly: false);
@@ -330,7 +359,7 @@ public class QueryableSourceGenerator : IIncrementalGenerator
         sb.AppendLine();
 
         // Generate extension methods
-        GenerateExtensionMethods(sb, namespaceName, typeName, requiredComponents);
+        GenerateExtensionMethods(sb, typeName, requiredComponents);
 
         return sb.ToString();
     }
@@ -403,7 +432,7 @@ public class QueryableSourceGenerator : IIncrementalGenerator
         }
     }
 
-    private static void GenerateReadOnlyStruct(StringBuilder sb, string typeName, List<ComponentInfo> components, List<PureMemberInfo> pureMembers)
+    private static void GenerateReadOnlyStruct(StringBuilder sb, string typeName, List<ComponentInfo> components, List<PureMemberInfo> pureMembers, bool hasToString)
     {
         sb.AppendLine($"    public readonly record struct ReadOnly({typeName} Entity)");
         sb.AppendLine("    {");
@@ -435,8 +464,17 @@ public class QueryableSourceGenerator : IIncrementalGenerator
         sb.AppendLine("        public static implicit operator global::Overlook.Ecs.WorldEntity(ReadOnly entity) => entity.Entity;");
         sb.AppendLine();
 
-        // Override ToString to use proper type name
-        sb.AppendLine($"        public override string ToString() => Entity.ToString().Insert(nameof({typeName}).Length, \".ReadOnly\");");
+        // Generate ToString for ReadOnly struct
+        if (hasToString)
+        {
+            // If outer type has custom ToString, delegate to it with type name modification
+            sb.AppendLine($"        public override string ToString() => Entity.ToString().Insert(nameof({typeName}).Length, \".ReadOnly\");");
+        }
+        else
+        {
+            // Generate proper ToString with entity ID and components
+            GenerateToString(sb, $"{typeName}.ReadOnly", components, "        ", isReadOnly: true);
+        }
 
         sb.AppendLine("    }");
         sb.AppendLine();
@@ -463,35 +501,43 @@ public class QueryableSourceGenerator : IIncrementalGenerator
         }
     }
 
-    private static void GenerateToString(StringBuilder sb, string typeName, List<ComponentInfo> components)
+    private static void GenerateToString(StringBuilder sb, string displayName, List<ComponentInfo> components, string indent = "    ", bool isReadOnly = false)
     {
-        sb.AppendLine("    public override string ToString()");
-        sb.AppendLine("    {");
-        sb.AppendLine($"        var builder = new global::System.Text.StringBuilder(\"{typeName} {{ \");");
-
         var printableComponents = components.Where(c => !c.QueryOnly).ToList();
+
+        // Estimate capacity: type name + "{ Id = " + id (~10) + per component (~45 each) + " }"
+        var estimatedCapacity = displayName.Length + 15 + (printableComponents.Count * 45) + 3;
+
+        sb.AppendLine($"{indent}public override string ToString()");
+        sb.AppendLine($"{indent}{{");
+        sb.AppendLine($"{indent}    var builder = new global::System.Text.StringBuilder({estimatedCapacity});");
+        sb.AppendLine($"{indent}    builder.Append(\"{displayName} {{ Id = \");");
+
+        // Access entity ID - for ReadOnly, go through Entity.Entity, for outer type use Entity directly
+        var entityAccess = isReadOnly ? "Entity.Entity" : "Entity";
+        sb.AppendLine($"{indent}    builder.Append({entityAccess}.Entity.Identity);");
+
         for (int i = 0; i < printableComponents.Count; i++)
         {
             var component = printableComponents[i];
             var propertyName = component.PropertyName;
             var optionalMarker = component.IsOptional ? "?" : "";
-            var separator = i > 0 ? ", " : "";
 
-            sb.AppendLine($"        builder.Append(\"{separator}{propertyName}{optionalMarker} = \");");
+            sb.AppendLine($"{indent}    builder.Append(\", {propertyName}{optionalMarker} = \");");
 
             if (component.IsOptional)
             {
-                sb.AppendLine($"        builder.Append(Has{propertyName} ? TryGet{propertyName}() : \"<none>\");");
+                sb.AppendLine($"{indent}    builder.Append(Has{propertyName} ? TryGet{propertyName}() : \"<none>\");");
             }
             else
             {
-                sb.AppendLine($"        builder.Append({propertyName});");
+                sb.AppendLine($"{indent}    builder.Append({propertyName});");
             }
         }
 
-        sb.AppendLine("        builder.Append(\" }\");");
-        sb.AppendLine("        return builder.ToString();");
-        sb.AppendLine("    }");
+        sb.AppendLine($"{indent}    builder.Append(\" }}\");");
+        sb.AppendLine($"{indent}    return builder.ToString();");
+        sb.AppendLine($"{indent}}}");
         sb.AppendLine();
     }
 
@@ -547,7 +593,7 @@ public class QueryableSourceGenerator : IIncrementalGenerator
         sb.AppendLine($"{indent});");
     }
 
-    private static void GenerateExtensionMethods(StringBuilder sb, string namespaceName, string typeName, List<ComponentInfo> requiredComponents)
+    private static void GenerateExtensionMethods(StringBuilder sb, string typeName, List<ComponentInfo> requiredComponents)
     {
         sb.AppendLine($"public static partial class {typeName}Extensions");
         sb.AppendLine("{");
